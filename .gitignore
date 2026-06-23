@@ -1,0 +1,20 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.local
+.DS_Store
+*.log
+.firebase
+.vite
+
+# TypeScript incremental build artifacts
+*.tsbuildinfo
+
+# Generated from vite.config.ts (Vite uses the .ts directly)
+vite.config.js
+vite.config.d.ts
+
+# Local IDE / Cursor config
+.cursor/

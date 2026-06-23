@@ -1,0 +1,37 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "@/lib/auth/AuthContext";
+import { ProgressProvider } from "@/lib/progress/ProgressContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Layout } from "@/components/Layout";
+import { Login } from "@/pages/Login";
+import { Signup } from "@/pages/Signup";
+import { Dashboard } from "@/pages/Dashboard";
+import { CourseMap } from "@/pages/CourseMap";
+import { LessonPlayer } from "@/pages/LessonPlayer";
+
+export function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <ProgressProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/course" element={<CourseMap />} />
+              <Route path="/lesson/:lessonId" element={<LessonPlayer />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ProgressProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}

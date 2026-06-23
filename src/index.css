@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-50: #f5f6fb;
+  --color-ink-100: #e9ebf5;
+  --color-ink-200: #cdd2e6;
+  --color-ink-300: #a6aecf;
+  --color-ink-400: #7782ad;
+  --color-ink-500: #565f8c;
+  --color-ink-600: #3f4670;
+  --color-ink-700: #2c3157;
+  --color-ink-800: #1d2140;
+  --color-ink-900: #12152c;
+  --color-ink-950: #0a0c1c;
+
+  --color-brand-50: #eef1ff;
+  --color-brand-100: #e0e5ff;
+  --color-brand-200: #c6cdff;
+  --color-brand-300: #a3aaff;
+  --color-brand-400: #7f80fb;
+  --color-brand-500: #635bf2;
+  --color-brand-600: #533ce7;
+  --color-brand-700: #472ecc;
+  --color-brand-800: #3a29a4;
+  --color-brand-900: #322982;
+
+  --color-correct: #16a34a;
+  --color-wrong: #e11d48;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink-950);
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keep interactive geometry boards from triggering page scroll/zoom on touch. */
+.jxgbox {
+  touch-action: none;
+  border-radius: 0.75rem;
+}
+
+/* MathLive field styling to match the dark theme. */
+math-field {
+  --primary: var(--color-brand-400);
+  --caret-color: var(--color-brand-300);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 1.125rem;
+}
+
+/* Hide the math keyboard toggle on devices with a precise pointer (desktop),
+   where a physical keyboard is available. Keep it on touch devices, where the
+   MathLive virtual keyboard is the only way to enter an answer. */
+@media (pointer: fine) {
+  math-field::part(virtual-keyboard-toggle) {
+    display: none;
+  }
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
