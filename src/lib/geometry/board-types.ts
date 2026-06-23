@@ -7,9 +7,14 @@
  * that labels/coordinates can update live as the learner drags points.
  */
 
-/** A live JSXGraph element/board. Kept loose on purpose; only the hook uses it. */
+/**
+ * A live JSXGraph element/board. Kept loose on purpose: JSXGraph ships no usable
+ * types and only `useJSXGraph` touches the imperative API behind these aliases.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export type JXGElement = any;
 export type JXGBoard = any;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Map of element id -> created JSXGraph element, passed to dynamic functions. */
 export type BoardRefs = Record<string, JXGElement>;

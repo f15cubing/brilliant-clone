@@ -1,4 +1,8 @@
-import type { BoardConstraint, BoardElementDef } from "@/lib/geometry/board-types";
+import type {
+  BoardConstraint,
+  BoardElementDef,
+  BoardRefs,
+} from "@/lib/geometry/board-types";
 import {
   type ParallelAngleKind,
   type ParallelVertex,
@@ -325,7 +329,7 @@ export function angleLabel(
 export function readout(
   x: number,
   y: number,
-  fn: (r: Record<string, any>) => string,
+  fn: (r: BoardRefs) => string,
   attrs: Record<string, unknown> = {},
 ): BoardElementDef {
   return {

@@ -16,5 +16,7 @@ dist-ssr
 vite.config.js
 vite.config.d.ts
 
-# Local IDE / Cursor config
+# Local IDE / Cursor / agent tooling
 .cursor/
+.agents/
+skills-lock.json
