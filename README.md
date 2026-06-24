@@ -1,8 +1,10 @@
 # Interactive Olympiad Geometry
 
+[![CI](https://github.com/f15cubing/brilliant-clone/actions/workflows/ci.yml/badge.svg)](https://github.com/f15cubing/brilliant-clone/actions/workflows/ci.yml)
+
 A Brilliant-style interactive learning app for olympiad geometry (EGMO Chapter 1: Angle Chasing). Every problem features a draggable geometric construction — drag the triangle and watch the theorem hold.
 
-> **Status:** functional MVP — one full course (5 lessons × 5 problems), three answer types, auth, and progress sync. No tests/CI yet. See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for an honest breakdown.
+> **Status:** functional MVP — one full course (5 lessons × 5 problems), three answer types, auth, and progress sync. Engineering baseline in place (lint + CI + 0 audit vulnerabilities); **automated tests are the main remaining gap**. See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for an honest breakdown.
 
 ## Documentation
 
@@ -71,7 +73,7 @@ Each `Problem` specifies:
 | `npm run build` | `tsc --noEmit && vite build` | Type-check, then bundle to `dist/` |
 | `npm run preview` | `vite preview` | Serve the production build locally |
 | `npm run deploy` | build + `firebase-tools ... deploy --only hosting` | Build and deploy to Firebase Hosting |
-| `npm run lint` | `eslint .` | ⚠️ Not yet functional — ESLint is not installed/configured (see [PROJECT_STATUS](docs/PROJECT_STATUS.md#6-current-limitations--known-gaps)) |
+| `npm run lint` | `eslint .` | Lint the project (flat config in `eslint.config.js`) |
 
 ## Build & deploy
 

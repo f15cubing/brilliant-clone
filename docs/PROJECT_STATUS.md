@@ -1,6 +1,7 @@
 # Project Status — Interactive Olympiad Geometry
 
-_Last reviewed: June 23, 2026_
+_Last reviewed: June 23, 2026 (engineering-hygiene baseline added: repo on
+GitHub, working lint, CI, `mathjs` security patch)._
 
 This document describes **what the project actually is today**: its purpose, tech
 stack, architecture, an honest feature inventory (done / partial / missing), and
@@ -38,10 +39,12 @@ The package name is `interactive-olympiad-geometry` (`package.json`), version
 | Styling | Tailwind CSS | `^4.3.1` | Via `@tailwindcss/vite` plugin (no `tailwind.config`) |
 | Interactive geometry | JSXGraph | `^1.12.2` | Imperative engine wrapped by `useJSXGraph` |
 | Math input | MathLive | `^0.105.3` | `<math-field>` web component |
-| Symbolic checking (CAS) | math.js | `^14.9.1` | Numeric-equivalence grading of algebraic answers |
+| Symbolic checking (CAS) | math.js | `^15.2.0` | Numeric-equivalence grading of algebraic answers |
 | Math rendering | KaTeX + react-katex | `^0.16.47` / `^3.1.0` | Prompts, options, explanations |
 | Auth & data | Firebase | `^11.10.0` | Email/Password Auth + Cloud Firestore |
 | Hosting | Firebase Hosting | — | Serves the Vite `dist/` build as an SPA |
+| Linting | ESLint + typescript-eslint | `^10.5.0` / `^8.62.0` | Flat config (`eslint.config.js`); React Hooks + Refresh plugins |
+| CI | GitHub Actions | — | `.github/workflows/ci.yml`: lint, type-check, build on Node 22 |
 
 ### npm scripts (`package.json`)
 
@@ -50,7 +53,7 @@ The package name is `interactive-olympiad-geometry` (`package.json`), version
 | `dev` | `vite` | Local dev server (http://localhost:5173) |
 | `build` | `tsc --noEmit && vite build` | Type-check, then bundle to `dist/` |
 | `preview` | `vite preview` | Serve the production build locally |
-| `lint` | `eslint .` | **Currently non-functional** — see Limitations |
+| `lint` | `eslint .` | Lints the project via `eslint.config.js` (passes; 2 benign `react-refresh` warnings) |
 | `deploy` | `npm run build && npx -y firebase-tools@latest deploy --only hosting` | Build + deploy hosting |
 
 ---
@@ -96,6 +99,8 @@ brilliant-clone/
 ├─ index.html
 ├─ package.json              # deps + scripts
 ├─ vite.config.ts            # React + Tailwind plugins, "@/..." alias
+├─ eslint.config.js          # flat ESLint config (TS + React Hooks/Refresh)
+├─ .github/workflows/ci.yml  # CI: lint + type-check + build (Node 22)
 ├─ tsconfig.json             # strict; "@/*" → "src/*"
 ├─ firebase.json             # Hosting (dist + SPA rewrite) + Firestore rules ref
 ├─ firestore.rules           # per-user read/write isolation
@@ -104,7 +109,7 @@ brilliant-clone/
 ├─ README.md / PRD.md / BRAINLIFT.md
 ├─ public/
 │  └─ favicon.svg
-├─ dist/                     # build output (committed/present)
+├─ dist/                     # build output (git-ignored)
 ├─ scripts/                  # (empty)
 └─ src/
    ├─ main.tsx, App.tsx, index.css
@@ -187,6 +192,14 @@ brilliant-clone/
       (`request.auth.uid == userId`).
 - [x] **Deploy path** — `firebase.json` configures Hosting (SPA rewrite to
       `index.html`) and a `deploy` script.
+- [x] **Working lint** — ESLint flat config (`eslint.config.js`); `npm run lint`
+      passes (classic Rules-of-Hooks; React Compiler rules deferred).
+- [x] **CI** — GitHub Actions (`.github/workflows/ci.yml`) runs lint,
+      type-check, and build on every push/PR; first run green.
+- [x] **Source control** — committed and pushed to a private GitHub repo, with
+      build artifacts and secrets git-ignored.
+- [x] **Dependency security** — `mathjs` upgraded to `^15.2.0`; `npm audit`
+      reports 0 vulnerabilities.
 
 ### Partial / present-but-thin ⚠️
 
@@ -204,9 +217,8 @@ brilliant-clone/
 
 ### Missing / not started ❌
 
-- [ ] **Automated tests** — no test runner, no test files, no coverage.
-- [ ] **CI / CD** — no `.github/` workflows or other CI config.
-- [ ] **Working lint** — see Limitations; ESLint is referenced but unusable as-is.
+- [ ] **Automated tests** — no test runner, no test files, no coverage. (Now the
+      single biggest engineering gap; CI is ready to run them once they exist.)
 - [ ] **More than one course** (explicit non-goal for this release).
 - [ ] **AI tutor / Socratic hints** (Koji-style) — explanations are static
       authored content.
@@ -224,21 +236,24 @@ diagram-based feedback on mistakes, earn XP and achievements, and have progress
 persist and resume. The React↔JSXGraph architecture described in the PRD is
 genuinely implemented through the single `useJSXGraph` hook.
 
-It is **early-stage from an engineering-hygiene standpoint**: no tests, no CI,
-a broken `lint` script, and (at time of review) the git repository has **no
-commits yet**. The product surface is solid; the supporting safety net is not.
+Engineering hygiene now has a **baseline**: the project is under source control
+on GitHub, `npm run lint` works, CI (lint + type-check + build) runs on every
+push/PR, and dependencies are clean (`npm audit` → 0 vulnerabilities). The
+**one remaining gap** is automated tests — there is still no test runner or
+coverage, which is the next priority given how much of the app's correctness
+depends on subtle geometry/grading math.
 
 ---
 
 ## 6. Current limitations & known gaps
 
-- **`npm run lint` does not work.** The `lint` script runs `eslint .`, but
-  `eslint` is **not listed in `devDependencies`** and there is **no ESLint
-  config file** (`eslint.config.js` / `.eslintrc`). Running it will fail until
-  ESLint is installed and configured.
-- **No tests and no CI.** Nothing guards against regressions — risky for a code
-  base whose correctness depends on subtle geometry math (`measure.ts`,
-  `circleAngles.ts`, `parallelAngles.ts`) and answer grading (`algebra.ts`).
+- **No automated tests.** CI now runs lint, type-check, and build, but there is
+  still no test runner or coverage — risky for a code base whose correctness
+  depends on subtle geometry math (`measure.ts`, `circleAngles.ts`,
+  `parallelAngles.ts`) and answer grading (`algebra.ts`). This is the top gap.
+- **Lint runs but is not strict-zero.** `npm run lint` passes with 2 benign
+  `react-refresh` warnings, and the experimental React Compiler rules
+  (`purity`/`refs`/`set-state-in-effect`) are deliberately disabled for now.
 - **Single hard-coded course.** Adding a _course_ (vs. a lesson) would require
   code changes; `course.ts` exports one `COURSE` constant and much of
   progress/achievements is written against it.
@@ -248,8 +263,6 @@ commits yet**. The product surface is solid; the supporting safety net is not.
   surfaced or acted upon (no spaced repetition, no "your weak spots").
 - **Firebase optional but progress sync depends on it.** Without keys the app is
   fully usable in guest mode, but progress is device-local only.
-- **Repo state.** A populated `dist/` is present and the working tree is
-  untracked/uncommitted; there is no commit history to review.
 
 ---
 
