@@ -193,8 +193,10 @@ export const inscribedAngle: Lesson = {
           glider("P", 1.2, 3.4, "c"),
           segment("P", "A", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),
           segment("P", "B", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),
+          ...centralArcMark("cen", "O", "A", "B", "P", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.9 }),
           angleMark("A", "P", "B", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT }),
-          readout(-5.7, 5.4, (r) => `∠APB = ${angleDeg(r.A, r.P, r.B).toFixed(1)}°`),
+          readout(-5.7, 5.4, (r) => `central ∠AOB = ${angleDeg(r.A, r.O, r.B).toFixed(1)}°`),
+          readout(-5.7, 4.7, (r) => `∠APB = ${angleDeg(r.A, r.P, r.B).toFixed(1)}°`),
         ],
       },
       answerConfig: {
@@ -213,44 +215,6 @@ export const inscribedAngle: Lesson = {
         },
       ],
       solutionText: "Thales: an angle inscribed in a semicircle is $90^\\circ$.",
-    },
-    {
-      id: "ia-arc",
-      prompt:
-        "An inscribed angle cuts off an arc of measure $a^\\circ$ (the central angle over that arc, shown purple). **Express the inscribed angle** in terms of $a$.",
-      xp: 11,
-      boardConfig: {
-        boundingBox: BOX,
-        elements: [
-          center(),
-          radiusAnchor(),
-          circle("c", "O", "R"),
-          glider("A", -3.2, -1.6, "c"),
-          glider("B", 2.6, -2.5, "c"),
-          glider("P", 0.2, 3.59, "c"),
-          segment("O", "A", { strokeColor: COLORS.BRAND, strokeWidth: 2 }),
-          segment("O", "B", { strokeColor: COLORS.BRAND, strokeWidth: 2 }),
-          segment("P", "A", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),
-          segment("P", "B", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),
-          ...centralArcMark("cen", "O", "A", "B", "P", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.9 }),
-          angleMark("A", "P", "B", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.9 }),
-          readout(-5.7, 5.4, (r) => `arc a = ${subtendedCentralDeg(r.O, r.A, r.B, r.P).toFixed(1)}°`),
-          readout(-5.7, 4.7, (r) => `inscribed = ${angleDeg(r.A, r.P, r.B).toFixed(1)}°`),
-        ],
-      },
-      answerConfig: {
-        kind: "algebraic",
-        correctExpression: "a/2",
-        variables: ["a"],
-        placeholder: "a/2",
-      },
-      explanations: [
-        {
-          triggerCondition: "default_wrong",
-          text: "The arc's measure equals its central angle $a$, and the inscribed angle is half the central angle, so the inscribed angle is $\\dfrac{a}{2}$.",
-        },
-      ],
-      solutionText: "Inscribed angle $= \\dfrac{a}{2}$ where $a$ is the subtended arc.",
     },
   ],
 };

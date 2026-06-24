@@ -182,7 +182,6 @@ export function ProblemPlayer({
               onChange={setLatex}
               onEnter={submitAlgebra}
               disabled={solved}
-              placeholder={cfg.placeholder}
             />
             <p className="text-xs text-ink-400">
               Type your answer, e.g. variables like {cfg.variables.join(", ")}.

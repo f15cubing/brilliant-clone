@@ -9,9 +9,11 @@ import {
   nextLessonId,
 } from "@/lib/content/course";
 import { useProgress } from "@/lib/progress/ProgressContext";
+import { useAuth } from "@/lib/auth/AuthContext";
 
 export function LessonPlayer() {
   const { lessonId } = useParams<{ lessonId: string }>();
+  const { testMode } = useAuth();
   const {
     ready,
     isProblemSolved,
@@ -28,6 +30,8 @@ export function LessonPlayer() {
   const resumedFromBookmark = useRef(false);
   const initialIndex = useMemo(() => {
     if (!lesson) return 0;
+    // In test mode, always start from the top so lessons can be reviewed fresh.
+    if (testMode) return 0;
     const lp = getLessonProgress(lesson.id);
     if (lp?.lastProblemId) {
       const bookmarked = lesson.problems.findIndex(
@@ -42,7 +46,7 @@ export function LessonPlayer() {
       (p) => !lp?.completedProblemIds.includes(p.id),
     );
     return firstOpen >= 0 ? firstOpen : 0;
-  }, [lesson, getLessonProgress]);
+  }, [lesson, getLessonProgress, testMode]);
 
   const [problemIndex, setProblemIndex] = useState(initialIndex);
   const [showConcept, setShowConcept] = useState(
@@ -177,9 +181,9 @@ export function LessonPlayer() {
 
       {!showConcept && (
         <ProblemPlayer
-          key={problem.id}
+          key={`${problem.id}-${testMode}`}
           problem={problem}
-          alreadySolved={isProblemSolved(lesson.id, problem.id)}
+          alreadySolved={!testMode && isProblemSolved(lesson.id, problem.id)}
           isLast={isLast}
           canGoBack={problemIndex > 0}
           onBack={handleBack}

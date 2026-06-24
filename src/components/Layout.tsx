@@ -3,7 +3,8 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { useProgress } from "@/lib/progress/ProgressContext";
 
 export function Layout() {
-  const { user, signOut, configured } = useAuth();
+  const { user, signOut, configured, isAdmin, testMode, setTestMode } =
+    useAuth();
   const { snapshot, flushProgress } = useProgress();
   const navigate = useNavigate();
 
@@ -24,6 +25,19 @@ export function Layout() {
             <span className="font-semibold tracking-tight">Olympiad Geometry</span>
           </Link>
           <div className="flex items-center gap-4">
+            {isAdmin && (
+              <button
+                onClick={() => setTestMode(!testMode)}
+                title="When on, every question opens fresh and no progress is recorded."
+                className={
+                  testMode
+                    ? "rounded-full bg-emerald-600 px-3 py-1 text-sm font-semibold text-white hover:bg-emerald-500"
+                    : "rounded-full border border-ink-700 px-3 py-1 text-sm font-semibold text-ink-300 hover:border-ink-500 hover:text-ink-100"
+                }
+              >
+                Test mode: {testMode ? "on" : "off"}
+              </button>
+            )}
             <span className="flex items-center gap-1.5 rounded-full bg-ink-800 px-3 py-1 text-sm font-semibold text-amber-300">
               <span>⭐</span>
               {snapshot.totalXp} XP

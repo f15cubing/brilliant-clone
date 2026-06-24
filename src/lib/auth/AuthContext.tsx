@@ -16,10 +16,18 @@ import {
 } from "firebase/auth";
 import { auth, isFirebaseConfigured } from "@/lib/firebase/config";
 
+// Add your account email(s) here to unlock Test mode.
+const ADMIN_EMAILS = ["felipe.caicedo@alphaaiengineering.com"];
+
+const TEST_MODE_KEY = "geo-test-mode";
+
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   configured: boolean;
+  isAdmin: boolean;
+  testMode: boolean;
+  setTestMode: (on: boolean) => void;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -30,6 +38,23 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [testModeRaw, setTestModeRaw] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(TEST_MODE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const setTestMode = (on: boolean) => {
+    setTestModeRaw(on);
+    try {
+      if (on) localStorage.setItem(TEST_MODE_KEY, "1");
+      else localStorage.removeItem(TEST_MODE_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
@@ -43,11 +68,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, []);
 
+  const isAdmin = Boolean(
+    user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()),
+  );
+  // Non-admins can never have test mode active, even if the flag lingers.
+  const testMode = isAdmin && testModeRaw;
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       loading,
       configured: isFirebaseConfigured,
+      isAdmin,
+      testMode,
+      setTestMode,
       async signUp(email, password, displayName) {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         if (displayName) {
@@ -62,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await fbSignOut(auth);
       },
     }),
-    [user, loading],
+    [user, loading, isAdmin, testMode],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

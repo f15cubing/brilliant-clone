@@ -74,7 +74,6 @@ export function Signup() {
               required
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Gabriel"
               className="w-full rounded-lg border border-ink-700 bg-ink-950 px-3 py-2.5 text-ink-50 outline-none focus:border-brand-500"
             />
           </label>

@@ -10,7 +10,7 @@ export const olympiadGeometry: Course = {
   title: "Olympiad Geometry: Angle Chasing",
   subtitle: "Learn by dragging the figure",
   description:
-    "An interactive first course in olympiad geometry, modeled on Chapter 1 of Evan Chen's EGMO. Every problem is a construction you can drag — so you can see each theorem hold for any triangle, circle, or configuration.",
+    "An interactive first course in introductory geometry. Every problem is a construction you can drag — so you can see each theorem hold for any triangle, circle, or configuration.",
   lessons: [
     triangleAngleSum,
     parallelLines,

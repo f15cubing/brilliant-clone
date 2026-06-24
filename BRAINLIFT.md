@@ -274,7 +274,7 @@ This BrainLift distills research on Brilliant.org into a curated knowledge capsu
 
 **Because:** DOK 4 extended thinking requires sustained, unstructured problem sessions incompatible with bite-sized flow UX. Contest Math exists but user and expert reviews agree proof training needs textbooks or coaches. Mass-market difficulty compression is a reported user observation.  
 **Counterpoint:** Mind-Bending Math and Geometric Thinking paths serve strong recreational learners.  
-**So what:** Use Brilliant for angle-chasing *intuition*; use EGMO, AoPS, or a coach for contest *proof*.
+**So what:** Use Brilliant for angle-chasing *intuition*; use textbooks, AoPS, or a coach for contest *proof*.
 
 ### SPOV 7: Gamified Leagues optimize for competitive adults and can suppress the mistake tolerance Brilliant claims to champion
 

@@ -86,7 +86,7 @@ function isEmptySnapshot(s: ProgressSnapshot): boolean {
 }
 
 export function ProgressProvider({ children }: { children: ReactNode }) {
-  const { user, configured, loading } = useAuth();
+  const { user, configured, loading, testMode } = useAuth();
   const [snapshot, setSnapshot] = useState<ProgressSnapshot>(emptySnapshot());
   const [ready, setReady] = useState(false);
   const snapshotRef = useRef<ProgressSnapshot>(snapshot);
@@ -179,6 +179,12 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
   const recordAttempt = useCallback(
     async (input: AttemptInput): Promise<AttemptResult> => {
+      // In admin test mode, never mutate or persist progress so questions stay
+      // perpetually fresh and real progress is untouched.
+      if (testMode) {
+        return { addedXp: 0, lessonCompleted: false, newAchievementIds: [] };
+      }
+
       const prev = snapshotRef.current;
       const prevEarned = new Set(prev.earnedAchievementIds);
 
@@ -256,11 +262,12 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
       return { addedXp, lessonCompleted, newAchievementIds };
     },
-    [doPersist],
+    [doPersist, testMode],
   );
 
   const updateLessonPosition = useCallback(
     (lessonId: string, problemId: string) => {
+      if (testMode) return;
       const prev = snapshotRef.current;
       const existing = prev.lessons[lessonId];
       if (
@@ -291,7 +298,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       snapshotRef.current = next;
       void doPersist(next, lessonId, []);
     },
-    [doPersist],
+    [doPersist, testMode],
   );
 
   const flushProgress = useCallback(async () => {

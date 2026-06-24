@@ -43,6 +43,13 @@ export function Dashboard() {
       )
     : 0;
 
+  const lessonStarted = Boolean(
+    continueLp &&
+      (continueLp.completedProblemIds.length > 0 ||
+        continueLp.lastProblemId != null ||
+        Object.values(continueLp.problemStats).some((s) => s.attempts > 0)),
+  );
+
   const earned = new Set(snapshot.earnedAchievementIds);
 
   return (
@@ -78,7 +85,7 @@ export function Dashboard() {
 
       <section className="rounded-2xl border border-brand-500/30 bg-gradient-to-br from-brand-600/20 to-ink-900 p-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">
-          Continue learning
+          {lessonStarted ? "Continue learning" : "Start learning"}
         </p>
         <h2 className="mt-1 text-xl font-bold text-ink-50">
           {continueLesson.title}
@@ -99,7 +106,7 @@ export function Dashboard() {
           to={`/lesson/${continueLesson.id}`}
           className="mt-4 inline-flex rounded-lg bg-brand-600 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-500"
         >
-          {nextProblem ? "Continue" : "Review lesson"}
+          {!lessonStarted ? "Start learning" : nextProblem ? "Continue" : "Review lesson"}
         </Link>
       </section>
 

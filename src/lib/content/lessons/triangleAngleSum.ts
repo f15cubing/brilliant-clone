@@ -3,6 +3,7 @@ import { angleDeg } from "@/lib/geometry/measure";
 import {
   angleLabel,
   angleMark,
+  circle,
   COLORS,
   point,
   polygon,
@@ -110,7 +111,7 @@ export const triangleAngleSum: Lesson = {
     {
       id: "tas-exterior",
       prompt:
-        "The ray $BC$ is extended to $D$, forming the **exterior angle** $\\angle ACD$ (shown in orange). Express $\\angle ACD$ in terms of $\\angle A$ and $\\angle B$.",
+        "The ray $BC$ is extended to $D$, forming the **exterior angle** $\\angle ACD$ (shown in blue). Express $\\angle ACD$ in terms of $\\angle A$ and $\\angle B$.",
       xp: 12,
       boardConfig: {
         boundingBox: BOX,
@@ -122,8 +123,8 @@ export const triangleAngleSum: Lesson = {
             id: "D",
             type: "point",
             parents: [
-              { fn: (r) => r.C.X() + (r.C.X() - r.B.X()) * 1.1 },
-              { fn: (r) => r.C.Y() + (r.C.Y() - r.B.Y()) * 1.1 },
+              { fn: (r) => r.C.X() + (r.C.X() - r.B.X()) * 0.6 },
+              { fn: (r) => r.C.Y() + (r.C.Y() - r.B.Y()) * 0.6 },
             ],
             attributes: { name: "D", size: 2, fixed: true, color: "#94a3b8" },
           },
@@ -214,6 +215,9 @@ export const triangleAngleSum: Lesson = {
           { id: "B", type: "point", parents: [3.5, -2], attributes: { name: "B", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2 } },
           point("C", -1.5, 2.6),
           polygon(["A", "B", "C"]),
+          { id: "M", type: "midpoint", parents: [{ ref: "A" }, { ref: "B" }], attributes: { visible: false, fixed: true } },
+          circle("dia", "M", "A", { strokeColor: "#94a3b8", strokeWidth: 1.5, dash: 2 }),
+          readout(-5.7, -5.2, () => "Dashed circle: diameter AB"),
           angleMark("A", "C", "B"),
           angleLabel("A", "C", "B", { color: COLORS.ACCENT, dist: 1.3 }),
           readout(-5.7, 5.4, (r) => `∠ACB = ${angleDeg(r.A, r.C, r.B).toFixed(1)}°`),
@@ -227,11 +231,11 @@ export const triangleAngleSum: Lesson = {
       explanations: [
         {
           triggerCondition: "default_wrong",
-          text: "Not quite $90^\\circ$ yet. The set of points $C$ with $\\angle ACB = 90^\\circ$ forms the circle with diameter $AB$ (Thales' theorem) — you'll meet this again in the inscribed-angle lesson.",
+          text: "Not quite $90^\\circ$ yet. The set of points $C$ with $\\angle ACB = 90^\\circ$ forms the circle with diameter $AB$ — you'll meet this again in the inscribed-angle lesson.",
         },
       ],
       solutionText:
-        "Every right-angled position of $C$ lies on the circle with diameter $AB$ — that's Thales' theorem.",
+        "Every right-angled position of $C$ lies on the circle with diameter $AB$.",
     },
   ],
 };

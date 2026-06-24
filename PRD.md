@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-A Brilliant-style interactive learning web app focused on a single course: **Olympiad Geometry** (modeled on Chapter 1, "Angle Chasing," of Evan Chen's *Euclidean Geometry in Mathematical Olympiads*). Learners study by *doing*: every problem features a manipulable geometric construction (GeoGebra-style) so they can drag points and see that a theorem holds for *any* triangle. Wrong answers trigger visual, diagram-based explanations.
+A Brilliant-style interactive learning web app focused on a single course: **Introductory Geometry** (modeled on the "Angle Chasing" chapter of an introductory geometry textbook). Learners study by *doing*: every problem features a manipulable geometric construction (GeoGebra-style) so they can drag points and see that a theorem holds for *any* triangle. Wrong answers trigger visual, diagram-based explanations.
 
 ### Vision
 
@@ -53,7 +53,7 @@ Replace passive geometry lectures with hands-on, problem-first lessons where und
 - As Gabriel, I can **create an account and log in**, so my lesson and course progress is saved and stays consistent across sessions/devices.
 - As Gabriel, I can **work through lessons with an interactive geometric construction I can drag around** (like GeoGebra), so I can explore the figure.
 - As Gabriel, when I **get a question wrong, I see an explanation with drawings/diagrams**, so I understand my mistake.
-- As Gabriel, I solve **problems in the style of EGMO Chapter 1 (angle chasing)**, so the content matches real olympiad training.
+- As Gabriel, I solve **problems in the style of introductory geometry (angle chasing)**, so the content matches a real geometry course.
 - As Gabriel, I can **drag a triangle/figure and watch a theorem still hold for any configuration**, so I build intuition that the result is general.
 - As Gabriel, I can **see a dashboard of my progress and gamification (XP, achievements, completion)**, so I stay motivated.
 
@@ -99,7 +99,7 @@ Replace passive geometry lectures with hands-on, problem-first lessons where und
 
 ---
 
-## 6. Content Plan (Angle Chasing — EGMO Ch. 1 flavored)
+## 6. Content Plan (Angle Chasing — introductory geometry)
 
 Author 4-7 lessons, 5-7 problems each, all with interactive diagrams. Proposed lessons:
 
@@ -196,7 +196,7 @@ interface Problem {
 
 ## 10. Open Questions / Future
 
-- Add more EGMO chapters (Circles, Power of a Point, Lengths & Ratios) as additional units.
+- Add more geometry topics (Circles, Power of a Point, Lengths & Ratios) as additional units.
 - Optional: spaced-repetition review of solved problem types.
 - Optional later: streaks, leagues, AI hints (Koji-style).
 

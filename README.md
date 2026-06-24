@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/f15cubing/brilliant-clone/actions/workflows/ci.yml/badge.svg)](https://github.com/f15cubing/brilliant-clone/actions/workflows/ci.yml)
 
-A Brilliant-style interactive learning app for olympiad geometry (EGMO Chapter 1: Angle Chasing). Every problem features a draggable geometric construction — drag the triangle and watch the theorem hold.
+A Brilliant-style interactive learning app for introductory geometry (Angle Chasing). Every problem features a draggable geometric construction — drag the triangle and watch the theorem hold.
 
 > **Status:** functional MVP — one full course (5 lessons × 5 problems), three answer types, auth, and progress sync. Engineering baseline in place (lint + CI + 0 audit vulnerabilities); **automated tests are the main remaining gap**. See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for an honest breakdown.
 

@@ -12,8 +12,8 @@ current limitations. For where it could go next, see [ROADMAP.md](./ROADMAP.md).
 ## 1. What it is
 
 A **Brilliant-style interactive learning web app** built around a single course:
-**Olympiad Geometry — Angle Chasing**, modeled on Chapter 1 of Evan Chen's
-_Euclidean Geometry in Mathematical Olympiads (EGMO)_.
+**Introductory Geometry — Angle Chasing**, modeled on an introductory geometry
+textbook.
 
 The core idea: learn by _doing_. Every problem renders a **draggable geometric
 construction**. Learners drag points and watch a theorem hold for any

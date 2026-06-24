@@ -111,7 +111,7 @@ Bigger bets that change the product's scope or moat.
 
 - [ ] **Multi-course architecture.** *What:* generalize `course.ts` (currently a
   single exported `COURSE`) into a registry; make progress, achievements, and
-  routing course-aware (e.g. `/course/:courseId`). Then add EGMO follow-on
+  routing course-aware (e.g. `/course/:courseId`). Then add follow-on
   units (Circles, Power of a Point, Lengths & Ratios) per the PRD's "future"
   section. _Why:_ unlocks growth beyond one chapter; the content/types layer
   is already clean enough to extend, but progress/achievements are hard-coded

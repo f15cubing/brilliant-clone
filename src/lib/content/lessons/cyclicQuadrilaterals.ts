@@ -2,12 +2,12 @@ import type { Lesson } from "@/lib/content/types";
 import { angleDeg } from "@/lib/geometry/measure";
 import {
   angleMark,
-  circle,
   COLORS,
   glider,
   keepConvexOrder,
   polygon,
   readout,
+  segment,
 } from "@/lib/content/boards";
 import type { BoardElementDef } from "@/lib/geometry/board-types";
 
@@ -21,17 +21,12 @@ function center(): BoardElementDef {
     attributes: { name: "O", size: 3, fixed: true, fillColor: "#fff", strokeColor: "#94a3b8", strokeWidth: 2 },
   };
 }
-function radiusAnchor(): BoardElementDef {
-  return { id: "R", type: "point", parents: [3.7, 0], attributes: { visible: false, fixed: true } };
-}
-
 function cyclicQuad(): BoardElementDef[] {
   const ORDER = ["A", "B", "C", "D"];
   const convex = keepConvexOrder("O", ORDER);
   return [
     center(),
-    radiusAnchor(),
-    circle("c", "O", "R"),
+    { id: "c", type: "circle", parents: [{ ref: "O" }, 3.7], attributes: { strokeColor: "#94a3b8", strokeWidth: 2 } },
     { ...glider("A", -3.2, 1.85, "c"), constrain: convex },
     { ...glider("B", 1.85, 3.2, "c"), constrain: convex },
     { ...glider("C", 2.83, -2.37, "c"), constrain: convex },
@@ -158,6 +153,7 @@ export const cyclicQuadrilaterals: Lesson = {
         boundingBox: BOX,
         elements: [
           ...cyclicQuad(),
+          segment("B", "D", { strokeColor: COLORS.BRAND, strokeWidth: 2, dash: 2 }),
           readout(-5.7, 5.4, (r) => `∠A = ${angleDeg(r.D, r.A, r.B).toFixed(1)}°`),
           readout(-5.7, 4.7, (r) => `∠C = ${angleDeg(r.B, r.C, r.D).toFixed(1)}°`),
         ],
@@ -174,7 +170,7 @@ export const cyclicQuadrilaterals: Lesson = {
         },
       ],
       solutionText:
-        "With $\\angle A = 90^\\circ$, the opposite angle $\\angle C = 180^\\circ - 90^\\circ = 90^\\circ$.",
+        "With $\\angle A = 90^\\circ$, the opposite angle $\\angle C = 180^\\circ - 90^\\circ = 90^\\circ$. The diagonal $BD$ then passes through the center $O$ — it becomes a diameter (a $90^\\circ$ inscribed angle subtends a diameter).",
     },
     {
       id: "cq-converse",
