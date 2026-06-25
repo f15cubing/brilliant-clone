@@ -158,6 +158,34 @@ export function keepConvexOrder(centerId: string, ids: string[]): BoardConstrain
   };
 }
 
+/**
+ * Drag constraint keeping triangle `ids` (the three vertex element ids) strictly
+ * acute: a drag is only committed when all three interior angles stay at or below
+ * `maxAngleDeg` (default `88`, a small margin under `90` to avoid the degenerate
+ * near-right-angle case where an altitude foot or the orthocenter collapses onto
+ * a vertex). Illegal drags snap the vertex back to its last acute position.
+ *
+ * State lives on the dragged element (`_lastAcute`), so one constraint instance
+ * can be shared by all three vertices.
+ */
+export function keepTriangleAcute(
+  ids: [string, string, string],
+  maxAngleDeg = 88,
+): BoardConstraint {
+  return (refs, el) => {
+    const [a, b, c] = ids.map((id) => refs[id]);
+    if (!a || !b || !c) return;
+    const angA = angleDeg(b, a, c);
+    const angB = angleDeg(a, b, c);
+    const angC = angleDeg(a, c, b);
+    const acute = angA <= maxAngleDeg && angB <= maxAngleDeg && angC <= maxAngleDeg;
+    const state = el as { _lastAcute?: [number, number] };
+    if (!acute) return state._lastAcute;
+    state._lastAcute = [el.X(), el.Y()];
+    return undefined;
+  };
+}
+
 /** A point that glides along an existing circle/line element. */
 export function glider(
   id: string,

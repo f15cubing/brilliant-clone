@@ -4,6 +4,8 @@ import { inscribedAngle } from "@/lib/content/lessons/inscribedAngle";
 import { cyclicQuadrilaterals } from "@/lib/content/lessons/cyclicQuadrilaterals";
 import { parallelLines } from "@/lib/content/lessons/parallelLines";
 import { incenterLemma } from "@/lib/content/lessons/incenterLemma";
+import { orthocenter } from "@/lib/content/lessons/orthocenter";
+import { orthicIncenter } from "@/lib/content/lessons/orthicIncenter";
 
 export const olympiadGeometry: Course = {
   id: "olympiad-geometry",
@@ -17,6 +19,8 @@ export const olympiadGeometry: Course = {
     inscribedAngle,
     cyclicQuadrilaterals,
     incenterLemma,
+    orthocenter,
+    orthicIncenter,
   ],
 };
 

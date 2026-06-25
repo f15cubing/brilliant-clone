@@ -14,10 +14,12 @@ import {
   saveAchievement,
   saveCourseProgress,
   saveLessonProgress,
+  saveSnapshotCorrections,
   saveTotalXp,
 } from "@/lib/firebase/progressService";
-import { COURSE, totalProblems } from "@/lib/content/course";
+import { COURSE } from "@/lib/content/course";
 import { earnedAchievements } from "@/lib/progress/achievements";
+import { rebuildCourseProgress, reconcileSnapshot } from "@/lib/progress/reconcile";
 import {
   emptySnapshot,
   type LessonProgress,
@@ -107,22 +109,42 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
           // If Firestore is empty but a local cache exists, trust the cache
           // (e.g. a write that never reached the server) and re-sync.
           const chosen = isEmptySnapshot(snap) && cached ? cached : snap;
+          // Reconcile stored progress against current course content so stale
+          // lesson/problem IDs can't inflate counts, then write back any fixes.
+          const { snapshot: reconciled, orphanLessonIds, changed } =
+            reconcileSnapshot(chosen);
           if (!cancelled) {
-            setSnapshot(chosen);
+            setSnapshot(reconciled);
             setReady(true);
           }
-          saveLocal(authKey(user.uid), chosen);
+          saveLocal(authKey(user.uid), reconciled);
+          if (changed) {
+            void saveSnapshotCorrections(
+              user.uid,
+              reconciled,
+              orphanLessonIds,
+            ).catch((err) =>
+              console.error("[progress] reconcile persist failed", err),
+            );
+          }
         } catch (err) {
           console.error("[progress] load failed, using local cache", err);
           if (!cancelled) {
-            setSnapshot(cached ?? emptySnapshot());
+            const { snapshot: reconciled } = reconcileSnapshot(
+              cached ?? emptySnapshot(),
+            );
+            setSnapshot(reconciled);
             setReady(true);
           }
         }
       } else if (!configured) {
         if (!cancelled) {
-          setSnapshot(loadLocal(GUEST_KEY) ?? emptySnapshot());
+          const { snapshot: reconciled, changed } = reconcileSnapshot(
+            loadLocal(GUEST_KEY) ?? emptySnapshot(),
+          );
+          setSnapshot(reconciled);
           setReady(true);
+          if (changed) saveLocal(GUEST_KEY, reconciled);
         }
       } else {
         // configured but logged out
@@ -230,24 +252,15 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
       lessons[input.lessonId] = lp;
 
-      const solved = Object.values(lessons).reduce(
-        (n, l) => n + l.completedProblemIds.length,
-        0,
-      );
-      const completedLessonIds = COURSE.lessons
-        .filter((l) => lessons[l.id]?.completedAt)
-        .map((l) => l.id);
+      const course = rebuildCourseProgress(lessons, prev.course[COURSE.id]);
+      course.lastLessonId = input.lessonId;
 
       const next: ProgressSnapshot = {
         totalXp: prev.totalXp + addedXp,
         lessons,
         course: {
           ...prev.course,
-          [COURSE.id]: {
-            completionPct: Math.round((solved / totalProblems()) * 100),
-            completedLessonIds,
-            lastLessonId: input.lessonId,
-          },
+          [COURSE.id]: course,
         },
         earnedAchievementIds: prev.earnedAchievementIds,
       };

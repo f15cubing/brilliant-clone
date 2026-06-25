@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -94,4 +95,31 @@ export async function saveAchievement(
   await setDoc(doc(db, "users", uid, "achievements", achievementId), {
     earnedAt: serverTimestamp(),
   });
+}
+
+export async function deleteLessonProgress(
+  uid: string,
+  lessonId: string,
+): Promise<void> {
+  await deleteDoc(doc(db, "users", uid, "lessonProgress", lessonId));
+}
+
+/**
+ * Persists a reconciled snapshot: overwrites each current lesson doc and the
+ * course rollup, and removes progress docs for lessons no longer in the course.
+ */
+export async function saveSnapshotCorrections(
+  uid: string,
+  snapshot: ProgressSnapshot,
+  orphanLessonIds: string[],
+): Promise<void> {
+  await Promise.all([
+    ...Object.entries(snapshot.lessons).map(([lessonId, progress]) =>
+      setDoc(doc(db, "users", uid, "lessonProgress", lessonId), progress),
+    ),
+    ...Object.entries(snapshot.course).map(([courseId, progress]) =>
+      saveCourseProgress(uid, courseId, progress),
+    ),
+    ...orphanLessonIds.map((lessonId) => deleteLessonProgress(uid, lessonId)),
+  ]);
 }
