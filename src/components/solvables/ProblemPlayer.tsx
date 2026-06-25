@@ -129,11 +129,11 @@ export function ProblemPlayer({
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Interactive figure */}
       <div className="flex flex-col gap-3">
-        <div className="overflow-hidden rounded-2xl border border-ink-700 bg-white">
+        <div className="overflow-hidden rounded-sm border border-ink/20 bg-white p-2 shadow-[3px_3px_0_0_rgba(27,23,20,0.08)]">
           <GeometryBoard ref={boardRef} def={problem.boardConfig} />
         </div>
         {problem.exploreHint && (
-          <p className="text-center text-xs text-ink-400">
+          <p className="text-center font-mono text-[0.7rem] uppercase tracking-wide text-ink-faint">
             <span className="mr-1">↔</span>
             {problem.exploreHint}
           </p>
@@ -142,13 +142,13 @@ export function ProblemPlayer({
 
       {/* Prompt + answer */}
       <div className="flex flex-col gap-5">
-        <div className="text-lg leading-relaxed text-ink-100">
+        <div className="font-serif text-xl leading-relaxed text-ink">
           <MathText>{problem.prompt}</MathText>
         </div>
 
         {cfg.kind === "multiple-choice" && (
           <div className="grid gap-2.5">
-            {cfg.options.map((opt) => {
+            {cfg.options.map((opt, i) => {
               const isCorrect = opt.id === cfg.correctOptionId;
               const chosen = selected === opt.id;
               const reveal = solved && isCorrect;
@@ -159,15 +159,28 @@ export function ProblemPlayer({
                   disabled={solved}
                   onClick={() => submitMC(opt.id)}
                   className={[
-                    "rounded-xl border px-4 py-3 text-left text-base transition",
+                    "flex items-center gap-3 rounded-sm border px-4 py-3 text-left text-base transition",
                     reveal
-                      ? "border-correct bg-correct/15 text-emerald-100"
+                      ? "border-correct bg-correct/10 text-ink"
                       : wrongChosen
-                        ? "border-wrong bg-wrong/15 text-rose-100"
-                        : "border-ink-600 bg-ink-800/60 text-ink-100 hover:border-brand-400 hover:bg-ink-800",
+                        ? "border-vermilion bg-vermilion/10 text-ink"
+                        : "border-ink/20 bg-panel-soft text-ink hover:border-ultramarine hover:bg-ultramarine/5",
                     solved ? "cursor-default" : "cursor-pointer",
                   ].join(" ")}
                 >
+                  <span
+                    aria-hidden="true"
+                    className={[
+                      "grid h-6 w-6 shrink-0 place-items-center font-mono text-xs font-semibold",
+                      reveal
+                        ? "bg-correct text-paper"
+                        : wrongChosen
+                          ? "bg-vermilion text-paper"
+                          : "border border-ink/25 text-ink-soft",
+                    ].join(" ")}
+                  >
+                    {String.fromCharCode(65 + i)}
+                  </span>
                   <MathText>{opt.label}</MathText>
                 </button>
               );
@@ -183,14 +196,14 @@ export function ProblemPlayer({
               onEnter={submitAlgebra}
               disabled={solved}
             />
-            <p className="text-xs text-ink-400">
-              Type your answer, e.g. variables like {cfg.variables.join(", ")}.
-              Press Enter or Check.
+            <p className="font-mono text-[0.7rem] uppercase tracking-wide text-ink-faint">
+              Type your answer · variables {cfg.variables.join(", ")} · Enter or
+              Check
             </p>
             {!solved && (
               <button
                 onClick={submitAlgebra}
-                className="self-start rounded-lg bg-brand-600 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-500"
+                className="self-start rounded-sm bg-vermilion px-5 py-2.5 font-semibold text-paper transition hover:bg-vermilion-soft"
               >
                 Check
               </button>
@@ -200,13 +213,13 @@ export function ProblemPlayer({
 
         {cfg.kind === "geometric" && (
           <div className="flex flex-col gap-3">
-            <p className="rounded-lg border border-ink-700 bg-ink-800/60 px-4 py-3 text-sm text-ink-200">
+            <p className="border-l-2 border-ultramarine bg-panel-soft px-4 py-3 text-sm text-ink-soft">
               {cfg.instruction}
             </p>
             {!solved && (
               <button
                 onClick={submitGeometric}
-                className="self-start rounded-lg bg-brand-600 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-500"
+                className="self-start rounded-sm bg-vermilion px-5 py-2.5 font-semibold text-paper transition hover:bg-vermilion-soft"
               >
                 Check my construction
               </button>
@@ -216,11 +229,11 @@ export function ProblemPlayer({
 
         {banner}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {canGoBack && (
             <button
               onClick={onBack}
-              className="rounded-lg border border-ink-700 px-5 py-2.5 font-semibold text-ink-200 transition hover:border-ink-500"
+              className="rounded-sm border border-ink/25 px-5 py-2.5 font-semibold text-ink transition hover:border-ink hover:bg-panel-soft"
             >
               ← Previous
             </button>
@@ -228,7 +241,7 @@ export function ProblemPlayer({
           {!solved && attempts >= 1 && (
             <button
               onClick={handleReveal}
-              className="text-sm font-medium text-ink-300 underline-offset-4 hover:text-ink-100 hover:underline"
+              className="font-mono text-xs uppercase tracking-wide text-ink-soft underline-offset-4 transition hover:text-vermilion hover:underline"
             >
               Reveal answer
             </button>
@@ -236,7 +249,7 @@ export function ProblemPlayer({
           {solved && (
             <button
               onClick={onContinue}
-              className="rounded-lg bg-brand-600 px-6 py-2.5 font-semibold text-white transition hover:bg-brand-500"
+              className="rounded-sm bg-vermilion px-6 py-2.5 font-semibold text-paper transition hover:bg-vermilion-soft"
             >
               {isLast ? "Finish lesson" : "Continue"}
             </button>

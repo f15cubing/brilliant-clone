@@ -1,34 +1,37 @@
 @import "tailwindcss";
 
+/*
+  Byrne's Euclid identity. Palette and color-coded figures are lifted from
+  Oliver Byrne's 1847 color edition of Euclid's Elements: warm buff paper,
+  a vermilion / ultramarine / ochre primary triad, set in Caslon.
+*/
 @theme {
-  --color-ink-50: #f5f6fb;
-  --color-ink-100: #e9ebf5;
-  --color-ink-200: #cdd2e6;
-  --color-ink-300: #a6aecf;
-  --color-ink-400: #7782ad;
-  --color-ink-500: #565f8c;
-  --color-ink-600: #3f4670;
-  --color-ink-700: #2c3157;
-  --color-ink-800: #1d2140;
-  --color-ink-900: #12152c;
-  --color-ink-950: #0a0c1c;
+  --color-paper: #f3ecd9;
+  --color-paper-deep: #ece2cb;
+  --color-panel: #eae0c8;
+  --color-panel-soft: #f7f1e2;
 
-  --color-brand-50: #eef1ff;
-  --color-brand-100: #e0e5ff;
-  --color-brand-200: #c6cdff;
-  --color-brand-300: #a3aaff;
-  --color-brand-400: #7f80fb;
-  --color-brand-500: #635bf2;
-  --color-brand-600: #533ce7;
-  --color-brand-700: #472ecc;
-  --color-brand-800: #3a29a4;
-  --color-brand-900: #322982;
+  --color-ink: #1b1714;
+  --color-ink-soft: #4b4137;
+  --color-ink-faint: #837561;
+  --color-rule: #d8ccae;
 
-  --color-correct: #16a34a;
-  --color-wrong: #e11d48;
+  --color-vermilion: #c0392b;
+  --color-vermilion-soft: #d8675b;
+  --color-ultramarine: #27418c;
+  --color-ultramarine-soft: #4a64ad;
+  --color-ochre: #e0a526;
+  --color-ochre-deep: #b9831a;
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, Helvetica, Arial, sans-serif;
+  --color-correct: #3b6b4a;
+  --color-wrong: #c0392b;
+
+  --font-display: "Libre Caslon Display", "Libre Caslon Text", Georgia, serif;
+  --font-serif: "Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
 }
 
 html,
@@ -39,25 +42,44 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-ink-950);
-  color: var(--color-ink-100);
+  background-color: var(--color-paper);
+  /* Faint drafting grid + a soft vignette so the paper reads as a printed page. */
+  background-image:
+    linear-gradient(rgba(27, 23, 20, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 23, 20, 0.035) 1px, transparent 1px),
+    radial-gradient(120% 80% at 50% 0%, rgba(247, 241, 226, 0.6), transparent 60%);
+  background-size:
+    28px 28px,
+    28px 28px,
+    100% 100%;
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* Keep interactive geometry boards from triggering page scroll/zoom on touch. */
 .jxgbox {
   touch-action: none;
-  border-radius: 0.75rem;
+  border-radius: 2px;
 }
 
-/* MathLive field styling to match the dark theme. */
+/* MathLive field styling to match the paper theme. */
 math-field {
-  --primary: var(--color-brand-400);
-  --caret-color: var(--color-brand-300);
-  border-radius: 0.5rem;
+  --primary: var(--color-ultramarine);
+  --caret-color: var(--color-vermilion);
+  background: var(--color-panel-soft);
+  border: 1px solid var(--color-rule);
+  border-radius: 2px;
+  color: var(--color-ink);
   padding: 0.5rem 0.75rem;
   font-size: 1.125rem;
+}
+
+math-field:focus-within {
+  border-color: var(--color-ultramarine);
+  outline: 2px solid color-mix(in srgb, var(--color-ultramarine) 35%, transparent);
+  outline-offset: 1px;
 }
 
 /* Hide the math keyboard toggle on devices with a precise pointer (desktop),
@@ -69,6 +91,13 @@ math-field {
   }
 }
 
+/* Visible keyboard focus everywhere, tuned to the ink/ultramarine palette. */
+:focus-visible {
+  outline: 2px solid var(--color-ultramarine);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 @keyframes fadein {
   from {
     opacity: 0;
@@ -77,5 +106,27 @@ math-field {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* The drafting point glides along its construction segment as progress grows. */
+@keyframes glide {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

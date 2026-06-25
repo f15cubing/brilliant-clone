@@ -11,10 +11,14 @@ import {
 import { subtendedOrder } from "@/lib/geometry/circleAngles";
 import { angleDeg, fmtDeg, inward } from "@/lib/geometry/measure";
 
-const BRAND = "#533ce7";
-const ACCENT = "#0ea5e9";
-const WRONG = "#e11d48";
-const OK = "#16a34a";
+// Byrne figure palette. Four mutually-distinct hues so a single diagram can
+// color-code up to four different elements (see incenterLemma's angle marks).
+const BRAND = "#27418c"; // ultramarine
+const ACCENT = "#c0392b"; // vermilion
+const WRONG = "#b9831a"; // ochre (the "other"/contrasting element)
+const OK = "#3b6b4a"; // green (equalities, correct construction)
+const STROKE = "#1b1714"; // ink — neutral construction lines
+const STROKE_AUX = "#9c8c70"; // warm grey — subordinate guide lines
 
 /** A draggable named point. */
 export function point(
@@ -186,7 +190,7 @@ export function segment(
   return {
     type: "segment",
     parents: [{ ref: a }, { ref: b }],
-    attributes: { strokeColor: "#334155", strokeWidth: 2.5, ...attrs },
+    attributes: { strokeColor: STROKE, strokeWidth: 2.5, ...attrs },
   };
 }
 
@@ -198,7 +202,7 @@ export function polygon(
     type: "polygon",
     parents: ids.map((id) => ({ ref: id })),
     attributes: {
-      borders: { strokeColor: "#334155", strokeWidth: 2.5 },
+      borders: { strokeColor: STROKE, strokeWidth: 2.5 },
       fillColor: BRAND,
       fillOpacity: 0.08,
       vertices: { visible: false },
@@ -217,7 +221,7 @@ export function circle(
     id,
     type: "circle",
     parents: [{ ref: centerId }, { ref: throughId }],
-    attributes: { strokeColor: "#94a3b8", strokeWidth: 2, ...attrs },
+    attributes: { strokeColor: STROKE_AUX, strokeWidth: 2, ...attrs },
   };
 }
 
@@ -304,7 +308,7 @@ export function angleLabel(
   p2: string,
   opts: { color?: string; dist?: number; prefix?: string } = {},
 ): BoardElementDef {
-  const color = opts.color ?? "#0f172a";
+  const color = opts.color ?? STROKE;
   const d = opts.dist ?? 1.05;
   const prefix = opts.prefix ?? "";
   return {
@@ -338,7 +342,7 @@ export function readout(
     attributes: {
       fontSize: 15,
       anchorX: "left",
-      cssStyle: "font-weight:600;color:#1d2140;",
+      cssStyle: "font-weight:600;color:#1b1714;",
       fixed: true,
       highlight: false,
       ...attrs,

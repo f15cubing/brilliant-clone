@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Spinner } from "@/components/Spinner";
+import { ByrneLogo } from "@/components/ByrneMark";
 
 export function Signup() {
   const { signUp, user, loading, configured } = useAuth();
@@ -44,29 +45,35 @@ export function Signup() {
     <div className="grid min-h-screen place-items-center px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <span className="mb-3 inline-grid h-12 w-12 place-items-center rounded-xl bg-brand-600 text-xl font-bold text-white">
-            △
+          <span className="mb-4 inline-flex justify-center">
+            <ByrneLogo size={52} />
           </span>
-          <h1 className="text-2xl font-bold text-ink-50">Create your account</h1>
-          <p className="mt-1 text-sm text-ink-400">
+          <p className="font-mono text-xs uppercase tracking-[0.22em] text-vermilion">
+            Olympiad Geometry
+          </p>
+          <h1 className="mt-1 font-display text-3xl tracking-tight text-ink">
+            Create your account
+          </h1>
+          <p className="mt-1 font-serif italic text-ink-soft">
             Save your progress as you master olympiad geometry.
           </p>
         </div>
 
         {!configured && (
-          <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          <p className="mb-4 border-l-2 border-ochre bg-ochre/10 px-4 py-3 text-sm text-ink-soft">
             Firebase is not configured. Copy{" "}
-            <code className="text-amber-100">.env.example</code> to{" "}
-            <code className="text-amber-100">.env</code> to enable sign-up.
+            <code className="font-mono text-ochre-deep">.env.example</code> to{" "}
+            <code className="font-mono text-ochre-deep">.env</code> to enable
+            sign-up.
           </p>
         )}
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-ink-800 bg-ink-900/60 p-6 shadow-xl"
+          className="border border-ink/15 bg-panel-soft p-6 shadow-[3px_3px_0_0_rgba(27,23,20,0.08)]"
         >
           <label className="mb-4 block">
-            <span className="mb-1.5 block text-sm font-medium text-ink-300">
+            <span className="mb-1.5 block font-mono text-xs uppercase tracking-wide text-ink-soft">
               Name
             </span>
             <input
@@ -74,11 +81,11 @@ export function Signup() {
               required
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full rounded-lg border border-ink-700 bg-ink-950 px-3 py-2.5 text-ink-50 outline-none focus:border-brand-500"
+              className="w-full rounded-sm border border-rule bg-paper px-3 py-2.5 text-ink outline-none transition focus:border-ultramarine"
             />
           </label>
           <label className="mb-4 block">
-            <span className="mb-1.5 block text-sm font-medium text-ink-300">
+            <span className="mb-1.5 block font-mono text-xs uppercase tracking-wide text-ink-soft">
               Email
             </span>
             <input
@@ -86,11 +93,11 @@ export function Signup() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-ink-700 bg-ink-950 px-3 py-2.5 text-ink-50 outline-none focus:border-brand-500"
+              className="w-full rounded-sm border border-rule bg-paper px-3 py-2.5 text-ink outline-none transition focus:border-ultramarine"
             />
           </label>
           <label className="mb-6 block">
-            <span className="mb-1.5 block text-sm font-medium text-ink-300">
+            <span className="mb-1.5 block font-mono text-xs uppercase tracking-wide text-ink-soft">
               Password
             </span>
             <input
@@ -98,12 +105,12 @@ export function Signup() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-ink-700 bg-ink-950 px-3 py-2.5 text-ink-50 outline-none focus:border-brand-500"
+              className="w-full rounded-sm border border-rule bg-paper px-3 py-2.5 text-ink outline-none transition focus:border-ultramarine"
             />
           </label>
 
           {error && (
-            <p className="mb-4 text-sm text-rose-400" role="alert">
+            <p className="mb-4 text-sm font-medium text-vermilion" role="alert">
               {error}
             </p>
           )}
@@ -111,15 +118,18 @@ export function Signup() {
           <button
             type="submit"
             disabled={submitting || !configured}
-            className="w-full rounded-lg bg-brand-600 py-2.5 font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-sm bg-vermilion py-2.5 font-semibold text-paper transition hover:bg-vermilion-soft disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? "Creating account…" : "Sign up"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-ink-400">
+        <p className="mt-6 text-center text-sm text-ink-soft">
           Already have an account?{" "}
-          <Link to="/login" className="font-medium text-brand-300 hover:text-brand-200">
+          <Link
+            to="/login"
+            className="font-mono text-xs uppercase tracking-wide text-ultramarine hover:text-vermilion"
+          >
             Sign in
           </Link>
         </p>

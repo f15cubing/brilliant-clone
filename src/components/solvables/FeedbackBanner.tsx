@@ -10,20 +10,29 @@ export function FeedbackBanner({
   text: string;
 }) {
   const styles: Record<Variant, string> = {
-    correct: "border-correct/40 bg-correct/10 text-emerald-200",
-    wrong: "border-wrong/40 bg-wrong/10 text-rose-200",
-    revealed: "border-brand-400/40 bg-brand-500/10 text-brand-100",
+    correct: "border-correct bg-correct/8 text-ink",
+    wrong: "border-vermilion bg-vermilion/8 text-ink",
+    revealed: "border-ultramarine bg-ultramarine/8 text-ink",
+  };
+  const labelColor: Record<Variant, string> = {
+    correct: "text-correct",
+    wrong: "text-vermilion",
+    revealed: "text-ultramarine",
   };
   const label: Record<Variant, string> = {
-    correct: "Correct!",
+    correct: "Correct",
     wrong: "Not quite",
     revealed: "Answer revealed",
   };
   return (
     <div
-      className={`animate-[fadein_180ms_ease-out] rounded-xl border px-4 py-3 text-sm leading-relaxed ${styles[variant]}`}
+      className={`animate-[fadein_180ms_ease-out] border-l-2 px-4 py-3 text-[0.95rem] leading-relaxed ${styles[variant]}`}
     >
-      <div className="mb-1 font-semibold">{label[variant]}</div>
+      <div
+        className={`mb-1 font-mono text-xs uppercase tracking-[0.16em] ${labelColor[variant]}`}
+      >
+        {label[variant]}
+      </div>
       <MathText>{text}</MathText>
     </div>
   );

@@ -18,7 +18,7 @@ function center(): BoardElementDef {
     id: "O",
     type: "point",
     parents: [0, 0],
-    attributes: { name: "O", size: 3, fixed: true, fillColor: "#fff", strokeColor: "#94a3b8", strokeWidth: 2 },
+    attributes: { name: "O", size: 3, fixed: true, fillColor: "#fff", strokeColor: "#9c8c70", strokeWidth: 2 },
   };
 }
 function cyclicQuad(): BoardElementDef[] {
@@ -26,7 +26,7 @@ function cyclicQuad(): BoardElementDef[] {
   const convex = keepConvexOrder("O", ORDER);
   return [
     center(),
-    { id: "c", type: "circle", parents: [{ ref: "O" }, 3.7], attributes: { strokeColor: "#94a3b8", strokeWidth: 2 } },
+    { id: "c", type: "circle", parents: [{ ref: "O" }, 3.7], attributes: { strokeColor: "#9c8c70", strokeWidth: 2 } },
     { ...glider("A", -3.2, 1.85, "c"), constrain: convex },
     { ...glider("B", 1.85, 3.2, "c"), constrain: convex },
     { ...glider("C", 2.83, -2.37, "c"), constrain: convex },

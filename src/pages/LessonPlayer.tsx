@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ProblemPlayer } from "@/components/solvables/ProblemPlayer";
 import { MathText } from "@/components/MathText";
 import { Spinner } from "@/components/Spinner";
+import { CompletionFigure, ConstructionProgress } from "@/components/ByrneMark";
 import {
   COURSE,
   getLesson,
@@ -73,8 +74,13 @@ export function LessonPlayer() {
   if (!lesson) {
     return (
       <div className="text-center">
-        <p className="text-ink-400">Lesson not found.</p>
-        <Link to="/course" className="mt-4 inline-block text-brand-300">
+        <p className="font-serif text-lg italic text-ink-soft">
+          That proposition could not be found.
+        </p>
+        <Link
+          to="/course"
+          className="mt-4 inline-block font-mono text-xs uppercase tracking-wide text-ultramarine hover:text-vermilion"
+        >
           ← Back to course
         </Link>
       </div>
@@ -108,30 +114,38 @@ export function LessonPlayer() {
   if (lessonDone) {
     return (
       <div className="mx-auto max-w-lg text-center">
-        <div className="mb-4 text-5xl">🎉</div>
-        <h1 className="text-2xl font-bold text-ink-50">Lesson complete!</h1>
-        <p className="mt-2 text-ink-300">
-          You finished <strong>{lesson.title}</strong> and earned bonus XP.
+        <div className="mb-2 flex justify-center">
+          <CompletionFigure size={104} />
+        </div>
+        <p className="font-mono text-xs uppercase tracking-[0.22em] text-vermilion">
+          Quod erat demonstrandum
+        </p>
+        <h1 className="mt-2 font-display text-3xl tracking-tight text-ink">
+          Proposition proved
+        </h1>
+        <p className="mt-2 font-serif text-lg text-ink-soft">
+          You finished <strong className="text-ink">{lesson.title}</strong> and
+          earned bonus XP.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           {nextId ? (
             <Link
               to={`/lesson/${nextId}`}
-              className="rounded-lg bg-brand-600 px-6 py-2.5 font-semibold text-white hover:bg-brand-500"
+              className="rounded-sm bg-vermilion px-6 py-2.5 font-semibold text-paper transition hover:bg-vermilion-soft"
             >
-              Next lesson →
+              Next proposition →
             </Link>
           ) : (
             <Link
               to="/course"
-              className="rounded-lg bg-brand-600 px-6 py-2.5 font-semibold text-white hover:bg-brand-500"
+              className="rounded-sm bg-vermilion px-6 py-2.5 font-semibold text-paper transition hover:bg-vermilion-soft"
             >
               Back to course
             </Link>
           )}
           <Link
             to="/"
-            className="rounded-lg border border-ink-700 px-6 py-2.5 font-semibold text-ink-200 hover:border-ink-500"
+            className="rounded-sm border border-ink/25 px-6 py-2.5 font-semibold text-ink transition hover:border-ink hover:bg-panel-soft"
           >
             Dashboard
           </Link>
@@ -145,34 +159,34 @@ export function LessonPlayer() {
       <header>
         <Link
           to="/course"
-          className="text-sm text-ink-400 hover:text-ink-200"
+          className="font-mono text-xs uppercase tracking-wide text-ink-soft transition hover:text-vermilion"
         >
           ← Course
         </Link>
-        <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-brand-300">
-          Lesson {lessonIdx + 1} · Problem {problemIndex + 1} of{" "}
+        <p className="mt-3 font-mono text-xs uppercase tracking-[0.2em] text-vermilion">
+          Proposition {lessonIdx + 1} · Problem {problemIndex + 1} of{" "}
           {lesson.problems.length}
         </p>
-        <h1 className="text-2xl font-bold text-ink-50">{lesson.title}</h1>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink-800">
-          <div
-            className="h-full rounded-full bg-brand-500 transition-all"
-            style={{
-              width: `${((problemIndex + 1) / lesson.problems.length) * 100}%`,
-            }}
-          />
-        </div>
+        <h1 className="mt-1 font-display text-3xl tracking-tight text-ink">
+          {lesson.title}
+        </h1>
+        <ConstructionProgress
+          pct={((problemIndex + 1) / lesson.problems.length) * 100}
+          className="mt-4 max-w-md"
+        />
       </header>
 
       {showConcept && problemIndex === 0 && (
-        <div className="rounded-2xl border border-ink-700 bg-ink-900/60 p-5">
-          <h2 className="mb-2 font-semibold text-ink-100">Concept</h2>
-          <p className="leading-relaxed text-ink-300">
+        <div className="border-l-2 border-ultramarine bg-panel-soft p-6">
+          <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-ink-soft">
+            The idea
+          </h2>
+          <p className="mt-3 font-serif text-lg leading-relaxed text-ink">
             <MathText>{lesson.concept}</MathText>
           </p>
           <button
             onClick={() => setShowConcept(false)}
-            className="mt-4 rounded-lg bg-brand-600 px-5 py-2 font-semibold text-white hover:bg-brand-500"
+            className="mt-5 rounded-sm bg-vermilion px-5 py-2 font-semibold text-paper transition hover:bg-vermilion-soft"
           >
             Start problems
           </button>
@@ -211,7 +225,7 @@ export function LessonPlayer() {
       )}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 rounded-xl bg-brand-600 px-4 py-2 font-semibold text-white shadow-lg animate-[fadein_180ms_ease-out]">
+        <div className="fixed bottom-6 right-6 animate-[fadein_180ms_ease-out] rounded-sm bg-ink px-4 py-2 font-mono text-sm font-semibold text-paper shadow-[3px_3px_0_0_rgba(192,57,43,0.6)]">
           {toast}
         </div>
       )}

@@ -1,6 +1,7 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useProgress } from "@/lib/progress/ProgressContext";
+import { ByrneLogo, IconXP } from "@/components/ByrneMark";
 
 export function Layout() {
   const { user, signOut, configured, isAdmin, testMode, setTestMode } =
@@ -16,44 +17,49 @@ export function Layout() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-ink-800 bg-ink-950/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link to="/" className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-              △
+      <header className="sticky top-0 z-20 border-b border-rule bg-paper/85 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
+          <Link to="/" className="flex items-center gap-3">
+            <ByrneLogo size={34} />
+            <span className="flex flex-col leading-none">
+              <span className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-ink-faint">
+                Elements of
+              </span>
+              <span className="font-display text-lg tracking-tight text-ink">
+                Olympiad Geometry
+              </span>
             </span>
-            <span className="font-semibold tracking-tight">Olympiad Geometry</span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             {isAdmin && (
               <button
                 onClick={() => setTestMode(!testMode)}
                 title="When on, every question opens fresh and no progress is recorded."
                 className={
                   testMode
-                    ? "rounded-full bg-emerald-600 px-3 py-1 text-sm font-semibold text-white hover:bg-emerald-500"
-                    : "rounded-full border border-ink-700 px-3 py-1 text-sm font-semibold text-ink-300 hover:border-ink-500 hover:text-ink-100"
+                    ? "rounded-sm bg-correct px-3 py-1 font-mono text-xs uppercase tracking-wide text-paper"
+                    : "rounded-sm border border-rule px-3 py-1 font-mono text-xs uppercase tracking-wide text-ink-soft transition hover:border-ink-faint hover:text-ink"
                 }
               >
-                Test mode: {testMode ? "on" : "off"}
+                Test {testMode ? "on" : "off"}
               </button>
             )}
-            <span className="flex items-center gap-1.5 rounded-full bg-ink-800 px-3 py-1 text-sm font-semibold text-amber-300">
-              <span>⭐</span>
-              {snapshot.totalXp} XP
+            <span className="flex items-center gap-1.5 border border-ochre/40 bg-ochre/10 px-2.5 py-1 font-mono text-sm font-semibold text-ochre-deep">
+              <IconXP size={15} />
+              {snapshot.totalXp}
             </span>
-            <nav className="hidden gap-4 text-sm text-ink-300 sm:flex">
-              <Link to="/" className="hover:text-ink-50">
+            <nav className="hidden gap-5 font-mono text-xs uppercase tracking-wider text-ink-soft sm:flex">
+              <Link to="/" className="transition hover:text-vermilion">
                 Dashboard
               </Link>
-              <Link to="/course" className="hover:text-ink-50">
+              <Link to="/course" className="transition hover:text-vermilion">
                 Course
               </Link>
             </nav>
             {configured && user && (
               <button
                 onClick={handleSignOut}
-                className="rounded-lg border border-ink-700 px-3 py-1.5 text-sm text-ink-300 hover:border-ink-500 hover:text-ink-100"
+                className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink-soft transition hover:border-ink-faint hover:text-ink"
               >
                 Sign out
               </button>
@@ -61,7 +67,7 @@ export function Layout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto max-w-5xl px-4 py-10">
         <Outlet />
       </main>
     </div>

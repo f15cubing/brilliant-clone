@@ -13,7 +13,7 @@ function markup(text: string, keyBase: string): ReactNode[] {
     const key = `${keyBase}-${i++}`;
     if (m[1] !== undefined) {
       nodes.push(
-        <strong key={key} className="font-semibold text-white">
+        <strong key={key} className="font-semibold text-ink">
           {m[1]}
         </strong>,
       );
@@ -21,7 +21,7 @@ function markup(text: string, keyBase: string): ReactNode[] {
       nodes.push(
         <code
           key={key}
-          className="rounded bg-ink-800 px-1 py-0.5 font-mono text-[0.92em] text-brand-200"
+          className="rounded-sm bg-panel px-1 py-0.5 font-mono text-[0.92em] text-ultramarine"
         >
           {m[2]}
         </code>,

@@ -5,6 +5,12 @@ import { ACHIEVEMENTS } from "@/lib/progress/achievements";
 import { useProgress } from "@/lib/progress/ProgressContext";
 import { MathText } from "@/components/MathText";
 import { Spinner } from "@/components/Spinner";
+import {
+  ByrneShape,
+  ConstructionProgress,
+  IconCheck,
+  IconXP,
+} from "@/components/ByrneMark";
 
 export function Dashboard() {
   const { user, configured } = useAuth();
@@ -53,94 +59,112 @@ export function Dashboard() {
   const earned = new Set(snapshot.earnedAchievementIds);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-ink-50">
-          {user?.displayName ? `Hi, ${user.displayName}` : "Dashboard"}
+        <p className="font-mono text-xs uppercase tracking-[0.22em] text-ink-faint">
+          The practice of construction
+        </p>
+        <h1 className="mt-2 font-display text-4xl tracking-tight text-ink">
+          {user?.displayName ? `Welcome, ${user.displayName}` : "Welcome"}
         </h1>
-        <p className="mt-1 text-ink-400">
+        <p className="mt-2 max-w-xl font-serif text-lg italic text-ink-soft">
           Drag the figures. Chase the angles. Build real intuition.
         </p>
         {!configured && (
-          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
-            Running in <strong>guest mode</strong> — progress is saved locally.
-            Add Firebase credentials to sync across devices.
+          <p className="mt-4 border-l-2 border-ochre bg-ochre/10 px-4 py-2.5 text-sm text-ink-soft">
+            Running in <strong className="text-ochre-deep">guest mode</strong> —
+            progress is saved locally. Add Firebase credentials to sync across
+            devices.
           </p>
         )}
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Total XP" value={String(snapshot.totalXp)} icon="⭐" />
-        <StatCard
-          label="Course progress"
+      <div className="grid gap-px overflow-hidden border border-rule bg-rule sm:grid-cols-3">
+        <StatPlate label="Total XP" value={String(snapshot.totalXp)} index={2} />
+        <StatPlate
+          label="Course traced"
           value={`${courseCompletionPct()}%`}
-          icon="📐"
+          index={1}
         />
-        <StatCard
-          label="Lessons done"
+        <StatPlate
+          label="Lessons proved"
           value={`${courseProgress?.completedLessonIds.length ?? 0} / ${COURSE.lessons.length}`}
-          icon="✓"
+          index={0}
         />
       </div>
 
-      <section className="rounded-2xl border border-brand-500/30 bg-gradient-to-br from-brand-600/20 to-ink-900 p-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-brand-300">
-          {lessonStarted ? "Continue learning" : "Start learning"}
+      <section className="border border-ink/15 bg-panel-soft p-6 shadow-[3px_3px_0_0_rgba(27,23,20,0.08)]">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-vermilion">
+          {lessonStarted ? "Resume the proof" : "Begin the first proposition"}
         </p>
-        <h2 className="mt-1 text-xl font-bold text-ink-50">
+        <h2 className="mt-2 font-display text-2xl tracking-tight text-ink">
           {continueLesson.title}
         </h2>
-        <p className="mt-1 text-sm text-ink-300">{continueLesson.summary}</p>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-ink-800">
-          <div
-            className="h-full rounded-full bg-brand-500 transition-all"
-            style={{ width: `${continuePct}%` }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-ink-400">
+        <p className="mt-1.5 max-w-xl font-serif text-ink-soft">
+          {continueLesson.summary}
+        </p>
+        <ConstructionProgress pct={continuePct} className="mt-5 max-w-md" />
+        <p className="mt-2 font-mono text-xs text-ink-faint">
           {nextProblem
-            ? `Next up: problem ${continueLesson.problems.indexOf(nextProblem) + 1} of ${continueLesson.problems.length}`
-            : "Lesson complete — pick another or review."}
+            ? `Next · problem ${continueLesson.problems.indexOf(nextProblem) + 1} of ${continueLesson.problems.length}`
+            : "Proposition complete — revisit or move on."}
         </p>
         <Link
           to={`/lesson/${continueLesson.id}`}
-          className="mt-4 inline-flex rounded-lg bg-brand-600 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-500"
+          className="mt-5 inline-flex items-center gap-2 rounded-sm bg-vermilion px-5 py-2.5 font-semibold text-paper transition hover:bg-vermilion-soft"
         >
-          {!lessonStarted ? "Start learning" : nextProblem ? "Continue" : "Review lesson"}
+          {!lessonStarted
+            ? "Start learning"
+            : nextProblem
+              ? "Continue"
+              : "Review lesson"}
+          <span aria-hidden="true">→</span>
         </Link>
       </section>
 
       <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-ink-100">Achievements</h2>
-          <Link to="/course" className="text-sm text-brand-300 hover:text-brand-200">
+        <div className="mb-4 flex items-baseline justify-between border-b border-rule pb-2">
+          <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-ink-soft">
+            Marks of distinction
+          </h2>
+          <Link
+            to="/course"
+            className="font-mono text-xs uppercase tracking-wide text-ultramarine transition hover:text-vermilion"
+          >
             View course →
           </Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          {ACHIEVEMENTS.map((a) => {
+          {ACHIEVEMENTS.map((a, i) => {
             const unlocked = earned.has(a.id);
             return (
               <div
                 key={a.id}
                 className={[
-                  "rounded-xl border px-4 py-3 transition",
+                  "flex items-start gap-3 border px-4 py-3 transition",
                   unlocked
-                    ? "border-brand-500/40 bg-brand-500/10"
-                    : "border-ink-800 bg-ink-900/40 opacity-60",
+                    ? "border-ink/15 bg-panel-soft"
+                    : "border-rule bg-transparent opacity-55",
                 ].join(" ")}
               >
-                <div className="font-semibold text-ink-100">{a.title}</div>
-                <div className="text-sm text-ink-400">{a.description}</div>
+                <span className="mt-0.5">
+                  <ByrneShape index={i} muted={!unlocked} />
+                </span>
+                <div>
+                  <div className="font-semibold text-ink">{a.title}</div>
+                  <div className="text-sm text-ink-soft">{a.description}</div>
+                </div>
               </div>
             );
           })}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-ink-800 bg-ink-900/40 p-6">
-        <h2 className="text-lg font-semibold text-ink-100">{COURSE.title}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-ink-300">
+      <section className="border-l-2 border-ultramarine bg-panel-soft px-6 py-5">
+        <h2 className="font-display text-xl tracking-tight text-ink">
+          {COURSE.title}
+        </h2>
+        <p className="mt-2 font-serif text-[1.05rem] leading-relaxed text-ink-soft">
           <MathText>{COURSE.description}</MathText>
         </p>
       </section>
@@ -148,22 +172,30 @@ export function Dashboard() {
   );
 }
 
-function StatCard({
+function StatPlate({
   label,
   value,
-  icon,
+  index,
 }: {
   label: string;
   value: string;
-  icon: string;
+  index: number;
 }) {
   return (
-    <div className="rounded-xl border border-ink-800 bg-ink-900/60 px-4 py-4">
-      <div className="flex items-center gap-2 text-ink-400">
-        <span>{icon}</span>
-        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+    <div className="bg-paper px-5 py-5">
+      <div className="flex items-center gap-2 text-ink-faint">
+        {label === "Total XP" ? (
+          <IconXP size={15} />
+        ) : label === "Lessons proved" ? (
+          <IconCheck size={15} />
+        ) : (
+          <ByrneShape index={index} size={15} />
+        )}
+        <span className="font-mono text-[0.68rem] uppercase tracking-[0.16em]">
+          {label}
+        </span>
       </div>
-      <div className="mt-2 text-2xl font-bold text-ink-50">{value}</div>
+      <div className="mt-2 font-display text-3xl text-ink">{value}</div>
     </div>
   );
 }

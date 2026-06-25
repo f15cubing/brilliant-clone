@@ -26,7 +26,7 @@ function center(): BoardElementDef {
       size: 3,
       fixed: true,
       fillColor: "#fff",
-      strokeColor: "#94a3b8",
+      strokeColor: "#9c8c70",
       strokeWidth: 2,
     },
   };
@@ -189,7 +189,7 @@ export const inscribedAngle: Lesson = {
           { id: "A", type: "point", parents: [-3.6, 0], attributes: { name: "A", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2 } },
           { id: "B", type: "point", parents: [3.6, 0], attributes: { name: "B", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2 } },
           circle("c", "O", "B"),
-          segment("A", "B", { strokeColor: "#94a3b8", strokeWidth: 2, dash: 2 }),
+          segment("A", "B", { strokeColor: "#9c8c70", strokeWidth: 2, dash: 2 }),
           glider("P", 1.2, 3.4, "c"),
           segment("P", "A", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),
           segment("P", "B", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),

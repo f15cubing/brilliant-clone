@@ -54,7 +54,7 @@ export function MathField({
   return (
     <math-field
       ref={ref}
-      className="w-full rounded-lg border border-ink-600 bg-ink-900 text-ink-50"
+      className="w-full"
       style={{ minHeight: "3rem" }}
     />
   );
