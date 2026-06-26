@@ -46,6 +46,20 @@ Two initiatives, to be PLANNED with the team then implemented:
    Firebase Cloud Function holding the OpenAI key server-side (Auth + App Check),
    with a deterministic local mock translator until the key is wired.
 
+## Implementation wave (launched; isolated worktrees, non-overlapping lanes)
+
+User greenlit ALL tracks in parallel, incl. ratio subsystem + LITERAL contest citations.
+Base prep: refactored `RULES = [...CORE_RULES, ...PROMOTED_RULES]` so promotions own
+`rules/index.ts` (no shared-file conflict). Merge order plan: R → B → (N independent) → C;
+Wave 2 converts vetted problems → shipped puzzles after R+B land.
+
+| ID | Track | Lane (only) | Task |
+|----|-------|-------------|------|
+| R | Olympiad rules | `freeplay/rules/**`, `freeplay/__tests__/**` | promote 11 Tier-A rules (A1–A11) |
+| B | Ratio subsystem | `dsl.ts`,`verify.ts`,`check.ts`,`lengths/**`,`rules.ts`(spread only),`__tests__/**` | Tier C guard + eqratio/LengthAR + 4 ratio rules |
+| N | NL input | `nl/**`,`StepBuilder`,`FreeplayArena`,`config.ts`,`functions/**`,`firebase.json`,`firestore.rules`,`.env.example`,`vite-env.d.ts`,`tsconfig`(exclude) | per-step NL→DDAR, mock-default + Firebase Function scaffold |
+| C | Contest content | `research/problems/**`, `research/findings/contest-problems.md` | 6–8 real contest problems w/ literal citations, replay-verified |
+
 ## Completed work
 
 - Repository protection + green baseline.
