@@ -124,10 +124,11 @@ describe(`problem: ${P.id} (${P.source})`, () => {
     expect(factHolds(rel("coll", ["D", "E", "F"]), P.coords)).toBe(true);
   });
 
-  // Regression guard for the documented gap: WITHOUT the bridge rule, the
-  // shipped + research engine still cannot package coll(D,E,F) even when the
-  // proven para(D,E,D,F) is cited (AR never emits coll; pappus/pascal N/A).
-  it("GAP without the bridge: coll(D,E,F) stays blocked citing the proven para", () => {
+  // Regression guard that the bridge rule's promotion stayed wired: the rule was
+  // promoted into the shipped engine (src/lib/freeplay/rules/), so the
+  // shipped + research engine now packages coll(D,E,F) when the proven
+  // para(D,E,D,F) is cited.
+  it("PROMOTED: coll(D,E,F) is now provable citing the proven para", () => {
     const r = verifyWith([...RULES, ...RESEARCH_RULES], {
       coords: P.coords,
       bindings: {},
@@ -140,7 +141,7 @@ describe(`problem: ${P.id} (${P.source})`, () => {
       candidateFact: rel("coll", ["D", "E", "F"]),
       citedPremises: [rel("para", ["D", "E", "D", "F"])],
     });
-    expect(r.valid).toBe(false);
+    expect(r.valid).toBe(true);
   });
 
   // The bridge step is MINIMAL: it needs exactly para(D,E,D,F). Citing the extra

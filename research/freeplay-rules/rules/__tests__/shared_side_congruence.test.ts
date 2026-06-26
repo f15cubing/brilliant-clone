@@ -123,11 +123,11 @@ describe("shared-side congruent triangles (research rule)", () => {
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: the shipped engine (RULES) cannot prove ∠ABC = ∠ADC from the two leg congruences", () => {
-    // The conclusion is an ANGLE equality drawn from two LENGTH equalities over
-    // a 4-point figure. AR is angles-only (it ignores `cong`), the shipped
-    // `isosceles` rule runs the other way (eqangle ⇒ cong), and `sss_congruence`
-    // needs six distinct vertices — so the step is genuinely unprovable today.
+  it("PROMOTED: the shipped engine (RULES) now proves ∠ABC = ∠ADC from the two leg congruences", () => {
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now derives the angle equality over
+    // the 4-point figure directly. Regression guard that the promotion stayed
+    // wired.
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -135,6 +135,6 @@ describe("shared-side congruent triangles (research rule)", () => {
       candidateFact: angBD,
       citedPremises: givens,
     });
-    expect(r.valid).toBe(false);
+    expect(r.valid).toBe(true);
   });
 });

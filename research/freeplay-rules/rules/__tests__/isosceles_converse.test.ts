@@ -105,7 +105,7 @@ describe("isosceles: equal sides ⇒ equal base angles (research rule)", () => {
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: the shipped engine cannot derive the base-angle equality from the cong alone", () => {
+  it("PROMOTED: the shipped engine now derives the base-angle equality from the cong alone", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -113,8 +113,9 @@ describe("isosceles: equal sides ⇒ equal base angles (research rule)", () => {
       candidateFact: goal,
       citedPremises: [cong],
     });
-    // Shipped engine has no length→angle reasoning (AR is angles-only and the
-    // shipped `isosceles` goes angle→length), so this must be a real gap.
-    expect(r.valid).toBe(false);
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now performs the length→angle step
+    // directly. Regression guard that the promotion stayed wired.
+    expect(r.valid).toBe(true);
   });
 });

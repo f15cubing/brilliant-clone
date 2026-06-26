@@ -116,7 +116,7 @@ describe("perpendicular bisector ⇒ equidistant (research rule)", () => {
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: the shipped engine cannot already prove XA = XB", () => {
+  it("PROMOTED: the shipped engine now proves XA = XB", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -124,6 +124,9 @@ describe("perpendicular bisector ⇒ equidistant (research rule)", () => {
       candidateFact: goal,
       citedPremises: [midp, perp],
     });
-    expect(r.valid).toBe(false);
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now proves this directly. Regression
+    // guard that the promotion stayed wired.
+    expect(r.valid).toBe(true);
   });
 });

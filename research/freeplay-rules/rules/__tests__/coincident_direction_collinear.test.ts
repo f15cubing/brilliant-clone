@@ -135,7 +135,7 @@ describe("coincident direction ⇒ collinear (research rule)", () => {
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: the shipped engine cannot bridge para(X,A,X,B) to coll(X,A,B)", () => {
+  it("PROMOTED: the shipped engine now bridges para(X,A,X,B) to coll(X,A,B)", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -143,12 +143,13 @@ describe("coincident direction ⇒ collinear (research rule)", () => {
       candidateFact: goal,
       citedPremises: [para],
     });
-    // AR consumes coll but never emits it, and pappus (the only shipped coll
-    // producer) does not apply — so this is a genuine gap.
-    expect(r.valid).toBe(false);
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now performs the para→coll bridge
+    // directly. Regression guard that the promotion stayed wired.
+    expect(r.valid).toBe(true);
   });
 
-  it("GAP: even the full research rule set (without this rule) cannot do it", () => {
+  it("PROMOTED: the full rule set (shipped + research) now proves it via the promoted rule", () => {
     const r = verifyWith([...RULES, ...RESEARCH_RULES], {
       coords,
       bindings: {},
@@ -156,6 +157,9 @@ describe("coincident direction ⇒ collinear (research rule)", () => {
       candidateFact: goal,
       citedPremises: [para],
     });
-    expect(r.valid).toBe(false);
+    // The bridge rule now ships inside RULES (src/lib/freeplay/rules/), so the
+    // combined set proves the step. Regression guard that the promotion stayed
+    // wired.
+    expect(r.valid).toBe(true);
   });
 });

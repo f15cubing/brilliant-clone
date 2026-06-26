@@ -153,10 +153,10 @@ describe("SAS about a common vertex (rotation / spiral congruence)", () => {
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: the shipped engine (RULES) cannot prove AB = CD from these premises", () => {
-    // AB = CD is a LENGTH fact; AR is angles-only and no shipped DD rule pairs
-    // two shared-apex arms (isosceles needs distinct vertices), so the step is
-    // genuinely unprovable by the production engine today.
+  it("PROMOTED: the shipped engine (RULES) now proves AB = CD from these premises", () => {
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now pairs the two shared-apex arms and
+    // derives AB = CD directly. Regression guard that the promotion stayed wired.
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -164,6 +164,6 @@ describe("SAS about a common vertex (rotation / spiral congruence)", () => {
       candidateFact: opposite,
       citedPremises: [armAC, armBD, apexAngle],
     });
-    expect(r.valid).toBe(false);
+    expect(r.valid).toBe(true);
   });
 });

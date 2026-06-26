@@ -73,7 +73,7 @@ describe("midpoint gives equal halves (research rule)", () => {
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: the shipped engine does NOT prove MA = MB from midp(M,A,B)", () => {
+  it("PROMOTED: the shipped engine now proves MA = MB from midp(M,A,B)", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -81,8 +81,9 @@ describe("midpoint gives equal halves (research rule)", () => {
       candidateFact: goal,
       citedPremises: [midpMAB],
     });
-    // Shipped engine has no length/congruence reasoning, so this must be a real
-    // gap. If this ever flips to valid, the rule would be redundant.
-    expect(r.valid).toBe(false);
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now proves this directly. Regression
+    // guard that the promotion stayed wired.
+    expect(r.valid).toBe(true);
   });
 });

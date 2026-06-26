@@ -140,7 +140,7 @@ describe("equal segments chain — congruence transitivity (research rule)", () 
     expect(out.length).toBe(0);
   });
 
-  it("GAP: the shipped engine does NOT prove OB = OC from the two congs", () => {
+  it("PROMOTED: the shipped engine now proves OB = OC from the two congs", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -148,8 +148,9 @@ describe("equal segments chain — congruence transitivity (research rule)", () 
       candidateFact: goal,
       citedPremises: [congOAOB, congOAOC],
     });
-    // No length table in AR and no cong-chaining DD rule ships, so this is a
-    // genuine gap. If it ever flips to valid, the rule would be redundant.
-    expect(r.valid).toBe(false);
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now chains the two congruences
+    // directly. Regression guard that the promotion stayed wired.
+    expect(r.valid).toBe(true);
   });
 });

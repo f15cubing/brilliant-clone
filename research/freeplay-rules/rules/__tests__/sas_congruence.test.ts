@@ -153,9 +153,10 @@ describe("SAS congruent triangles (research rule)", () => {
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: the shipped engine (RULES) cannot prove AC = DF from the SAS premises", () => {
-    // The third-side equality is a LENGTH fact; AR is angles-only and no shipped
-    // DD rule produces this `cong`, so this step is genuinely unprovable today.
+  it("PROMOTED: the shipped engine (RULES) now proves AC = DF from the SAS premises", () => {
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now derives the third-side `cong`
+    // directly. Regression guard that the promotion stayed wired.
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -163,6 +164,6 @@ describe("SAS congruent triangles (research rule)", () => {
       candidateFact: thirdSide,
       citedPremises: [sideBA, sideBC, included],
     });
-    expect(r.valid).toBe(false);
+    expect(r.valid).toBe(true);
   });
 });

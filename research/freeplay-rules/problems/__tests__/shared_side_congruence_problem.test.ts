@@ -61,11 +61,11 @@ describe(`problem: ${P.id} (${P.source})`, () => {
   const legM = rel("cong", ["M", "B", "M", "C"]); // MB = MC
   const givens = [legA, legM];
 
-  it("GAP: the shipped engine (RULES) cannot derive ∠BAM = ∠CAM from the two leg congruences", () => {
-    // The conclusion is an ANGLE equality drawn from two LENGTH equalities over a
-    // 4-point figure. AR is angles-only (it ignores `cong`), the shipped
-    // `isosceles` rule runs the other way (eqangle ⇒ cong), and `sss_congruence`
-    // needs six distinct vertices — so the KEY step is genuinely unprovable today.
+  it("PROMOTED: the shipped engine (RULES) now derives ∠BAM = ∠CAM from the two leg congruences", () => {
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now derives the KEY angle equality over
+    // the 4-point figure directly. Regression guard that the promotion stayed
+    // wired.
     const r = verifyWith(RULES, {
       coords: P.coords,
       bindings: {},
@@ -73,7 +73,7 @@ describe(`problem: ${P.id} (${P.source})`, () => {
       candidateFact: P.goal,
       citedPremises: givens,
     });
-    expect(r.valid).toBe(false);
+    expect(r.valid).toBe(true);
   });
 
   it("GAP: sss_congruence does NOT fire on △ABM ≅ △ACM (shared median side AM)", () => {
