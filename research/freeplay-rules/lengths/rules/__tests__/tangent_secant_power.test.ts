@@ -3,9 +3,18 @@ import { rel, type Fact } from "@/lib/freeplay/dsl";
 import type { Coords } from "@/lib/freeplay/check";
 import { dist, type V } from "@/lib/freeplay/geom";
 import { tangent_secant_power } from "../tangent_secant_power";
-import { verifyL, researchVerifyL } from "../../verify";
+import { verifyL, LENGTH_RULES } from "../../verify";
 import { eqratio, factHoldsL } from "../../dsl";
 import { verifyWith, RULES } from "../../../harness";
+import { RESEARCH_RULES } from "../../../rules";
+
+// Every rule EXCEPT the one under test — used to prove the GAP (no pre-existing
+// rule could already derive the tangent-secant power ratio).
+const EXISTING = [
+  ...RULES,
+  ...RESEARCH_RULES,
+  ...LENGTH_RULES.filter((r) => r.id !== "tangent_secant_power"),
+];
 
 /**
  * Generic tangent–secant realization on a radius-5 circle centred at O.
@@ -160,7 +169,7 @@ describe("tangent-secant power (research length rule)", () => {
       citedPremises: givens,
     });
     expect(shipped.valid).toBe(false);
-    const research = researchVerifyL({
+    const research = verifyL(EXISTING, {
       coords,
       bindings: {},
       establishedFacts: givens,
