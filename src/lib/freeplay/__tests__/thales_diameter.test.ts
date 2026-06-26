@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { rel, type Fact } from "@/lib/freeplay/dsl";
-import type { Coords } from "@/lib/freeplay/check";
-import { factHolds } from "@/lib/freeplay/check";
+import { factHolds, type Coords } from "@/lib/freeplay/check";
 import { angleDeg, dist, type V } from "@/lib/freeplay/geom";
-import { thales_diameter } from "../thales_diameter";
-import { verifyWith, researchVerify, RULES } from "../../harness";
+import { thales_diameter } from "../rules/thales_diameter";
+import { verify } from "@/lib/freeplay/verify";
 
 /**
+ * Promoted from research/freeplay-rules — Thales' theorem: an angle inscribed in
+ * a semicircle is a right angle. From midp(O,B,C) (BC a diameter) + cong(O,A,O,B)
+ * (A on the circle) the rule emits perp(A,B,A,C). Exercised end-to-end via the
+ * shipped `verify()`, which composes the PROMOTED_RULES into the engine.
+ *
  * Generic semicircle: circle of radius 5 centred at O, BC a diameter, A a third
  * point of the circle (NOT symmetric — ∠ chosen at 1.1 rad). Rotated by 0.4 rad
  * so nothing is axis-aligned. Then ∠BAC = 90°.
@@ -29,7 +33,7 @@ const onCirc = rel("cong", ["O", "A", "O", "B"]); // A on the circle
 const givens: Fact[] = [diam, onCirc];
 const goal = rel("perp", ["A", "B", "A", "C"]); // ∠BAC = 90°
 
-describe("Thales: diameter subtends a right angle (research rule)", () => {
+describe("Thales: diameter subtends a right angle (promoted rule)", () => {
   it("realizes the givens and the right angle", () => {
     expect(factHolds(diam, coords)).toBe(true);
     expect(factHolds(onCirc, coords)).toBe(true);
@@ -45,7 +49,7 @@ describe("Thales: diameter subtends a right angle (research rule)", () => {
   });
 
   it("verifies the right angle in ONE step citing the diameter + on-circle facts", () => {
-    const r = verifyWith([thales_diameter], {
+    const r = verify({
       coords,
       bindings: {},
       establishedFacts: givens,
@@ -55,12 +59,12 @@ describe("Thales: diameter subtends a right angle (research rule)", () => {
     expect(r).toEqual({ valid: true, rule: "Thales (diameter subtends a right angle)" });
   });
 
-  it("MINIMALITY: dropping the diameter (midp) → not valid (perp still true in coords)", () => {
+  it("MINIMALITY / no coordinate-peeking: dropping the diameter (midp) → not valid (perp still true in coords)", () => {
     // Critical soundness proof: even though ∠BAC = 90° numerically, with only the
-    // on-circle cong cited the rule must NOT emit — it never reads the angle off
+    // on-circle cong cited the engine must NOT emit — it never reads the angle off
     // the figure in place of the missing diameter premise.
     expect(factHolds(goal, coords)).toBe(true);
-    const r = verifyWith([thales_diameter], {
+    const r = verify({
       coords,
       bindings: {},
       establishedFacts: givens,
@@ -71,7 +75,7 @@ describe("Thales: diameter subtends a right angle (research rule)", () => {
   });
 
   it("MINIMALITY: dropping the on-circle cong → not valid (perp still true in coords)", () => {
-    const r = verifyWith([thales_diameter], {
+    const r = verify({
       coords,
       bindings: {},
       establishedFacts: givens,
@@ -94,7 +98,7 @@ describe("Thales: diameter subtends a right angle (research rule)", () => {
       points: Object.keys(bad),
     });
     expect(out.length).toBe(0);
-    const r = verifyWith([thales_diameter], {
+    const r = verify({
       coords: bad,
       bindings: {},
       establishedFacts: givens,
@@ -116,7 +120,7 @@ describe("Thales: diameter subtends a right angle (research rule)", () => {
       points: Object.keys(bad),
     });
     expect(out.length).toBe(0);
-    const r = verifyWith([thales_diameter], {
+    const r = verify({
       coords: bad,
       bindings: {},
       establishedFacts: givens,
@@ -124,31 +128,5 @@ describe("Thales: diameter subtends a right angle (research rule)", () => {
       citedPremises: givens,
     });
     expect(r.valid).toBe(false);
-  });
-
-  it("PROMOTED: the shipped engine alone now derives the right angle", () => {
-    // This rule has been promoted into the shipped engine (PROMOTED_RULES), so
-    // the gap it closed is now closed end-to-end: `verifyWith(RULES, …)` (which
-    // imports the shipped RULES) derives ∠BAC = 90° directly. (Before promotion
-    // this asserted neither the shipped engine nor the research rules could.)
-    const shipped = verifyWith(RULES, {
-      coords,
-      bindings: {},
-      establishedFacts: givens,
-      candidateFact: goal,
-      citedPremises: givens,
-    });
-    expect(shipped).toEqual({
-      valid: true,
-      rule: "Thales (diameter subtends a right angle)",
-    });
-    const research = researchVerify({
-      coords,
-      bindings: {},
-      establishedFacts: givens,
-      candidateFact: goal,
-      citedPremises: givens,
-    });
-    expect(research.valid).toBe(true);
   });
 });
