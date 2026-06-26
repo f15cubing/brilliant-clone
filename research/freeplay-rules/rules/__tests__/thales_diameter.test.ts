@@ -126,7 +126,11 @@ describe("Thales: diameter subtends a right angle (research rule)", () => {
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: neither the shipped engine nor the existing research rules derive it", () => {
+  it("PROMOTED: the shipped engine alone now derives the right angle", () => {
+    // This rule has been promoted into the shipped engine (PROMOTED_RULES), so
+    // the gap it closed is now closed end-to-end: `verifyWith(RULES, …)` (which
+    // imports the shipped RULES) derives ∠BAC = 90° directly. (Before promotion
+    // this asserted neither the shipped engine nor the research rules could.)
     const shipped = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -134,7 +138,10 @@ describe("Thales: diameter subtends a right angle (research rule)", () => {
       candidateFact: goal,
       citedPremises: givens,
     });
-    expect(shipped.valid).toBe(false);
+    expect(shipped).toEqual({
+      valid: true,
+      rule: "Thales (diameter subtends a right angle)",
+    });
     const research = researchVerify({
       coords,
       bindings: {},
@@ -142,6 +149,6 @@ describe("Thales: diameter subtends a right angle (research rule)", () => {
       candidateFact: goal,
       citedPremises: givens,
     });
-    expect(research.valid).toBe(false);
+    expect(research.valid).toBe(true);
   });
 });
