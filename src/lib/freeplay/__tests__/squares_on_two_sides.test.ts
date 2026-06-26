@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { factEqual } from "@/lib/freeplay/dsl";
-import { factHolds } from "@/lib/freeplay/check";
+import { factHoldsL } from "@/lib/freeplay/lengths/dsl";
 import { verify } from "@/lib/freeplay/verify";
 import { squares_on_two_sides as puzzle } from "../puzzles/squares_on_two_sides";
 
@@ -16,8 +16,8 @@ describe("squares_on_two_sides (shipped)", () => {
   const { coords, given, goal, solution } = puzzle;
 
   it("every given and the goal hold numerically on the coords", () => {
-    for (const g of given) expect(factHolds(g, coords)).toBe(true);
-    expect(factHolds(goal, coords)).toBe(true);
+    for (const g of given) expect(factHoldsL(g, coords)).toBe(true);
+    expect(factHoldsL(goal, coords)).toBe(true);
   });
 
   it("each solution step verifies in the shipped engine", () => {

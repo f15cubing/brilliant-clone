@@ -1,29 +1,8 @@
 import { angleMark, circle, COLORS, fixedPoint, polygon, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
 import type { V } from "@/lib/freeplay/geom";
-import { eqratio, type LFact } from "@/lib/freeplay/lengths/dsl";
-import type { Puzzle, SolutionStep } from "@/lib/freeplay/types";
-
-/**
- * A length/ratio puzzle: same shape as `Puzzle`, but `given` / `goal` /
- * `equivalentGoals` / `solution` may carry `eqratio` (an `LFact`, not a shipped
- * `Fact`). The shipped verifier and the label/canonical-key helpers are already
- * `LFact`-aware (see `lengths/dsl.ts`); only the static `Puzzle` type is angle-
- * only. We widen it locally rather than editing the shared `types.ts`.
- */
-type LSolutionStep = Omit<SolutionStep, "fact" | "premises"> & {
-  fact: LFact;
-  premises: LFact[];
-};
-export type RatioPuzzle = Omit<
-  Puzzle,
-  "given" | "goal" | "equivalentGoals" | "solution"
-> & {
-  given: LFact[];
-  goal: LFact;
-  equivalentGoals?: LFact[];
-  solution: LSolutionStep[];
-};
+import { eqratio } from "@/lib/freeplay/lengths/dsl";
+import type { Puzzle } from "@/lib/freeplay/types";
 
 /**
  * (Reduced from) JBMO Shortlist 2010 G3 — power of a point (difficulty
@@ -65,7 +44,7 @@ const secant2 = rel("coll", ["A", "E", "C"]); // secant A–E–C
 // GOAL — AD/AE = AC/AB (⇔ AD·AB = AE·AC, the power of A).
 const goal = eqratio("A", "D", "A", "E", "A", "C", "A", "B");
 
-export const jbmo_shortlist_2010_g3_pop: RatioPuzzle = {
+export const jbmo_shortlist_2010_g3_pop: Puzzle = {
   id: "jbmo-2010-g3-power-of-a-point",
   title: "JBMO Shortlist 2010 G3: power of a point",
   blurb:

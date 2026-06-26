@@ -3,10 +3,12 @@ import { MathText } from "@/components/MathText";
 import {
   aval,
   canonicalKey,
+  eqratio,
   factLabel,
   rel,
   RELS,
   type Fact,
+  type LFact,
   type RelName,
 } from "@/lib/freeplay/dsl";
 import { fstr, parseForm } from "@/lib/freeplay/form";
@@ -26,7 +28,7 @@ import {
   type Subst,
 } from "@/lib/freeplay/symmetry";
 
-type Kind = RelName | "aval";
+type Kind = RelName | "aval" | "eqratio";
 type Mode = "derive" | "analogy";
 type InputMode = "structured" | "nl";
 
@@ -40,10 +42,10 @@ const NL_AUTO_REPAIR = false;
 interface StepBuilderProps {
   pointIds: string[];
   facts: FactEntry[];
-  givens: Fact[];
+  givens: LFact[];
   busy: boolean;
   disabled: boolean;
-  onAssert: (fact: Fact, premises: Fact[], opts?: { subst?: Subst }) => void;
+  onAssert: (fact: LFact, premises: LFact[], opts?: { subst?: Subst }) => void;
   /** Puzzle id + variable names are passed to the NL translator for context. */
   puzzleId: string;
   variableNames?: string[];
@@ -56,11 +58,17 @@ const KINDS: { id: Kind; label: string; slots: string[] }[] = [
     label: RELS[n].label,
     slots: RELS[n].slots,
   })),
+  // Length/ratio fact: the proportion AB/CD = EF/GH over eight points.
+  {
+    id: "eqratio",
+    label: "Ratio  AB/CD = EF/GH",
+    slots: ["A", "B", "C", "D", "E", "F", "G", "H"],
+  },
 ];
 
 const MAX_COLL = 8;
 
-function tryBuild(kind: Kind, slots: string[], expr: string): Fact | null {
+function tryBuild(kind: Kind, slots: string[], expr: string): LFact | null {
   if (kind === "aval") {
     if (slots.length !== 3) return null;
     try {
@@ -68,6 +76,19 @@ function tryBuild(kind: Kind, slots: string[], expr: string): Fact | null {
     } catch {
       return null;
     }
+  }
+  if (kind === "eqratio") {
+    if (slots.length !== 8) return null;
+    return eqratio(
+      slots[0],
+      slots[1],
+      slots[2],
+      slots[3],
+      slots[4],
+      slots[5],
+      slots[6],
+      slots[7],
+    );
   }
   if (RELS[kind].variadic) {
     if (slots.length < 3) return null;
@@ -117,13 +138,19 @@ export function StepBuilder({
   );
   const mirrorFact = facts.find((f) => f.id === mirrorId) ?? null;
   const analogyPreview = useMemo<Fact | null>(() => {
-    if (!mirrorFact || !subst) return null;
+    // "By symmetry" relabels ordinary facts only; ratio facts are out of scope.
+    if (!mirrorFact || !subst || mirrorFact.fact.kind === "eqratio") return null;
     return applySubst(mirrorFact.fact, subst);
   }, [mirrorFact, subst]);
   const swapsError = swaps.trim().length > 0 && !subst;
+  // The symmetry machinery is angle/incidence-only; restrict to ordinary givens.
+  const ordinaryGivens = useMemo(
+    () => givens.filter((f): f is Fact => f.kind !== "eqratio"),
+    [givens],
+  );
   const symIssue = useMemo(
-    () => (subst ? symmetryProblem(subst, givens, pointIds) : null),
-    [subst, givens, pointIds],
+    () => (subst ? symmetryProblem(subst, ordinaryGivens, pointIds) : null),
+    [subst, ordinaryGivens, pointIds],
   );
   const canAnalogize =
     !busy &&
@@ -497,7 +524,7 @@ interface NLPanelProps {
   variableNames: string[];
   busy: boolean;
   disabled: boolean;
-  onAssert: (fact: Fact, premises: Fact[], opts?: { subst?: Subst }) => void;
+  onAssert: (fact: LFact, premises: LFact[], opts?: { subst?: Subst }) => void;
   onEdit: (interp: Interpretation) => void;
 }
 
@@ -527,7 +554,10 @@ function NLPanel({
     setTranslating(true);
     setError(null);
     setInterp(null);
-    const established = facts.map((f) => f.fact);
+    // The NL translator/mapper is angle/incidence-only; hide ratio facts from it.
+    const established = facts
+      .map((f) => f.fact)
+      .filter((f): f is Fact => f.kind !== "eqratio");
     try {
       const translator = getTranslator();
       const result: TranslationResult = await translator.translate({

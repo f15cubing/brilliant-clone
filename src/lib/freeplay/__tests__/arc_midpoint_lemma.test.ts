@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { factHolds } from "@/lib/freeplay/check";
-import { factEqual, type Fact } from "@/lib/freeplay/dsl";
+import { factEqual, type LFact } from "@/lib/freeplay/dsl";
+import { factHoldsL } from "@/lib/freeplay/lengths/dsl";
 import { verify } from "@/lib/freeplay/verify";
 import { arcMidpointLemma as puzzle } from "../puzzles/arc_midpoint_lemma";
 
@@ -13,15 +13,15 @@ describe("arc_midpoint_lemma (shipped puzzle)", () => {
   const { coords, given, goal, solution } = puzzle;
 
   it("every given holds numerically on the puzzle coords", () => {
-    for (const g of given) expect(factHolds(g, coords, {})).toBe(true);
+    for (const g of given) expect(factHoldsL(g, coords, {})).toBe(true);
   });
 
   it("the goal holds numerically on the puzzle coords", () => {
-    expect(factHolds(goal, coords, {})).toBe(true);
+    expect(factHoldsL(goal, coords, {})).toBe(true);
   });
 
   it("the full solution chain verifies step-by-step in the shipped engine", () => {
-    const established: Fact[] = [...given];
+    const established: LFact[] = [...given];
     for (const step of solution) {
       const r = verify({
         coords,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { factEqual } from "@/lib/freeplay/dsl";
-import { factHolds } from "@/lib/freeplay/check";
+import { factHoldsL } from "@/lib/freeplay/lengths/dsl";
 import { verify } from "@/lib/freeplay/verify";
 import { jbmo_shortlist_2015_g1 as puzzle } from "../puzzles/jbmo_shortlist_2015_g1";
 
@@ -15,8 +15,8 @@ describe("jbmo_shortlist_2015_g1 (shipped)", () => {
   const { coords, given, goal, solution } = puzzle;
 
   it("every given and the goal hold numerically on the coords", () => {
-    for (const g of given) expect(factHolds(g, coords)).toBe(true);
-    expect(factHolds(goal, coords)).toBe(true);
+    for (const g of given) expect(factHoldsL(g, coords)).toBe(true);
+    expect(factHoldsL(goal, coords)).toBe(true);
   });
 
   it("each solution step verifies in the shipped engine", () => {

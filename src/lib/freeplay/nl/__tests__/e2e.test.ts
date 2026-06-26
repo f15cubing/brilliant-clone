@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { verify } from "../../verify";
 import { getPuzzle } from "../../puzzles";
+import type { Fact } from "../../dsl";
 import type { Puzzle } from "../../types";
 import { descriptorToFact, factToDescriptor, matchPremises } from "../map";
 import { LocalMockTranslator } from "../mock";
@@ -16,7 +17,8 @@ const inscribed = getPuzzle("inscribed-angle")!;
 function runPipeline(translator: Translator, text: string, puzzle: Puzzle) {
   const points = Object.keys(puzzle.coords);
   const variables = Object.keys(puzzle.variables ?? {});
-  const established = puzzle.given;
+  // The NL path is angle/incidence-only; narrow the puzzle's `LFact[]` givens.
+  const established = puzzle.given.filter((f): f is Fact => f.kind !== "eqratio");
   return translator
     .translate({
       text,

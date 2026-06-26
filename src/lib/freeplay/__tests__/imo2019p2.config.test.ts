@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildImo2019p2Config } from "@/lib/freeplay/puzzles/imo2019p2Config";
 import { imo2019p2 } from "@/lib/freeplay/puzzles/imo2019p2";
 import { factHolds } from "@/lib/freeplay/check";
-import { canonicalKey, rel } from "@/lib/freeplay/dsl";
+import { canonicalKey, rel, type Fact } from "@/lib/freeplay/dsl";
 import { applySubst, isGivenSymmetry, parseSwaps } from "@/lib/freeplay/symmetry";
 
 describe("IMO 2019 P2 configuration is geometrically valid", () => {
@@ -46,15 +46,18 @@ describe("IMO 2019 P2 configuration is geometrically valid", () => {
 
   it("the A↔B family swap is the symmetry mapping CQ1B2A2 → CP1B2A2", () => {
     const points = Object.keys(coords);
+    // The symmetry machinery is angle/incidence-only; this puzzle's givens are
+    // all ordinary `Fact`s, so narrow the `LFact[]` accordingly.
+    const givens = imo2019p2.given.filter((f): f is Fact => f.kind !== "eqratio");
     const good = parseSwaps("A-B, A1-B1, P-Q, P1-Q1, A2-B2", new Set(points))!;
-    expect(isGivenSymmetry(good, imo2019p2.given, points)).toBe(true);
+    expect(isGivenSymmetry(good, givens, points)).toBe(true);
     expect(canonicalKey(applySubst(rel("cyclic", ["C", "Q1", "B2", "A2"]), good))).toBe(
       canonicalKey(rel("cyclic", ["C", "P1", "B2", "A2"])),
     );
 
     // What the user tried — not a symmetry of the givens.
     const bad = parseSwaps("B-C, P1-Q1", new Set(points))!;
-    expect(isGivenSymmetry(bad, imo2019p2.given, points)).toBe(false);
+    expect(isGivenSymmetry(bad, givens, points)).toBe(false);
   });
 
   it("P1 is beyond B1, Q1 is beyond A1 (non-degenerate)", () => {

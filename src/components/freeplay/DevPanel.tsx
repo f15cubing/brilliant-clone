@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { MathText } from "@/components/MathText";
-import { canonicalKey, factLabel, type Fact } from "@/lib/freeplay/dsl";
+import { canonicalKey, factLabel, type Fact, type LFact } from "@/lib/freeplay/dsl";
 import type { VarBindings, Coords } from "@/lib/freeplay/check";
 import { deriveAll, type VerifyResult } from "@/lib/freeplay/verify";
 
 export interface LastAttempt {
-  fact: Fact;
+  /** May be an `eqratio` (`LFact`); `canonicalKey` is `LFact`-aware. */
+  fact: LFact;
   holds: boolean;
   result: VerifyResult;
 }
@@ -23,14 +24,20 @@ export function DevPanel({
 }: {
   coords: Coords;
   bindings: VarBindings;
-  facts: Fact[];
+  facts: LFact[];
   last: LastAttempt | null;
 }) {
   const [show, setShow] = useState(false);
 
+  // `deriveAll` enumerates ordinary (angle/incidence) consequences only; ratio
+  // facts are reasoned about in the length layer, so drop them here.
+  const ordinary = useMemo(
+    () => facts.filter((f): f is Fact => f.kind !== "eqratio"),
+    [facts],
+  );
   const derivable = useMemo(
-    () => (show ? deriveAll(facts, coords, bindings) : []),
-    [show, facts, coords, bindings],
+    () => (show ? deriveAll(ordinary, coords, bindings) : []),
+    [show, ordinary, coords, bindings],
   );
 
   return (

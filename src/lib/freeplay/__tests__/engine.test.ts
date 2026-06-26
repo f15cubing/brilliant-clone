@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FREEPLAY_PUZZLES } from "@/lib/freeplay/puzzles";
 import { aval, canonicalKey, factLabel, rel } from "@/lib/freeplay/dsl";
 import { factHolds, type Coords } from "@/lib/freeplay/check";
+import { factHoldsL } from "@/lib/freeplay/lengths/dsl";
 import { isGoal } from "@/lib/freeplay/proof";
 import { verify } from "@/lib/freeplay/verify";
 import { AngleAR } from "@/lib/freeplay/ar";
@@ -66,12 +67,12 @@ describe("each puzzle is solvable by the engine along its reference proof", () =
       const bindings = puzzle.variables ?? {};
       for (const step of puzzle.solution) {
         expect(
-          factHolds(step.fact, puzzle.coords, bindings),
+          factHoldsL(step.fact, puzzle.coords, bindings),
           `${factLabel(step.fact)} must be numerically true`,
         ).toBe(true);
       }
       for (const g of puzzle.given) {
-        expect(factHolds(g, puzzle.coords, bindings)).toBe(true);
+        expect(factHoldsL(g, puzzle.coords, bindings)).toBe(true);
       }
     });
   }
