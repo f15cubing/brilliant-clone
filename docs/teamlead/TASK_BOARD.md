@@ -28,9 +28,23 @@ is untouched for the entire session._
 | A3 | Math Discovery | worktree (writes) | Close the Simson–Wallace line gap: implement the `coincident-direction ⇒ collinear` bridge rule in `research/freeplay-rules/`, prove it end-to-end, document | running |
 | A4 | Quality/CI | worktree (writes) | Add course-app pure-logic Vitest tests (grading/algebra, geometry math, progress reducer, achievements) + wire `npm test` into CI | running |
 
+| P1 | NL→DDAR Planning | readonly | Design doc + impl plan for natural-language step input (Translator iface, OpenAI-via-Firebase-Function, App Check, mock translator, verify-as-truth, repair UX, tests) | running |
+| P2 | Olympiad/Rules Planning | readonly | Plan: ordered research-rule promotion (easy wins vs ratio subsystem) + ~6-8 graded olympiad problem slate w/ sources & required rules | running |
+
 Team Lead has independently read `verify.ts`, `dsl.ts`, `ar.ts`, `geom.ts` to enable
 critical review of A1 (architecture) and A3 (new rule soundness). Confirmed AR's
 `equation()` returns null for coll/cong/cyclic/midp (ar.ts:316) — A3's gap is real.
+
+## New product direction (user, ~10:58)
+
+Two initiatives, to be PLANNED with the team then implemented:
+1. **Olympiad problems** — author ~6-8 graded olympiad Freeplay problems. Strategy:
+   PROMOTE proven research-lab rules into the shipped engine first, then author.
+2. **Natural-language Freeplay input** — per-step NL → AI → DDAR structured step →
+   existing `verify()` (verifier stays sole source of truth). UX: augment (toggle)
+   alongside StepBuilder. Backend: provider-agnostic `Translator`; production path =
+   Firebase Cloud Function holding the OpenAI key server-side (Auth + App Check),
+   with a deterministic local mock translator until the key is wired.
 
 ## Completed work
 
