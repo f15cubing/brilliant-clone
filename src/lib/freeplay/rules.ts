@@ -25,6 +25,12 @@ import {
   type V,
 } from "./geom";
 
+// Rules promoted from the research lab. Lives in its own module so promotions
+// only ever touch `./rules/index.ts` (never this file). Type-only at runtime
+// until the registry is populated; the import is value-level but the registry
+// starts empty, so there is no import cycle.
+import { PROMOTED_RULES } from "./rules/index";
+
 const DEG180 = constForm(rat(180));
 
 export interface RuleCtx {
@@ -554,7 +560,8 @@ const pappus: Rule = {
   },
 };
 
-export const RULES: Rule[] = [
+/** The original, hand-written core rule set. */
+export const CORE_RULES: Rule[] = [
   inscribed_angle,
   collinear_same_ray,
   angle_value_transfer,
@@ -569,3 +576,11 @@ export const RULES: Rule[] = [
   concyclic_merge,
   pappus,
 ];
+
+/**
+ * The full rule library used by the verifier. Composed from the hand-written
+ * core plus rules promoted from the research lab (`./rules/`). Each promoted
+ * rule registers itself in `PROMOTED_RULES` so promotions never have to edit
+ * this file (and never conflict on a shared array).
+ */
+export const RULES: Rule[] = [...CORE_RULES, ...PROMOTED_RULES];
