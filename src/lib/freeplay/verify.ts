@@ -12,8 +12,22 @@
 import { AngleAR } from "./ar";
 import { factHolds, type Coords, type VarBindings } from "./check";
 import { canonicalKey, factEqual, isAmong, rel, type Fact } from "./dsl";
+import { factHoldsL, type LFact, type LRule } from "./lengths/dsl";
+import { LengthAR } from "./lengths/lengthAR";
+import { RATIO_RULES } from "./lengths/rules";
 import { RULES } from "./rules";
 import { analogSource, isGivenSymmetry, type Subst } from "./symmetry";
+
+/**
+ * The full single-step rule set the verifier runs: the shipped angle/incidence
+ * `RULES` plus the LENGTH/RATIO rules (`RATIO_RULES`). The ratio rules are
+ * composed HERE, at the verify layer — exactly as the research lab's
+ * `lengths/verify.ts` composes `[...RULES, ...LENGTH_RULES]` — rather than being
+ * spliced into the shipped `RULES` export, so the angle-only rule list (and the
+ * tests that assert against it) is left untouched. A `Rule` widens to an `LRule`
+ * (its `Fact[]` result is an `LFact[]`), so the two kinds mix freely.
+ */
+const ALL_RULES: LRule[] = [...RULES, ...RATIO_RULES];
 
 /**
  * Expand every coll(≥4) into all its 3-point sub-collinearities (keeping the
@@ -44,11 +58,11 @@ function expandColls(facts: Fact[]): Fact[] {
 export interface VerifyInput {
   coords: Coords;
   bindings: VarBindings;
-  establishedFacts: Fact[];
-  candidateFact: Fact;
-  citedPremises: Fact[];
+  establishedFacts: LFact[];
+  candidateFact: LFact;
+  citedPremises: LFact[];
   /** The puzzle's given facts (hypotheses). Required for "by symmetry" steps. */
-  givens?: Fact[];
+  givens?: LFact[];
   /** When present, the step is justified "by symmetry" under this relabeling. */
   analogy?: { subst: Subst };
 }
@@ -66,18 +80,32 @@ export type VerifyResult =
     };
 
 /**
- * Does `cited` derive `candidate` in one step (DD rule or AR angle-chase)?
- * Returns the rule name, or null. Never throws — a misbehaving rule is skipped.
+ * Does `cited` derive `candidate` in one step? Returns the rule name, or null.
+ * Never throws — a misbehaving rule is skipped. Three reasoning layers are tried
+ * in order:
+ *   1. DD — each rule scans the (coll-expanded) cited facts; a direct
+ *      `factEqual` match returns that rule's name. Ratio (`eqratio`) outputs are
+ *      collected separately for the length layer.
+ *   2. AngleAR — directed-angle Gaussian elimination over cited ∪ DD angle
+ *      consequences (skipped for ratio candidates, which carry no angle equation).
+ *   3. LengthAR — log-length Gaussian elimination over the cited facts ∪ one-step
+ *      DD/length consequences (so e.g. a cited proportion fuses with a rule's
+ *      bridge proportion to close an SAS-similarity ratio chase).
  */
 function deriveOnce(
-  cited: Fact[],
-  candidate: Fact,
+  cited: LFact[],
+  candidate: LFact,
   ctx: { coords: Coords; bindings: VarBindings; points: string[] },
 ): string | null {
-  const facts = expandColls(cited);
-  const ddDerived: Fact[] = [];
-  for (const rule of RULES) {
-    let produced: Fact[];
+  // The DD rules and the angle table only reason about ordinary facts; `eqratio`
+  // premises are routed straight to the length layer.
+  const ordinary = cited.filter((f): f is Fact => f.kind !== "eqratio");
+  const facts = expandColls(ordinary);
+
+  const ddDerived: Fact[] = []; // ordinary one-step consequences
+  const lDerived: LFact[] = []; // one-step ratio consequences (eqratio)
+  for (const rule of ALL_RULES) {
+    let produced: LFact[];
     try {
       produced = rule.derive(facts, ctx);
     } catch {
@@ -85,12 +113,23 @@ function deriveOnce(
     }
     for (const d of produced) {
       if (factEqual(d, candidate)) return rule.name;
-      ddDerived.push(d);
+      if (d.kind === "eqratio") lDerived.push(d);
+      else ddDerived.push(d);
     }
   }
-  const ar = new AngleAR(ctx.coords, ctx.bindings);
-  for (const f of [...facts, ...ddDerived]) ar.add(f);
-  if (ar.implies(candidate)) return "algebraic angle-chase";
+
+  // Angle layer (only meaningful for ordinary angle candidates).
+  if (candidate.kind !== "eqratio") {
+    const ar = new AngleAR(ctx.coords, ctx.bindings);
+    for (const f of [...facts, ...ddDerived]) ar.add(f);
+    if (ar.implies(candidate)) return "algebraic angle-chase";
+  }
+
+  // Length layer: cited facts + one-step DD / length consequences.
+  const lar = new LengthAR(ctx.coords);
+  for (const f of [...cited, ...ddDerived, ...lDerived]) lar.add(f);
+  if (lar.implies(candidate)) return "algebraic length-chase";
+
   return null;
 }
 
@@ -99,14 +138,25 @@ export function verify(input: VerifyInput): VerifyResult {
 
   // ---- "By symmetry" / analogous argument --------------------------------
   if (input.analogy) {
+    // The symmetry machinery is angle/incidence-only (it relabels `Fact`s).
+    // Ratio facts are out of scope for "by symmetry", and ratio givens cannot
+    // constrain a relabeling, so we work over the ordinary facts only.
+    if (candidateFact.kind === "eqratio") {
+      return { valid: false, reason: "unjustified" };
+    }
     const points = Object.keys(coords);
-    const givens = input.givens ?? establishedFacts;
+    const givens = (input.givens ?? establishedFacts).filter(
+      (f): f is Fact => f.kind !== "eqratio",
+    );
+    const ordinaryEstablished = establishedFacts.filter(
+      (f): f is Fact => f.kind !== "eqratio",
+    );
     // σ must be an automorphism of the hypotheses.
     if (!isGivenSymmetry(input.analogy.subst, givens, points)) {
       return { valid: false, reason: "not_symmetry" };
     }
     // Some established fact must map onto the asserted fact under σ.
-    if (!analogSource(candidateFact, input.analogy.subst, establishedFacts)) {
+    if (!analogSource(candidateFact, input.analogy.subst, ordinaryEstablished)) {
       return { valid: false, reason: "unjustified" };
     }
     // Safety gate: the consequence must hold numerically (it always should).
@@ -123,8 +173,9 @@ export function verify(input: VerifyInput): VerifyResult {
     }
   }
 
-  // Numeric truth gate.
-  if (!factHolds(candidateFact, coords, bindings)) {
+  // Numeric truth gate (ratio-aware: `factHoldsL` checks `eqratio` proportions
+  // and delegates to the shipped `factHolds` for ordinary facts).
+  if (!factHoldsL(candidateFact, coords, bindings)) {
     return { valid: false, reason: "not_true" };
   }
 
@@ -173,14 +224,17 @@ export function deriveAll(
   const known = new Set(facts.map(canonicalKey));
   const seen = new Set<string>();
   const out: { fact: Fact; rule: string }[] = [];
-  for (const rule of RULES) {
-    let produced: Fact[];
+  for (const rule of ALL_RULES) {
+    let produced: LFact[];
     try {
       produced = rule.derive(expanded, ctx);
     } catch {
       continue;
     }
     for (const derived of produced) {
+      // The dev panel enumerates ordinary (angle/incidence) consequences only;
+      // ratio facts are reasoned about in the length layer, not listed here.
+      if (derived.kind === "eqratio") continue;
       const k = canonicalKey(derived);
       if (known.has(k) || seen.has(k)) continue;
       if (!factHolds(derived, coords, bindings)) continue;
