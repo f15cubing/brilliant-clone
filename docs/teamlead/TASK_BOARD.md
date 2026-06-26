@@ -61,9 +61,13 @@ Wave 2 converts vetted problems → shipped puzzles after R+B land.
 | C | Contest content | `research/problems/**`, `research/findings/contest-problems.md` | 6–8 real contest problems w/ literal citations, replay-verified |
 | G | Integration cleanup | 14 existing research test files (listed) | retire 15 obsolete "GAP" guards made false by R's promotion (convert to positive "now shipped" checks) |
 
-**Status note:** R ✅ MERGED + G ✅ MERGED — **full suite GREEN: 421 tests, tsc clean.**
-All 11 Tier-A rules shipped; obsolete GAP guards converted to positive "now promoted" checks.
-Expect a 2nd small GAP-cleanup pass after B (ratio rules) lands. Merge order: R✅ → G✅ → B → N → C.
+**Status note:** R ✅ + G ✅ + N ✅ MERGED — **full suite GREEN: 448 tests, tsc clean, lint 0 errors.**
+- R: 11 Tier-A rules shipped. G: obsolete GAP guards → positive "now promoted" checks.
+- N: NL step input (mock-default + Firebase Function scaffold w/ Auth+App Check; OpenAI key
+  server-side only; verify() stays source of truth; +27 client tests, 18 fn tests under own runner).
+  To go live: set OPENAI_API_KEY secret, install functions deps, provision reCAPTCHA/App Check,
+  set VITE_FREEPLAY_NL_BACKEND=firebase. Until then deterministic mock is the default.
+Expect a 2nd small GAP-cleanup pass after B (ratio rules) lands. Merge order: R✅ → G✅ → N✅ → B → C.
 
 ## Completed work
 
