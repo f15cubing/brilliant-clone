@@ -6,7 +6,7 @@
  *
  * The verifier matches the learner's asserted fact against these derivations.
  */
-import type { Aval, Fact, PointId, Rel } from "./dsl";
+import type { Aval, EqRatio, Fact, PointId, Rel } from "./dsl";
 import { aval, angleKey, factEqual, rel } from "./dsl";
 import type { Coords, VarBindings } from "./check";
 import { constForm, decodeAngle, fadd, feq, fsub, isAngleToken } from "./form";
@@ -37,6 +37,13 @@ export interface RuleCtx {
   coords: Coords;
   bindings: VarBindings;
   points: PointId[];
+  /**
+   * The `eqratio` facts the learner cited in THIS step (the verifier filters
+   * them out of the ordinary `cited` list it hands to `derive`, so a length
+   * rule that needs a cited proportion as a genuine premise reads it here).
+   * Reflects the current subset during the minimality check.
+   */
+  citedRatios?: EqRatio[];
 }
 
 export interface Rule {

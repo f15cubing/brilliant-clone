@@ -72,6 +72,26 @@ describe("SAS congruent triangles (promoted rule)", () => {
     expect(hasThird(out)).toBe(false);
   });
 
+  it("CROSS-RULE SOUNDNESS: one side + the included angle must NOT prove AC = DF", () => {
+    // Guards the length-layer interaction: with the figure congruent, the SAS
+    // SIMILARITY ratio rule must not fire off the lone included angle (reading
+    // the second side ratio from coordinates) and let the length layer bridge a
+    // cited cong to the third side. {BC=EF, ∠ABC=∠DEF} is SSA, not SAS.
+    for (const subset of [
+      [sideBC, included], // drop BA
+      [sideBA, included], // drop BC
+    ]) {
+      const r = verify({
+        coords,
+        bindings: {},
+        establishedFacts: [sideBA, sideBC, included],
+        candidateFact: thirdSide,
+        citedPremises: subset,
+      });
+      expect(r.valid).toBe(false);
+    }
+  });
+
   it("MINIMALITY: dropping the first side (cong BA=ED) ⇒ third side not derived", () => {
     const out = sas_congruence.derive([sideBC, included], ctx);
     expect(hasThird(out)).toBe(false);

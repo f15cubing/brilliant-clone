@@ -11,7 +11,7 @@
  */
 import { AngleAR } from "./ar";
 import { factHolds, type Coords, type VarBindings } from "./check";
-import { canonicalKey, factEqual, isAmong, rel, type Fact } from "./dsl";
+import { canonicalKey, factEqual, isAmong, rel, type EqRatio, type Fact } from "./dsl";
 import { factHoldsL, type LFact, type LRule } from "./lengths/dsl";
 import { LengthAR } from "./lengths/lengthAR";
 import { RATIO_RULES } from "./lengths/rules";
@@ -98,16 +98,22 @@ function deriveOnce(
   ctx: { coords: Coords; bindings: VarBindings; points: string[] },
 ): string | null {
   // The DD rules and the angle table only reason about ordinary facts; `eqratio`
-  // premises are routed straight to the length layer.
+  // premises are routed straight to the length layer. They are also exposed to
+  // the rules via `ctx.citedRatios` so a length rule that needs a proportion as
+  // a GENUINE premise (e.g. SAS similarity's two-sides ratio) can require it to
+  // be cited rather than reading it off the coordinates. Computed from THIS
+  // call's `cited`, so the minimality check sees the right subset.
   const ordinary = cited.filter((f): f is Fact => f.kind !== "eqratio");
+  const citedRatios = cited.filter((f): f is EqRatio => f.kind === "eqratio");
   const facts = expandColls(ordinary);
+  const ruleCtx = { ...ctx, citedRatios };
 
   const ddDerived: Fact[] = []; // ordinary one-step consequences
   const lDerived: LFact[] = []; // one-step ratio consequences (eqratio)
   for (const rule of ALL_RULES) {
     let produced: LFact[];
     try {
-      produced = rule.derive(facts, ctx);
+      produced = rule.derive(facts, ruleCtx);
     } catch {
       continue;
     }

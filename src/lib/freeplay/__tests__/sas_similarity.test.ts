@@ -65,7 +65,9 @@ describe("SAS similar triangles (length rule)", () => {
   });
 
   it("the rule emits the bridge proportion and the two remaining equal angles", () => {
-    const out = sas_similarity.derive([angB], ctx);
+    // The SAS two-sides proportion must be CITED (the verifier supplies it via
+    // ctx.citedRatios); the rule no longer reads it off the coordinates.
+    const out = sas_similarity.derive([angB], { ...ctx, citedRatios: [ratioPrem] });
     // bridge BC/EF = CA/FD
     expect(out.some((f) => f.kind === "eqratio")).toBe(true);
     // both remaining equal angles
@@ -97,6 +99,22 @@ describe("SAS similar triangles (length rule)", () => {
   });
 
   it("verifies a remaining equal angle directly under the rule name", () => {
+    // A remaining equal angle follows from the FULL SAS hypothesis (both the
+    // ratio and the included angle) — not the included angle alone, which would
+    // be SSA-style unsound — so both premises are cited and both are required.
+    const r = verify({
+      coords,
+      bindings: {},
+      establishedFacts: [ratioPrem, angB],
+      candidateFact: angAtA,
+      citedPremises: [ratioPrem, angB],
+    });
+    expect(r).toEqual({ valid: true, rule: "SAS similar triangles" });
+  });
+
+  it("MINIMALITY (angle): a remaining equal angle is NOT derivable from the included angle alone", () => {
+    // ∠ABC = ∠DEF on its own does not make the triangles similar, so ∠BAC = ∠EDF
+    // must not be accepted without the cited side proportion.
     const r = verify({
       coords,
       bindings: {},
@@ -104,7 +122,7 @@ describe("SAS similar triangles (length rule)", () => {
       candidateFact: angAtA,
       citedPremises: [angB],
     });
-    expect(r).toEqual({ valid: true, rule: "SAS similar triangles" });
+    expect(r.valid).toBe(false);
   });
 
   it("MINIMALITY: dropping either SAS premise → not valid", () => {
@@ -156,6 +174,7 @@ describe("SAS similar triangles (length rule)", () => {
       coords: bad,
       bindings: {},
       points: Object.keys(bad),
+      citedRatios: [ratioPrem],
     });
     expect(out.some((f) => f.kind === "eqratio")).toBe(false);
 
@@ -188,11 +207,12 @@ describe("SAS similar triangles (length rule)", () => {
     expect(factHoldsL(angB, bad)).toBe(false);
     expect(factHoldsL(goal, bad)).toBe(false);
 
-    // The rule fires off the eqangle premise but its angle guard rejects it.
+    // The rule sees the cited proportion but its angle guard rejects (SSA, not SAS).
     const out = sas_similarity.derive([angB], {
       coords: bad,
       bindings: {},
       points: Object.keys(bad),
+      citedRatios: [ratioPrem],
     });
     expect(out.some((f) => f.kind === "eqratio")).toBe(false);
 
