@@ -33,8 +33,8 @@ research/freeplay-rules/
    └─ __tests__/         per-problem replay tests
 ```
 
-**Totals:** 13 promotable rules (+ Reim, a subsumed example) and 12 contest
-play-test problems, all covered by the research Vitest suite. 10 of the 12
+**Totals:** 14 promotable rules (+ Reim, a subsumed example) and 13 contest
+play-test problems, all covered by the research Vitest suite. 11 of the 13
 problems verify end-to-end; the remaining 2 (Simson line, plus the external-
 division note) document precisely-characterized open gaps. See the tables below.
 
@@ -70,6 +70,7 @@ Therefore genuinely new rules must produce what AR cannot:
 | Thales / basic proportionality | `lengths/rules/thales_basic_proportionality.ts` | `eqratio` ×2 | yes (ratio table) | ✅ verified (6 tests) |
 | SAS similar triangles | `lengths/rules/sas_similarity.ts` | `eqratio` + `eqangle` ×2 | yes (ratio table) | ✅ verified (9 tests) |
 | power of a point (chords/secants) | `lengths/rules/power_of_a_point.ts` | `eqratio` ×2 (PA·PB=PC·PD) | yes (one-step; subsumes the 3-step proof) | ✅ verified (10 tests) |
+| concyclic from equal DIRECTED angles | `rules/concyclic_directed_angles.ts` | `cyclic` | yes (directed converse-inscribed; AR proves the identity but can't emit `cyclic`, and `converse_inscribed` is undirected/same-side only) | ✅ verified (8 tests) — **promoted** |
 
 ### Length/ratio subsystem (`lengths/`)
 
@@ -106,6 +107,7 @@ table cannot reach.
 | Angle Bisector Theorem (Euclid VI.3) | `problems/angle_bisector_theorem.ts` | AR → `isosceles` → `thales_basic_proportionality` → `LengthAR` | ✅ goal reached (no new rule) |
 | IMO 2018 P1 (DE ∥ FG) | `problems/imo_2018_p1.ts` | AR + `isosceles` + `concyclic_equal_radii` + Reim | ✅ goal reached end-to-end (Batch 7 closed the gap) |
 | Simson–Wallace line (D,E,F collinear) | `problems/simson_line.ts` | AR + `converse_inscribed`; **blocked at `coll` from `para`** | ⚠️ angle content fully proven; one gap (see below) |
+| IMO 2019 P2 (P,P1,Q,Q1 concyclic) | `problems/imo_2019_p2.ts` | Pappus + `concyclic_from_directed_angles` + `concyclic_merge` | ✅ goal reached end-to-end (Batch 8 closed the gap) |
 
 ### Gaps discovered (feed later batches)
 

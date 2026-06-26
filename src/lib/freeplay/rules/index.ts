@@ -25,6 +25,7 @@ import { shared_side_congruence } from "./shared_side_congruence";
 import { concyclic_equal_radii } from "./concyclic_equal_radii";
 import { pascal } from "./pascal";
 import { coincident_direction_collinear } from "./coincident_direction_collinear";
+import { concyclic_from_directed_angles } from "./concyclic_directed_angles";
 
 export const PROMOTED_RULES: Rule[] = [
   midpoint_congruence,
@@ -38,4 +39,5 @@ export const PROMOTED_RULES: Rule[] = [
   concyclic_equal_radii,
   pascal,
   coincident_direction_collinear,
+  concyclic_from_directed_angles,
 ];
