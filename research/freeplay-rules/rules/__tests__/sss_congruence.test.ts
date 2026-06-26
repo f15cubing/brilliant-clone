@@ -150,10 +150,10 @@ describe("SSS congruent triangles (research rule)", () => {
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: the shipped engine (RULES) cannot prove ∠ABC = ∠DEF from the three congruences", () => {
-    // The conclusion is an ANGLE equality drawn from three LENGTH equalities.
-    // AR is angles-only (it ignores `cong`) and no shipped DD rule turns three
-    // congruences into an `eqangle`, so the step is genuinely unprovable today.
+  it("PROMOTED: the shipped engine (RULES) now proves ∠ABC = ∠DEF from the three congruences", () => {
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now turns the three congruences into
+    // the `eqangle` directly. Regression guard that the promotion stayed wired.
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -161,6 +161,6 @@ describe("SSS congruent triangles (research rule)", () => {
       candidateFact: angB,
       citedPremises: givens,
     });
-    expect(r.valid).toBe(false);
+    expect(r.valid).toBe(true);
   });
 });

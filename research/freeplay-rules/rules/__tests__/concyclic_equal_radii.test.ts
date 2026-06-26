@@ -152,7 +152,7 @@ describe("equal radii ⇒ concyclic (research rule)", () => {
     expect(out.length).toBe(0);
   });
 
-  it("GAP: the shipped engine alone canNOT derive cyclic from the congs", () => {
+  it("PROMOTED: the shipped engine alone now derives cyclic from the congs", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -160,7 +160,9 @@ describe("equal radii ⇒ concyclic (research rule)", () => {
       candidateFact: goal,
       citedPremises: star,
     });
-    // No length table in AR and no cong→cyclic DD rule ships: genuine gap.
-    expect(r.valid).toBe(false);
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now performs the cong→cyclic step
+    // directly. Regression guard that the promotion stayed wired.
+    expect(r.valid).toBe(true);
   });
 });

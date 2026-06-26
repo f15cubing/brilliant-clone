@@ -148,7 +148,7 @@ describe("Pascal's theorem (research rule)", () => {
     }
   });
 
-  it("GAP: the shipped engine cannot already prove coll(X,Y,Z)", () => {
+  it("PROMOTED: the shipped engine now proves coll(X,Y,Z)", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -156,6 +156,9 @@ describe("Pascal's theorem (research rule)", () => {
       candidateFact: goal,
       citedPremises: premises,
     });
-    expect(r.valid).toBe(false);
+    // This rule has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES now proves the collinearity directly.
+    // Regression guard that the promotion stayed wired.
+    expect(r.valid).toBe(true);
   });
 });

@@ -59,9 +59,11 @@ describe(`problem: ${P.id} (${P.source})`, () => {
     });
   });
 
-  it("GAP CHECK: the shipped engine (RULES) alone CANNOT prove DC = BE", () => {
-    // DC = BE is a LENGTH fact; AR is angles-only and no shipped DD rule pairs
-    // two shared-apex arms, so the rotation congruence needs sas_shared_vertex.
+  it("PROMOTED: the shipped engine (RULES) alone now proves DC = BE", () => {
+    // The rotation congruence rule (sas_shared_vertex) has been promoted into the
+    // shipped engine (src/lib/freeplay/rules/), so RULES now pairs the two
+    // shared-apex arms and proves DC = BE directly. Regression guard that the
+    // promotion stayed wired.
     const r = verifyWith(RULES, {
       coords: P.coords,
       bindings: P.bindings ?? {},
@@ -73,7 +75,7 @@ describe(`problem: ${P.id} (${P.source})`, () => {
         rel("eqangle", ["D", "A", "C", "B", "A", "E"]),
       ],
     });
-    expect(r.valid).toBe(false);
+    expect(r.valid).toBe(true);
   });
 
   it("the goal DC = BE is reached end-to-end and every step is valid", () => {
