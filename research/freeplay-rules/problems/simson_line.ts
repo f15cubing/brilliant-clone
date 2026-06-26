@@ -44,27 +44,32 @@
  *             The crux directed-angle identity D(DE) = D(DF). Because DE and DF
  *             share the vertex D, this `para` IS logically the collinearity of
  *             D, E, F — the engine reaches the full angle content of the theorem.
- *   step 6  coll(D,E,F)         *** BLOCKED — see GAP below ***
+ *   step 6  coll(D,E,F)                          `coincident direction ⇒ collinear`
+ *             cited: para(D,E,D,F)
+ *             The bridge that closes the proof end-to-end (see below).
  *
- * THE GAP (first blocked step = step 6)
+ * THE GAP — NOW CLOSED (step 6, `coincident_direction_collinear`)
  *   We have proven `para(D,E,D,F)` — i.e. lines DE and DF coincide (same
  *   direction through the common point D) — which is logically EQUIVALENT to
- *   `coll(D,E,F)`. Yet the engine cannot emit `coll(D,E,F)`:
+ *   `coll(D,E,F)`. Previously the engine could not emit `coll(D,E,F)`:
  *     • AR (`ar.ts`) is the only thing that can chase the directed angles to this
  *       point, but its `equation()` returns `null` for a `coll` candidate — AR
  *       *consumes* collinearity (to merge line directions) and never *produces*
  *       it. So `AngleAR.implies(coll(...))` is hard-wired to be false.
- *     • The ONLY rules that emit a `coll` fact are the projective-incidence rules
- *       `pappus` (shipped) and `pascal` (research). Neither applies here: the
- *       three feet are not six concyclic points (Pascal), and the three given
- *       lines BC, CA, AB pairwise share a vertex, so no two of them have the six
- *       distinct points Pappus needs.
- *   Hence a collinearity that is *fully* reduced to an angle identity is still
- *   unreachable. The single missing capability is a "coincident-direction ⇒
- *   collinear" bridge: a rule turning `para(X,A,X,B)` (or, equivalently, the AR
- *   fact D(XA) = D(XB)) into `coll(X,A,B)`. The companion test proves steps 1–5
- *   fire, pins step 6 as `valid:false`, and demonstrates that even CITING the
- *   proven `para(D,E,D,F)` does not unlock `coll(D,E,F)`.
+ *     • The ONLY shipped/research rules that emit a `coll` fact are the
+ *       projective-incidence rules `pappus` (shipped) and `pascal` (research).
+ *       Neither applies here: the three feet are not six concyclic points
+ *       (Pascal), and the three given lines BC, CA, AB pairwise share a vertex,
+ *       so no two of them have the six distinct points Pappus needs.
+ *   The single missing capability was a "coincident-direction ⇒ collinear"
+ *   bridge: a rule turning `para(X,A,X,B)` (two segments from a shared point X
+ *   that are parallel) into `coll(X,A,B)`. That rule now exists
+ *   (`rules/coincident_direction_collinear.ts`): two parallel lines through a
+ *   common point are the same line, so the three points are collinear (sound,
+ *   coordinate-guarded). Step 6 cites exactly `para(D,E,D,F)` and the chain
+ *   reaches `coll(D,E,F)` end-to-end. The companion test replays all six steps
+ *   with the bridge rule included and asserts `goalReached === true` and
+ *   `allValid === true`.
  *
  * COORDINATES — a faithful generic realization built by construction (not pasted
  *   decimals): Γ is the unit circle; A, B, C at 20°, 120°, 245° (scalene, acute:
@@ -195,18 +200,22 @@ export const simson_line: ResearchProblem = {
         "in directed-angle form.",
     },
     {
-      // FIRST BLOCKED STEP — the gap. D(DE) = D(DF) is proven (step 5), i.e. the
-      // three feet are collinear in directed-angle form, but no rule packages
-      // that into the `coll` fact: AR never emits `coll`, and pappus/pascal
-      // (the only coll producers) do not apply to this configuration.
+      // CLOSING STEP — the bridge that was the gap. D(DE) = D(DF) is proven
+      // (step 5), i.e. lines DE and DF coincide; since they share the point D,
+      // the `coincident_direction_collinear` rule packages this single `para`
+      // into the projective-incidence fact coll(D,E,F). Cite ONLY para(D,E,D,F):
+      // the cyclic facts are no longer needed (and citing them would be
+      // extraneous), because the collinearity now follows from the parallelism
+      // alone.
       fact: goal,
-      premises: [paraDEDF, cycPCDE, cycPBDF],
-      expectRule: "(BLOCKED: coincident-direction ⇒ collinear — no such rule)",
+      premises: [paraDEDF],
+      expectRule: "coincident direction ⇒ collinear",
       humanReadable:
-        "lines DE and DF coincide (proven via para(D,E,D,F)), so D, E, F are " +
-        "collinear. No current rule turns a coincident direction / angle-chase " +
-        "into a `coll` fact (the gap).",
+        "lines DE and DF coincide (proven via para(D,E,D,F)) and share the " +
+        "point D, so D, E, F are collinear — the Simson line. The " +
+        "`coincident direction ⇒ collinear` bridge turns the parallelism into " +
+        "the coll fact AR could never emit.",
     },
   ],
-  exercises: [],
+  exercises: ["coincident_direction_collinear"],
 };
