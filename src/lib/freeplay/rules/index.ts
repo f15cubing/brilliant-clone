@@ -13,4 +13,29 @@
  */
 import type { Rule } from "../rules";
 
-export const PROMOTED_RULES: Rule[] = [];
+// -- Tier A (promoted from research/freeplay-rules; produce cong/eqangle/coll/cyclic) --
+import { midpoint_congruence } from "./midpoint_congruence";
+import { cong_transitivity } from "./cong_transitivity";
+import { perp_bisector } from "./perp_bisector";
+import { isosceles_converse } from "./isosceles_converse";
+import { sas_congruence } from "./sas_congruence";
+import { sas_shared_vertex } from "./sas_shared_vertex";
+import { sss_congruence } from "./sss_congruence";
+import { shared_side_congruence } from "./shared_side_congruence";
+import { concyclic_equal_radii } from "./concyclic_equal_radii";
+import { pascal } from "./pascal";
+import { coincident_direction_collinear } from "./coincident_direction_collinear";
+
+export const PROMOTED_RULES: Rule[] = [
+  midpoint_congruence,
+  cong_transitivity,
+  perp_bisector,
+  isosceles_converse,
+  sas_congruence,
+  sas_shared_vertex,
+  sss_congruence,
+  shared_side_congruence,
+  concyclic_equal_radii,
+  pascal,
+  coincident_direction_collinear,
+];
