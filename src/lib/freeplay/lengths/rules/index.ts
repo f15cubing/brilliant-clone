@@ -9,10 +9,12 @@ import { similar_triangles_aa } from "./similar_triangles_aa";
 import { thales_basic_proportionality } from "./thales_basic_proportionality";
 import { sas_similarity } from "./sas_similarity";
 import { power_of_a_point } from "./power_of_a_point";
+import { tangent_secant_power } from "./tangent_secant_power";
 
 export const RATIO_RULES: LRule[] = [
   similar_triangles_aa,
   thales_basic_proportionality,
   sas_similarity,
   power_of_a_point,
+  tangent_secant_power,
 ];
