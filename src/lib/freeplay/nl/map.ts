@@ -100,7 +100,10 @@ export function descriptorToFact(d: FactDescriptor, points: string[]): LFact {
   }
 
   if (d.kind === "eqratio") {
-    if (!Array.isArray(d.points) || d.points.length !== 8) {
+    if (!Array.isArray(d.points)) {
+      throw new MapError("bad_descriptor", "A ratio needs a list of points.");
+    }
+    if (d.points.length !== 8) {
       throw new MapError("bad_arity", "A ratio needs exactly 8 points (AB/CD = EF/GH).");
     }
     assertPoints(d.points, figure);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { canonicalKey, rel } from "../../dsl";
+import { eqratio } from "../../lengths/dsl";
 import {
   descriptorToFact,
   factToDescriptor,
@@ -10,6 +11,9 @@ import {
 import type { FactDescriptor } from "../types";
 
 const POINTS = ["O", "A", "B", "P", "Q"];
+const RATIO_POINTS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+const eight = (p: string[]): [string, string, string, string, string, string, string, string] =>
+  [p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]];
 
 describe("descriptorToFact", () => {
   it("lowers a valid relation descriptor", () => {
@@ -72,6 +76,92 @@ describe("descriptorToFact", () => {
     } catch (e) {
       expect((e as MapError).code).toBe("unknown_relation");
     }
+  });
+});
+
+describe("descriptorToFact: eqratio", () => {
+  it("lowers a valid 8-point ratio descriptor to an EqRatio", () => {
+    const f = descriptorToFact(
+      { kind: "eqratio", points: eight(RATIO_POINTS) },
+      RATIO_POINTS,
+    );
+    expect(f).toEqual(eqratio("A", "B", "C", "D", "E", "F", "G", "H"));
+  });
+
+  it("rejects ≠8 points → bad_arity (7)", () => {
+    try {
+      descriptorToFact(
+        { kind: "eqratio", points: ["A", "B", "C", "D", "E", "F", "G"] as never },
+        RATIO_POINTS,
+      );
+      expect.unreachable();
+    } catch (e) {
+      expect((e as MapError).code).toBe("bad_arity");
+    }
+  });
+
+  it("rejects ≠8 points → bad_arity (9)", () => {
+    try {
+      descriptorToFact(
+        { kind: "eqratio", points: [...RATIO_POINTS, "A"] as never },
+        RATIO_POINTS,
+      );
+      expect.unreachable();
+    } catch (e) {
+      expect((e as MapError).code).toBe("bad_arity");
+    }
+  });
+
+  it("rejects an off-figure label → unknown_point", () => {
+    try {
+      descriptorToFact(
+        { kind: "eqratio", points: ["A", "B", "C", "D", "E", "F", "G", "Z"] },
+        RATIO_POINTS,
+      );
+      expect.unreachable();
+    } catch (e) {
+      expect((e as MapError).code).toBe("unknown_point");
+    }
+  });
+
+  it("rejects a non-array points → bad_descriptor", () => {
+    try {
+      descriptorToFact(
+        { kind: "eqratio", points: "ABCDEFGH" as never },
+        RATIO_POINTS,
+      );
+      expect.unreachable();
+    } catch (e) {
+      expect((e as MapError).code).toBe("bad_descriptor");
+    }
+  });
+});
+
+describe("matchPremises: eqratio symmetries (canonicalKeyL)", () => {
+  const established = [eqratio("A", "B", "C", "D", "E", "F", "G", "H")]; // AB/CD = EF/GH
+
+  const sameKey = (pts: string[], label: string) =>
+    it(`resolves ${label} to the established ratio`, () => {
+      const matched = matchPremises(
+        [{ kind: "eqratio", points: eight(pts) }],
+        established,
+        RATIO_POINTS,
+      );
+      expect(canonicalKey(matched[0])).toBe(canonicalKey(established[0]));
+      expect(matched[0]).toBe(established[0]); // resolved to the established instance
+    });
+
+  sameKey(["E", "F", "G", "H", "A", "B", "C", "D"], "swap ratios (EF/GH = AB/CD)");
+  sameKey(["C", "D", "A", "B", "G", "H", "E", "F"], "invert both (CD/AB = GH/EF)");
+  sameKey(["B", "A", "C", "D", "E", "F", "G", "H"], "endpoint swap (BA/CD = EF/GH)");
+});
+
+describe("factToDescriptor: eqratio round-trip", () => {
+  it("round-trips an eqratio fact through descriptorToFact", () => {
+    const f = eqratio("A", "B", "C", "D", "E", "F", "G", "H");
+    const back = descriptorToFact(factToDescriptor(f), RATIO_POINTS);
+    expect(canonicalKey(back)).toBe(canonicalKey(f));
+    expect(factToDescriptor(f)).toEqual({ kind: "eqratio", points: eight(RATIO_POINTS) });
   });
 });
 

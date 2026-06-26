@@ -61,6 +61,48 @@ describe("LocalMockTranslator: single-clause grammar", () => {
   });
 });
 
+describe("LocalMockTranslator: ratio/proportion clauses", () => {
+  it("product PA·PB = PC·PD → eqratio [P,A,P,C,P,D,P,B]", async () => {
+    expect(await conclusionOf("PA·PB = PC·PD")).toEqual({
+      kind: "eqratio",
+      points: ["P", "A", "P", "C", "P", "D", "P", "B"],
+    });
+  });
+
+  it("product with '*' operator parses identically", async () => {
+    expect(await conclusionOf("PA*PB = PC*PD")).toEqual({
+      kind: "eqratio",
+      points: ["P", "A", "P", "C", "P", "D", "P", "B"],
+    });
+  });
+
+  it("explicit ratio AB/CD = AP/BQ → eqratio [A,B,C,D,A,P,B,Q]", async () => {
+    expect(await conclusionOf("AB/CD = AP/BQ")).toEqual({
+      kind: "eqratio",
+      points: ["A", "B", "C", "D", "A", "P", "B", "Q"],
+    });
+  });
+
+  it("the 'power of a point' phrasing still routes through the product parse", async () => {
+    expect(await conclusionOf("by power of a point, PA·PB = PC·PD")).toEqual({
+      kind: "eqratio",
+      points: ["P", "A", "P", "C", "P", "D", "P", "B"],
+    });
+  });
+
+  it("drops a ratio premise whose tokens aren't figure points (→ notes)", async () => {
+    const r = await tr.translate(
+      reqFor("PA·PB = PC·PD since XY/ZW = UV/RS"),
+    );
+    expect(r.conclusion).toEqual({
+      kind: "eqratio",
+      points: ["P", "A", "P", "C", "P", "D", "P", "B"],
+    });
+    expect(r.premises).toHaveLength(0);
+    expect(r.notes).toBeTruthy();
+  });
+});
+
 describe("LocalMockTranslator: premise splitting", () => {
   it("'<concl> since <prem>' puts the conclusion first", async () => {
     const r = await tr.translate(
