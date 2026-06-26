@@ -11,6 +11,13 @@ export interface FactEntry {
   source: "given" | "derived";
   /** Engine-reported rule name (derived steps only). */
   rule?: RuleId;
+  // R2-D2 (proof archive): cited premises for this derived step, captured so a
+  // completed proof can be compiled + stored. Additive/optional — given facts
+  // and existing call sites are unaffected.
+  premises?: LFact[];
+  // R2-D2 (proof archive): the analogy substitution, if this step was accepted
+  // "by symmetry". Optional. Keyed as plain strings to avoid a symmetry import.
+  analogy?: { subst: Record<string, string> };
 }
 
 export type Feedback =
@@ -32,7 +39,15 @@ export interface ProofState {
 }
 
 export type ProofAction =
-  | { type: "accept"; fact: LFact; rule: RuleId }
+  // R2-D2 (proof archive): `premises`/`analogy` are optional & additive so the
+  // accepted step can record exactly what it cited for the stored proof.
+  | {
+      type: "accept";
+      fact: LFact;
+      rule: RuleId;
+      premises?: LFact[];
+      analogy?: { subst: Record<string, string> };
+    }
   | {
       type: "reject";
       reason:
@@ -79,6 +94,9 @@ export function proofReducer(state: ProofState, action: ProofAction): ProofState
         fact: action.fact,
         source: "derived",
         rule: action.rule,
+        // R2-D2 (proof archive): thread the cited premises/analogy through.
+        premises: action.premises,
+        analogy: action.analogy,
       };
       return {
         ...state,

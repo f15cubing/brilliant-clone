@@ -1,4 +1,4 @@
-import { useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FactList } from "@/components/freeplay/FactList";
@@ -18,6 +18,9 @@ import {
   type Feedback,
 } from "@/lib/freeplay/proof";
 import { getPuzzle } from "@/lib/freeplay/puzzles";
+// R2-D2 (proof archive): compile + record the proof on a win.
+import { compileProof } from "@/lib/freeplay/proofRecord";
+import { useProofRecorder } from "@/lib/freeplay/useProofRecorder";
 import type { Subst } from "@/lib/freeplay/symmetry";
 import type { Puzzle } from "@/lib/freeplay/types";
 
@@ -73,7 +76,20 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
   const [busy, setBusy] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
 
+  // R2-D2 (proof archive): record the completed proof exactly once per solve.
+  // `attemptRef` bumps on Reset so re-solving stores a fresh history record.
+  const { save: proofSave, recordSolvedProof } = useProofRecorder();
+  const attemptRef = useRef(0);
+
   const solved = state.status === "solved";
+
+  // R2-D2 (proof archive): on the win transition, compile + persist the proof.
+  // The recorder's own attempt-keyed guard dedupes StrictMode double-invokes.
+  useEffect(() => {
+    if (state.status !== "solved") return;
+    const compiled = compileProof(state.facts, puzzle);
+    recordSolvedProof(compiled, `${puzzle.id}#${attemptRef.current}`);
+  }, [state.status, state.facts, puzzle, recordSolvedProof]);
   const pointIds = Object.keys(puzzle.coords);
   const bindings = puzzle.variables ?? {};
 
@@ -106,7 +122,15 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
         result,
       });
       if (result.valid) {
-        dispatch({ type: "accept", fact, rule: result.rule });
+        // R2-D2 (proof archive): also record the cited premises + any analogy
+        // substitution so a completed proof can be compiled & stored on a win.
+        dispatch({
+          type: "accept",
+          fact,
+          rule: result.rule,
+          premises,
+          analogy: opts?.subst ? { subst: opts.subst } : undefined,
+        });
       } else {
         dispatch({ type: "reject", reason: result.reason });
       }
@@ -135,7 +159,11 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
         </div>
         <button
           type="button"
-          onClick={() => dispatch({ type: "reset" })}
+          onClick={() => {
+            // R2-D2 (proof archive): new attempt key so a re-solve re-saves.
+            attemptRef.current += 1;
+            dispatch({ type: "reset" });
+          }}
           className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink-soft transition hover:border-ink-faint hover:text-ink"
         >
           Reset
@@ -151,7 +179,7 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
           <FixedFigure puzzle={puzzle} />
           {state.feedback && <FeedbackBanner feedback={state.feedback} />}
           {solved ? (
-            <ProofSummary facts={state.facts} />
+            <ProofSummary facts={state.facts} save={proofSave} />
           ) : (
             <StepBuilder
               pointIds={pointIds}
