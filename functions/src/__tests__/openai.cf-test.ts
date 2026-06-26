@@ -31,6 +31,23 @@ describe("buildJsonSchema", () => {
     expect(json).not.toContain('"Z"');
     expect(json).toContain("eqangle");
   });
+
+  it("includes an eqratio anyOf branch with minItems/maxItems 8 and enum points", () => {
+    const schema = buildJsonSchema(req) as Record<string, unknown>;
+    const descriptor = (schema.properties as Record<string, Record<string, unknown>>)
+      .conclusion;
+    const branches = descriptor.anyOf as Array<Record<string, unknown>>;
+    const eqratioBranch = branches.find((b) => {
+      const props = b.properties as Record<string, { enum?: string[] }>;
+      return props.kind?.enum?.[0] === "eqratio";
+    });
+    expect(eqratioBranch).toBeDefined();
+    const points = (eqratioBranch!.properties as Record<string, Record<string, unknown>>)
+      .points;
+    expect(points.minItems).toBe(8);
+    expect(points.maxItems).toBe(8);
+    expect((points.items as { enum: string[] }).enum).toEqual(req.points);
+  });
 });
 
 describe("translateWithLLM", () => {
@@ -67,6 +84,44 @@ describe("translateWithLLM", () => {
   it("rejects a hallucinated point (output re-validation)", async () => {
     const client = fakeClient({
       conclusion: { kind: "rel", name: "cyclic", points: ["A", "B", "P", "Z"] },
+      premises: [],
+    });
+    await expect(translateWithLLM(client, req, "m")).rejects.toThrow(ValidationError);
+  });
+});
+
+describe("translateWithLLM: eqratio path (injected fake client)", () => {
+  it("accepts a valid 8-point eqratio conclusion", async () => {
+    const client = fakeClient({
+      conclusion: { kind: "eqratio", points: ["A", "B", "P", "Q", "A", "B", "P", "Q"] },
+      premises: [{ kind: "rel", name: "cyclic", points: ["A", "B", "P", "Q"] }],
+    });
+    const res = await translateWithLLM(client, req, "m");
+    expect(res.conclusion).toEqual({
+      kind: "eqratio",
+      points: ["A", "B", "P", "Q", "A", "B", "P", "Q"],
+    });
+  });
+
+  it("rejects a 7-point ratio (output re-validation)", async () => {
+    const client = fakeClient({
+      conclusion: { kind: "eqratio", points: ["A", "B", "P", "Q", "A", "B", "P"] },
+      premises: [],
+    });
+    await expect(translateWithLLM(client, req, "m")).rejects.toThrow(ValidationError);
+  });
+
+  it("rejects a 9-point ratio (output re-validation)", async () => {
+    const client = fakeClient({
+      conclusion: { kind: "eqratio", points: ["A", "B", "P", "Q", "A", "B", "P", "Q", "A"] },
+      premises: [],
+    });
+    await expect(translateWithLLM(client, req, "m")).rejects.toThrow(ValidationError);
+  });
+
+  it("rejects an off-figure label inside an 8-point ratio", async () => {
+    const client = fakeClient({
+      conclusion: { kind: "eqratio", points: ["A", "B", "P", "Q", "A", "B", "P", "Z"] },
       premises: [],
     });
     await expect(translateWithLLM(client, req, "m")).rejects.toThrow(ValidationError);

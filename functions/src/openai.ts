@@ -49,6 +49,14 @@ const SYSTEM_PROMPT = [
   "  the angle vertices.",
   "- aval: an angle VALUE. `angle` is 3 points (vertex in the MIDDLE) and `expr`",
   "  is a degree expression, e.g. \"180 - A/2 - B/2\", \"90\", or \"angle(B,I,A)\".",
+  "- eqratio: a length PROPORTION. `points` is EXACTLY 8 points [A,B,C,D,E,F,G,H]",
+  "  meaning AB/CD = EF/GH (the ratio of segment AB to CD equals EF to GH).",
+  "  Segment endpoints are unordered (AB = BA). Use this for:",
+  "    * \"power of a point\": PA·PB = PC·PD  ⇒  eqratio points [P,A,P,C,P,D,P,B]",
+  "      (PA/PC = PD/PB, which is equivalent to PA·PB = PC·PD).",
+  "    * \"similar triangles ⇒ proportional sides\": from △ABC ~ △DEF, corresponding",
+  "      sides are proportional, e.g. AB/DE = BC/EF ⇒ points [A,B,D,E,B,C,E,F].",
+  "  A product equation XY·ZW = MN·PQ is a ratio XY/MN = PQ/ZW — convert it.",
   "",
   "Rules:",
   "- Use ONLY the points provided. NEVER invent points or relations.",
@@ -56,6 +64,39 @@ const SYSTEM_PROMPT = [
   "- `ruleHint` is optional and cosmetic.",
   "- If unsure, still emit your best single conclusion; the downstream verifier",
   "  is the final judge.",
+].join("\n");
+
+/**
+ * Worked examples (the model emits ONLY the JSON object). These anchor the two
+ * ratio shapes the `eqratio` kind covers: power-of-a-point and similar-triangle
+ * proportional sides. They mirror the shipped `power_of_a_point` /
+ * `sas_similarity` rule emissions so a faithful translation verifies.
+ */
+const FEW_SHOTS = [
+  "Examples (emit ONLY the JSON conclusion/premises object):",
+  "",
+  "1) Power of a point. Figure points include P,A,B,C,D.",
+  "   Statement: \"Since A, B, C, D are concyclic and the chords meet at P,",
+  "   PA·PB = PC·PD.\"",
+  "   Output: {",
+  "     \"conclusion\": {\"kind\":\"eqratio\",\"points\":[\"P\",\"A\",\"P\",\"C\",\"P\",\"D\",\"P\",\"B\"]},",
+  "     \"premises\": [",
+  "       {\"kind\":\"rel\",\"name\":\"cyclic\",\"points\":[\"A\",\"B\",\"C\",\"D\"]},",
+  "       {\"kind\":\"rel\",\"name\":\"coll\",\"points\":[\"P\",\"A\",\"B\"]},",
+  "       {\"kind\":\"rel\",\"name\":\"coll\",\"points\":[\"P\",\"C\",\"D\"]}",
+  "     ]",
+  "   }",
+  "",
+  "2) SAS similarity ⇒ proportional sides. Figure points A,B,C,D,E,F.",
+  "   Statement: \"Triangles ABC and DEF have AB/DE = BC/EF and equal included",
+  "   angle ABC = DEF, so AB/DE = CA/FD.\"",
+  "   Output: {",
+  "     \"conclusion\": {\"kind\":\"eqratio\",\"points\":[\"A\",\"B\",\"D\",\"E\",\"C\",\"A\",\"F\",\"D\"]},",
+  "     \"premises\": [",
+  "       {\"kind\":\"eqratio\",\"points\":[\"A\",\"B\",\"D\",\"E\",\"B\",\"C\",\"E\",\"F\"]},",
+  "       {\"kind\":\"rel\",\"name\":\"eqangle\",\"points\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\"]}",
+  "     ]",
+  "   }",
 ].join("\n");
 
 function buildMessages(req: TranslateRequest): LLMMessage[] {
@@ -67,6 +108,7 @@ function buildMessages(req: TranslateRequest): LLMMessage[] {
   };
   return [
     { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: FEW_SHOTS },
     {
       role: "user",
       content: [
@@ -108,6 +150,15 @@ export function buildJsonSchema(req: TranslateRequest): Record<string, unknown> 
           expr: { type: "string" },
         },
         required: ["kind", "angle", "expr"],
+      },
+      {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          kind: { type: "string", enum: ["eqratio"] },
+          points: { type: "array", items: pointEnum, minItems: 8, maxItems: 8 },
+        },
+        required: ["kind", "points"],
       },
     ],
   };

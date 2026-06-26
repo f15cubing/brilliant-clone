@@ -9,8 +9,9 @@
  * show a specific message WITHOUT ever calling `verify()`. Premises additionally
  * resolve against the established facts by `canonicalKey`.
  */
-import { aval, canonicalKey, rel, RELS, type Fact, type RelName } from "../dsl";
+import { aval, canonicalKey, rel, RELS, type RelName } from "../dsl";
 import { fstr, parseForm } from "../form";
+import { eqratio, type LFact } from "../lengths/dsl";
 import type { FactDescriptor } from "./types";
 
 export const MAX_COLL = 8;
@@ -43,8 +44,8 @@ function assertPoints(points: string[], figure: Set<string>): void {
   }
 }
 
-/** Lower a single descriptor to a `Fact`, validating points/arity/expr. */
-export function descriptorToFact(d: FactDescriptor, points: string[]): Fact {
+/** Lower a single descriptor to an `LFact`, validating points/arity/expr. */
+export function descriptorToFact(d: FactDescriptor, points: string[]): LFact {
   const figure = new Set(points);
 
   if (!d || typeof d !== "object" || !("kind" in d)) {
@@ -98,6 +99,18 @@ export function descriptorToFact(d: FactDescriptor, points: string[]): Fact {
     return rel(name, d.points);
   }
 
+  if (d.kind === "eqratio") {
+    if (!Array.isArray(d.points)) {
+      throw new MapError("bad_descriptor", "A ratio needs a list of points.");
+    }
+    if (d.points.length !== 8) {
+      throw new MapError("bad_arity", "A ratio needs exactly 8 points (AB/CD = EF/GH).");
+    }
+    assertPoints(d.points, figure);
+    const p = d.points;
+    return eqratio(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+  }
+
   throw new MapError("bad_descriptor", "The translator returned an unknown fact kind.");
 }
 
@@ -109,9 +122,9 @@ export function descriptorToFact(d: FactDescriptor, points: string[]): Fact {
  */
 export function matchPremises(
   descriptors: FactDescriptor[],
-  established: Fact[],
+  established: LFact[],
   points: string[],
-): Fact[] {
+): LFact[] {
   const byKey = new Map(established.map((f) => [canonicalKey(f), f]));
   return descriptors.map((d) => {
     const fact = descriptorToFact(d, points);
@@ -125,9 +138,13 @@ export function matchPremises(
  * Angle expressions are serialized with `fstr`; this is lossy for angle-token
  * forms but is only ever used as model context, never for verification.
  */
-export function factToDescriptor(f: Fact): FactDescriptor {
+export function factToDescriptor(f: LFact): FactDescriptor {
   if (f.kind === "aval") {
     return { kind: "aval", angle: [...f.angle], expr: fstr(f.form) };
+  }
+  if (f.kind === "eqratio") {
+    // Lossless: there's no `Form` to stringify, unlike the `aval` branch.
+    return { kind: "eqratio", points: [...f.points] };
   }
   return { kind: "rel", name: f.name, points: [...f.points] };
 }

@@ -112,12 +112,84 @@ function parseAngleClause(clause: string, sorted: string[]): FactDescriptor | nu
   return { kind: "aval", angle, expr };
 }
 
+/** Product operators that join two segments, e.g. `PA·PB`, `PA*PB`, `PA times PB`. */
+const PRODUCT_OP = /·|×|\*|\btimes\b|\bx\b/i;
+
+/** Two figure points (a segment's endpoints) from a token like "PA", or null. */
+function segmentPoints(token: string, sorted: string[]): [string, string] | null {
+  const pts = extractPoints(token, sorted);
+  return pts.length === 2 ? [pts[0], pts[1]] : null;
+}
+
+/**
+ * Parse a ratio/proportion clause into an `eqratio` descriptor (8 figure points).
+ * Two shapes are recognized, both as an equation with one `=`:
+ *   - ratio   `AB/CD = EF/GH`            → eqratio [A,B,C,D,E,F,G,H]
+ *   - product `AB·CD = EF·GH`            → AB/EF = GH/CD → eqratio [A,B,E,F,G,H,C,D]
+ *     (so `PA·PB = PC·PD` ⇒ [P,A,P,C,P,D,P,B], matching the shipped
+ *      power-of-a-point rule output and its canonical key).
+ * Returns null if the four segment tokens aren't all figure points — the clause
+ * is then dropped (surfaced via `notes`). Arity/membership/truth are re-checked
+ * downstream by `descriptorToFact` + `verify()`; the mock is never trusted.
+ */
+function parseRatioClause(clause: string, sorted: string[]): FactDescriptor | null {
+  const eqParts = clause.split("=");
+  if (eqParts.length !== 2) return null;
+  const [lhs, rhs] = eqParts;
+
+  if (lhs.includes("/") && rhs.includes("/")) {
+    const l = lhs.split("/");
+    const r = rhs.split("/");
+    if (l.length !== 2 || r.length !== 2) return null;
+    const ab = segmentPoints(l[0], sorted);
+    const cd = segmentPoints(l[1], sorted);
+    const ef = segmentPoints(r[0], sorted);
+    const gh = segmentPoints(r[1], sorted);
+    if (!ab || !cd || !ef || !gh) return null;
+    return {
+      kind: "eqratio",
+      points: [ab[0], ab[1], cd[0], cd[1], ef[0], ef[1], gh[0], gh[1]],
+    };
+  }
+
+  if (PRODUCT_OP.test(lhs) && PRODUCT_OP.test(rhs)) {
+    const l = lhs.split(PRODUCT_OP);
+    const r = rhs.split(PRODUCT_OP);
+    if (l.length !== 2 || r.length !== 2) return null;
+    const ab = segmentPoints(l[0], sorted);
+    const cd = segmentPoints(l[1], sorted);
+    const ef = segmentPoints(r[0], sorted);
+    const gh = segmentPoints(r[1], sorted);
+    if (!ab || !cd || !ef || !gh) return null;
+    // AB·CD = EF·GH ⇔ AB/EF = GH/CD.
+    return {
+      kind: "eqratio",
+      points: [ab[0], ab[1], ef[0], ef[1], gh[0], gh[1], cd[0], cd[1]],
+    };
+  }
+
+  return null;
+}
+
 function parseClause(clause: string, points: string[]): FactDescriptor | null {
   const sorted = [...points].sort((a, b) => b.length - a.length);
   const lower = clause.toLowerCase();
 
   if (lower.includes("angle") || clause.includes("∠")) {
     return parseAngleClause(clause, sorted);
+  }
+  // Ratio/proportion BEFORE the `=`/congruent fallback (which would otherwise
+  // grab a 4-point `cong`). Triggered by a `/`, a product operator, or a ratio
+  // phrase; non-parseable candidates fall through (return null) to later rules.
+  if (
+    clause.includes("/") ||
+    PRODUCT_OP.test(clause) ||
+    lower.includes("power of a point") ||
+    lower.includes("proportional") ||
+    lower.includes("in proportion")
+  ) {
+    const ratio = parseRatioClause(clause, sorted);
+    if (ratio) return ratio;
   }
   if (lower.includes("midpoint")) {
     const pts = extractPoints(clause, sorted);

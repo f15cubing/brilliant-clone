@@ -24,7 +24,13 @@ export const REL_NAMES: RelName[] = [
 
 export type FactDescriptor =
   | { kind: "rel"; name: RelName; points: string[] }
-  | { kind: "aval"; angle: [string, string, string]; expr: string };
+  | { kind: "aval"; angle: [string, string, string]; expr: string }
+  // A length PROPORTION AB/CD = EF/GH over EXACTLY 8 ordered point labels
+  // [A,B,C,D,E,F,G,H]. Mirrors the client's `nl/types.ts` variant — keep in sync.
+  | {
+      kind: "eqratio";
+      points: [string, string, string, string, string, string, string, string];
+    };
 
 export interface TranslationResult {
   premises: FactDescriptor[];

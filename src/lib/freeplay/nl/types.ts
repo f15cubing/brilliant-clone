@@ -11,7 +11,14 @@ import type { RelName } from "../dsl";
 
 export type FactDescriptor =
   | { kind: "rel"; name: RelName; points: string[] }
-  | { kind: "aval"; angle: [string, string, string]; expr: string };
+  | { kind: "aval"; angle: [string, string, string]; expr: string }
+  // A length PROPORTION AB/CD = EF/GH over EXACTLY 8 ordered point labels
+  // [A,B,C,D,E,F,G,H] — the argument order of the `eqratio(...)` constructor.
+  // The AI emits strings only; `map.ts` lowers it to an `EqRatio`/`LFact`.
+  | {
+      kind: "eqratio";
+      points: [string, string, string, string, string, string, string, string];
+    };
 
 export interface TranslationResult {
   premises: FactDescriptor[];

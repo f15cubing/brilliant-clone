@@ -64,6 +64,21 @@ function validateDescriptor(d: unknown, points: Set<string>, where: string): Fac
     const angle = obj.angle as string[];
     return { kind: "aval", angle: [angle[0], angle[1], angle[2]], expr: obj.expr };
   }
+  if (obj.kind === "eqratio") {
+    if (!Array.isArray(obj.points) || obj.points.length !== 8) {
+      throw new ValidationError(`${where} has an invalid ratio point count.`);
+    }
+    for (const p of obj.points) {
+      if (!isString(p) || !points.has(p)) {
+        throw new ValidationError(`${where} references an unknown point.`);
+      }
+    }
+    const pts = obj.points as string[];
+    return {
+      kind: "eqratio",
+      points: [pts[0], pts[1], pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]],
+    };
+  }
   throw new ValidationError(`${where} has an unknown kind.`);
 }
 
