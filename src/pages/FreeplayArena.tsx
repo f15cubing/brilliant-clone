@@ -8,8 +8,8 @@ import { ProofSummary } from "@/components/freeplay/ProofSummary";
 import { StepBuilder } from "@/components/freeplay/StepBuilder";
 import { DevPanel, type LastAttempt } from "@/components/freeplay/DevPanel";
 import { verifyStep } from "@/lib/freeplay/api";
-import { factHolds } from "@/lib/freeplay/check";
-import type { Fact } from "@/lib/freeplay/dsl";
+import type { LFact } from "@/lib/freeplay/dsl";
+import { factHoldsL } from "@/lib/freeplay/lengths/dsl";
 import {
   alreadyKnown,
   establishedFacts,
@@ -78,8 +78,8 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
   const bindings = puzzle.variables ?? {};
 
   const handleAssert = async (
-    fact: Fact,
-    premises: Fact[],
+    fact: LFact,
+    premises: LFact[],
     opts?: { subst?: Subst },
   ) => {
     if (alreadyKnown(state, fact)) {
@@ -102,7 +102,7 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
       );
       setLastAttempt({
         fact,
-        holds: factHolds(fact, puzzle.coords, bindings),
+        holds: factHoldsL(fact, puzzle.coords, bindings),
         result,
       });
       if (result.valid) {

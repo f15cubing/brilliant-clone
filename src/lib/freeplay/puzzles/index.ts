@@ -12,6 +12,10 @@ import { jbmo_shortlist_2015_g1 } from "./jbmo_shortlist_2015_g1";
 import { squares_on_two_sides } from "./squares_on_two_sides";
 import { shared_side_congruence_problem } from "./shared_side_congruence_problem";
 import { imo_shortlist_2010_g1 } from "./imo_shortlist_2010_g1";
+// Wave 2 — length/ratio (eqratio) problems, now playable via the StepBuilder's
+// ratio input.
+import { sas_similarity_problem } from "./sas_similarity_problem";
+import { jbmo_shortlist_2010_g3_pop } from "./jbmo_shortlist_2010_g3_pop";
 
 /** Ordered registry of curated freeplay puzzles (intro → core → challenge). */
 export const FREEPLAY_PUZZLES: Puzzle[] = [
@@ -25,9 +29,11 @@ export const FREEPLAY_PUZZLES: Puzzle[] = [
   jbmo_shortlist_2015_g1,
   squares_on_two_sides,
   shared_side_congruence_problem,
+  sas_similarity_problem,
   // challenge
   incenterExcenter,
   imo_shortlist_2010_g1,
+  jbmo_shortlist_2010_g3_pop,
   imo2019p2,
 ];
 

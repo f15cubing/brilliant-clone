@@ -1,15 +1,16 @@
 import type { BoardElementDef } from "@/lib/geometry/board-types";
 import type { Coords, VarBindings } from "./check";
-import type { Fact, RuleId } from "./dsl";
+import type { LFact, RuleId } from "./dsl";
 
 export type Difficulty = "intro" | "core" | "challenge";
 
 /** A reference proof step (for tests + future hints; the engine no longer needs it). */
 export interface SolutionStep {
-  fact: Fact;
+  /** May be an `eqratio` (`LFact`); `Fact ⊆ LFact`, so angle-only steps still fit. */
+  fact: LFact;
   rule: RuleId;
   /** The established facts this step relies on. */
-  premises: Fact[];
+  premises: LFact[];
   humanReadable?: string;
 }
 
@@ -26,9 +27,9 @@ export interface Puzzle {
   /** Extra board elements drawn over the auto-rendered labeled points. */
   figure: BoardElementDef[];
 
-  given: Fact[];
-  goal: Fact;
-  equivalentGoals?: Fact[];
+  given: LFact[];
+  goal: LFact;
+  equivalentGoals?: LFact[];
 
   /** Curated reference proof (used by tests and, later, hints). */
   solution: SolutionStep[];

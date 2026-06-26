@@ -1,28 +1,7 @@
 import { angleMark, circle, COLORS, fixedPoint, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
-import { eqratio, type LFact } from "@/lib/freeplay/lengths/dsl";
-import type { Puzzle, SolutionStep } from "@/lib/freeplay/types";
-
-/**
- * A length/ratio puzzle: same shape as `Puzzle`, but `given` / `goal` /
- * `equivalentGoals` / `solution` may carry `eqratio` (an `LFact`, not a shipped
- * `Fact`). The shipped verifier and the label/canonical-key helpers are already
- * `LFact`-aware (see `lengths/dsl.ts`); only the static `Puzzle` type is angle-
- * only. We widen it locally rather than editing the shared `types.ts`.
- */
-type LSolutionStep = Omit<SolutionStep, "fact" | "premises"> & {
-  fact: LFact;
-  premises: LFact[];
-};
-export type RatioPuzzle = Omit<
-  Puzzle,
-  "given" | "goal" | "equivalentGoals" | "solution"
-> & {
-  given: LFact[];
-  goal: LFact;
-  equivalentGoals?: LFact[];
-  solution: LSolutionStep[];
-};
+import { eqratio } from "@/lib/freeplay/lengths/dsl";
+import type { Puzzle } from "@/lib/freeplay/types";
 
 /**
  * Converse power of a point, via SAS similarity (difficulty "core").
@@ -54,7 +33,7 @@ const angABE_ADC = rel("eqangle", ["A", "B", "E", "A", "D", "C"]);
 // GOAL — the cross-chord ratio AB/AD = BE/CD.
 const goal = eqratio("A", "B", "A", "D", "B", "E", "C", "D");
 
-export const sas_similarity_problem: RatioPuzzle = {
+export const sas_similarity_problem: Puzzle = {
   id: "sas-similarity-converse",
   title: "SAS similarity: the converse power of a point",
   blurb:

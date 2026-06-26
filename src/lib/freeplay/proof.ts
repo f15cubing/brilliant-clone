@@ -2,12 +2,12 @@
  * Forward-only proof state for a freeplay puzzle: the learner accumulates
  * established facts until one matches the goal.
  */
-import { factEqual, isAmong, type Fact, type RuleId } from "./dsl";
+import { factEqual, isAmong, type LFact, type RuleId } from "./dsl";
 import type { Puzzle } from "./types";
 
 export interface FactEntry {
   id: number;
-  fact: Fact;
+  fact: LFact;
   source: "given" | "derived";
   /** Engine-reported rule name (derived steps only). */
   rule?: RuleId;
@@ -32,7 +32,7 @@ export interface ProofState {
 }
 
 export type ProofAction =
-  | { type: "accept"; fact: Fact; rule: RuleId }
+  | { type: "accept"; fact: LFact; rule: RuleId }
   | {
       type: "reject";
       reason:
@@ -61,11 +61,11 @@ export function initProofState(puzzle: Puzzle): ProofState {
   };
 }
 
-export function establishedFacts(state: ProofState): Fact[] {
+export function establishedFacts(state: ProofState): LFact[] {
   return state.facts.map((f) => f.fact);
 }
 
-export function isGoal(puzzle: Puzzle, fact: Fact): boolean {
+export function isGoal(puzzle: Puzzle, fact: LFact): boolean {
   if (factEqual(fact, puzzle.goal)) return true;
   return (puzzle.equivalentGoals ?? []).some((g) => factEqual(g, fact));
 }
@@ -102,6 +102,6 @@ export function proofReducer(state: ProofState, action: ProofAction): ProofState
 }
 
 /** Whether `fact` is already an established fact in `state`. */
-export function alreadyKnown(state: ProofState, fact: Fact): boolean {
+export function alreadyKnown(state: ProofState, fact: LFact): boolean {
   return isAmong(fact, establishedFacts(state));
 }
