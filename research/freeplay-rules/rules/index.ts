@@ -18,6 +18,7 @@ import { isosceles_converse } from "./isosceles_converse";
 import { sss_congruence } from "./sss_congruence";
 import { shared_side_congruence } from "./shared_side_congruence";
 import { concyclic_equal_radii } from "./concyclic_equal_radii";
+import { concyclic_from_directed_angles } from "./concyclic_directed_angles";
 
 export const RESEARCH_RULES: Rule[] = [
   // reim is subsumed by AR (kept as a harness example), so it is intentionally
@@ -35,6 +36,8 @@ export const RESEARCH_RULES: Rule[] = [
   shared_side_congruence,
   // -- Batch 7 (circle-producing dual of perp_bisector) --
   concyclic_equal_radii,
+  // -- Batch 8 (directed converse of the inscribed-angle theorem) --
+  concyclic_from_directed_angles,
 ];
 
 /** Everything, including the subsumed/example rules, for harness completeness. */
