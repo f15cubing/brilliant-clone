@@ -36,7 +36,39 @@ export interface Aval {
   form: Form;
 }
 
+/**
+ * A proportion AB/CD = EF/GH over the 8 points [A,B,C,D,E,F,G,H] (the ratio of
+ * the unordered segment AB to CD equals the ratio of EF to GH). This is the
+ * LENGTH/RATIO subsystem's fact kind. It is deliberately kept OUT of the shipped
+ * `Fact` union (so the angle-only consumers — `symmetry.ts`, the UI, etc. — are
+ * untouched) and lives only in the additive `LFact` union below. The shipped
+ * canonical-key / equality / label helpers are widened to accept `LFact`, so an
+ * `eqratio`-shaped fact is handled explicitly instead of crashing the `aval`
+ * branch (see `canonicalKey`).
+ */
+export interface EqRatio {
+  kind: "eqratio";
+  points: [
+    PointId,
+    PointId,
+    PointId,
+    PointId,
+    PointId,
+    PointId,
+    PointId,
+    PointId,
+  ];
+}
+
+/** The shipped (angle/incidence) fact language. */
 export type Fact = Rel | Aval;
+
+/**
+ * The length-aware fact union: a shipped `Fact` or an `EqRatio`. Everything is
+ * additive — ordinary `Fact`s keep their shipped canonical keys, so the length
+ * layer interoperates with the angle layer unchanged.
+ */
+export type LFact = Fact | EqRatio;
 
 /** A rule id from the engine's theorem library (display only). */
 export type RuleId = string;
@@ -52,6 +84,18 @@ export const aval = (angle: [PointId, PointId, PointId], form: Form): Aval => ({
   angle,
   form,
 });
+
+/** Build `eqratio(A,B,C,D,E,F,G,H)` meaning AB/CD = EF/GH. */
+export const eqratio = (
+  A: PointId,
+  B: PointId,
+  C: PointId,
+  D: PointId,
+  E: PointId,
+  F: PointId,
+  G: PointId,
+  H: PointId,
+): EqRatio => ({ kind: "eqratio", points: [A, B, C, D, E, F, G, H] });
 
 export interface RelMeta {
   arity: number;
@@ -108,13 +152,46 @@ function relKey(p: Rel): string {
   }
 }
 
-/** A canonical string key for a fact, accounting for its symmetries. */
-export function canonicalKey(f: Fact): string {
+/** Canonical token for the UNORDERED segment {p, q} (so PQ = QP). */
+const segKey = (p: PointId, q: PointId): string => (p <= q ? `${p}|${q}` : `${q}|${p}`);
+
+/**
+ * Canonical key for a proportion AB/CD = EF/GH, accounting for:
+ *   - endpoints unordered within a segment (AB = BA), via `segKey`;
+ *   - swapping the two ratios:   AB/CD = EF/GH  ⇔  EF/GH = AB/CD;
+ *   - inverting both ratios:     AB/CD = EF/GH  ⇔  CD/AB = GH/EF;
+ *   - and the composition:                       ⇔  GH/EF = CD/AB.
+ * We emit all four equivalent strings and keep the lexicographically smallest.
+ */
+export function eqratioKey(pts: EqRatio["points"]): string {
+  const s1 = segKey(pts[0], pts[1]); // AB
+  const s2 = segKey(pts[2], pts[3]); // CD
+  const s3 = segKey(pts[4], pts[5]); // EF
+  const s4 = segKey(pts[6], pts[7]); // GH
+  const r = (n1: string, d1: string, n2: string, d2: string): string =>
+    `${n1}/${d1}=${n2}/${d2}`;
+  const forms = [
+    r(s1, s2, s3, s4), // identity
+    r(s3, s4, s1, s2), // swap ratios
+    r(s2, s1, s4, s3), // invert both
+    r(s4, s3, s2, s1), // swap + invert
+  ];
+  forms.sort();
+  return `eqratio(${forms[0]})`;
+}
+
+/**
+ * A canonical string key for a fact, accounting for its symmetries. Accepts an
+ * `LFact`: an `eqratio`-shaped fact is keyed explicitly here rather than falling
+ * into the `aval` branch (which would throw reading `f.angle`).
+ */
+export function canonicalKey(f: LFact): string {
   if (f.kind === "rel") return relKey(f);
+  if (f.kind === "eqratio") return eqratioKey(f.points);
   return `aval(${angleKey(f.angle[0], f.angle[1], f.angle[2])}=${fstr(f.form)})`;
 }
 
-export function factEqual(a: Fact, b: Fact): boolean {
+export function factEqual(a: LFact, b: LFact): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === "aval" && b.kind === "aval") {
     return (
@@ -122,19 +199,24 @@ export function factEqual(a: Fact, b: Fact): boolean {
         angleKey(b.angle[0], b.angle[1], b.angle[2]) && feq(a.form, b.form)
     );
   }
+  // Both `rel`/`rel` and `eqratio`/`eqratio` compare by canonical key.
   return canonicalKey(a) === canonicalKey(b);
 }
 
-export function isAmong(fact: Fact, facts: Fact[]): boolean {
+export function isAmong(fact: LFact, facts: LFact[]): boolean {
   const key = canonicalKey(fact);
   return facts.some((f) => canonicalKey(f) === key);
 }
 
 /** A KaTeX/markdown label (wrap math in `$...$` for `MathText`). */
-export function factLabel(f: Fact): string {
+export function factLabel(f: LFact): string {
   if (f.kind === "aval") {
     const [a, b, c] = f.angle;
     return `$\\angle ${a}${b}${c} = ${fstr(f.form)}$`;
+  }
+  if (f.kind === "eqratio") {
+    const [a, b, c, d, e, h, i, j] = f.points;
+    return `$\\frac{${a}${b}}{${c}${d}} = \\frac{${e}${h}}{${i}${j}}$`;
   }
   const [a, b, c, d, e, g] = f.points;
   switch (f.name) {
