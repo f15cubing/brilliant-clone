@@ -4,6 +4,30 @@ Hourly leadership summaries for this session. Newest at the top.
 
 ---
 
+## Summary #3 — All Wave-1/planning agents landed; ready to implement
+
+**Integrated since #2**
+- A4: 73 course-app pure-logic tests + `npm test` wired into CI; small safe extraction of
+  the `recordAttempt` reducer into `recordAttempt.ts` (behavior unchanged). **MERGED.**
+  Integration now at **351 tests, tsc clean, lint 0 errors**.
+- P2: olympiad/rule-promotion plan → `docs/design/OLYMPIAD_RULES_ROADMAP.md`.
+
+**State:** All six agents complete. Integration branch healthy; `master` untouched.
+Two approved design specs ready (`NL_TO_DDAR.md`, `OLYMPIAD_RULES_ROADMAP.md`).
+
+**Master implementation plan (synthesized):**
+- Track 1 (rules): promote A1–A11 into `src/` (Wave 1, parallel) → author P1–P8 puzzles
+  (Wave 2, parallel). A11 already merged in the lab.
+- Track 2 (ratio, independent): Tier C `canonicalKey` guard → B0 `eqratio`+`LengthAR`
+  → ratio rules → ratio problems (second-wave puzzles).
+- Track 3 (NL): A1 types → (map/mock/functions/config parallel) → factory → UI → tests.
+  Ships mock-default; OpenAI behind Firebase Function + App Check when key provided.
+
+**Awaiting user go-ahead to implement**, plus answers to a few NL open questions
+(model/caps, guest access, reCAPTCHA flavor, region) — defaults proposed.
+
+---
+
 ## Summary #2 — Wave 1 landing + new product direction
 
 **Completed & integrated**

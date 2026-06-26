@@ -26,10 +26,10 @@ is untouched for the entire session._
 | A1 | DDAR Investigation | readonly | Deep technical audit | ✅ DONE → `docs/DDAR_ENGINE.md` |
 | A2 | Security | readonly | Full security audit | ✅ DONE → `docs/SECURITY_AUDIT.md` |
 | A3 | Math Discovery | worktree (writes) | Close the Simson–Wallace line gap | ✅ DONE → MERGED (278 tests green) |
-| A4 | Quality/CI | worktree (writes) | Course-app pure-logic tests + wire `npm test` into CI | running |
+| A4 | Quality/CI | worktree (writes) | Course-app pure-logic tests + wire `npm test` into CI | ✅ DONE → MERGED (351 tests green, CI runs tests) |
 
 | P1 | NL→DDAR Planning | readonly | Design + impl plan for NL step input | ✅ DONE → `docs/design/NL_TO_DDAR.md` |
-| P2 | Olympiad/Rules Planning | readonly | Rule-promotion + olympiad problem slate plan | running |
+| P2 | Olympiad/Rules Planning | readonly | Rule-promotion + olympiad problem slate plan | ✅ DONE → `docs/design/OLYMPIAD_RULES_ROADMAP.md` |
 
 Team Lead has independently read `verify.ts`, `dsl.ts`, `ar.ts`, `geom.ts` to enable
 critical review of A1 (architecture) and A3 (new rule soundness). Confirmed AR's
@@ -54,6 +54,9 @@ Two initiatives, to be PLANNED with the team then implemented:
 - A3 Simson-line closure → **MERGED** to integration; new sound `coincident_direction_collinear`
   rule (reviewed by TL); research lab now 13→14 rules, Simson proves end-to-end; 278 tests green.
 - P1 NL→DDAR design → permanent spec `docs/design/NL_TO_DDAR.md` (approved for implementation).
+- A4 course-app pure-logic tests (73) + `npm test` in CI → **MERGED** (351 tests green, tsc clean).
+- P2 olympiad/rule-promotion plan → permanent spec `docs/design/OLYMPIAD_RULES_ROADMAP.md`.
+- **ALL 6 Wave-1/planning agents complete.** Integration branch: 351 tests, tsc clean, master unchanged.
 
 ## Blocked work
 
