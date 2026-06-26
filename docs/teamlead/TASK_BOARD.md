@@ -23,9 +23,14 @@ is untouched for the entire session._
 
 | ID | Team | Mode | Task | Status |
 |----|------|------|------|--------|
-| A1 | DDAR Investigation | readonly | Deep technical audit: architecture, algorithms, data flow, verifier/AR internals, soundness, doc-vs-impl gaps, tech debt, missing functionality | launching |
-| A2 | Security | readonly | Full security audit (auth, Firestore rules, deps, secrets, injection, DoS, insecure defaults, input validation) | launching |
-| A3 | Math Discovery | worktree (writes) | Close the Simson–Wallace line gap: implement the `coincident-direction ⇒ collinear` bridge rule in `research/freeplay-rules/`, prove it end-to-end, document | launching |
+| A1 | DDAR Investigation | readonly | Deep technical audit: architecture, algorithms, data flow, verifier/AR internals, soundness, doc-vs-impl gaps, tech debt, missing functionality | running |
+| A2 | Security | readonly | Full security audit (auth, Firestore rules, deps, secrets, injection, DoS, insecure defaults, input validation) | running |
+| A3 | Math Discovery | worktree (writes) | Close the Simson–Wallace line gap: implement the `coincident-direction ⇒ collinear` bridge rule in `research/freeplay-rules/`, prove it end-to-end, document | running |
+| A4 | Quality/CI | worktree (writes) | Add course-app pure-logic Vitest tests (grading/algebra, geometry math, progress reducer, achievements) + wire `npm test` into CI | running |
+
+Team Lead has independently read `verify.ts`, `dsl.ts`, `ar.ts`, `geom.ts` to enable
+critical review of A1 (architecture) and A3 (new rule soundness). Confirmed AR's
+`equation()` returns null for coll/cong/cyclic/midp (ar.ts:316) — A3's gap is real.
 
 ## Completed work
 
