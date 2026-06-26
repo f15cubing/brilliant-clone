@@ -1,7 +1,8 @@
 # Project Status — Interactive Olympiad Geometry
 
-_Last reviewed: June 23, 2026 (engineering-hygiene baseline added: repo on
-GitHub, working lint, CI, `mathjs` security patch)._
+_Last reviewed: June 25, 2026 (added: **Competitive Freeplay** proof mode with a
+TypeScript DDAR proof-checker, a Vitest test suite, and an isolated
+`research/freeplay-rules/` rule-discovery lab)._
 
 This document describes **what the project actually is today**: its purpose, tech
 stack, architecture, an honest feature inventory (done / partial / missing), and
@@ -20,6 +21,16 @@ construction**. Learners drag points and watch a theorem hold for any
 configuration, then answer a question. Wrong answers trigger a visual,
 diagram-based explanation drawn directly on top of the learner's current figure
 (not a separate static image).
+
+A second mode, **Competitive Freeplay** (`/freeplay`), turns the app from a
+quiz into a **proof environment**: the learner assembles a multi-step proof by
+citing premises and applying named theorems, and each step is machine-checked by
+a from-scratch TypeScript **DDAR proof-checker** (deductive database + algebraic
+reasoning, inspired by AlphaGeometry). See
+[`docs/PRD-competitive-freeplay.md`](./PRD-competitive-freeplay.md) for the
+formal model. Candidate new deduction rules are prototyped and tested in an
+isolated lab at [`research/freeplay-rules/`](../research/freeplay-rules/) (kept
+outside the shipped bundle).
 
 The package name is `interactive-olympiad-geometry` (`package.json`), version
 `0.1.0`. The product requirements live in [`PRD.md`](../PRD.md); a research
@@ -44,6 +55,8 @@ The package name is `interactive-olympiad-geometry` (`package.json`), version
 | Auth & data | Firebase | `^11.10.0` | Email/Password Auth + Cloud Firestore |
 | Hosting | Firebase Hosting | — | Serves the Vite `dist/` build as an SPA |
 | Linting | ESLint + typescript-eslint | `^10.5.0` / `^8.62.0` | Flat config (`eslint.config.js`); React Hooks + Refresh plugins |
+| Testing | Vitest | `^2.1.9` | Unit/integration tests (`npm test`); covers the Freeplay DDAR engine + the `research/` rule lab |
+| E2E / demo capture | Playwright | `^1.61.1` | `demo:record` script captures walkthrough videos (`demo/`); excluded from Vitest |
 | CI | GitHub Actions | — | `.github/workflows/ci.yml`: lint, type-check, build on Node 22 |
 
 ### npm scripts (`package.json`)
@@ -53,7 +66,10 @@ The package name is `interactive-olympiad-geometry` (`package.json`), version
 | `dev` | `vite` | Local dev server (http://localhost:5173) |
 | `build` | `tsc --noEmit && vite build` | Type-check, then bundle to `dist/` |
 | `preview` | `vite preview` | Serve the production build locally |
+| `test` | `vitest run` | Run the test suite once (CI-friendly) |
+| `test:watch` | `vitest` | Run tests in watch mode |
 | `lint` | `eslint .` | Lints the project via `eslint.config.js` (passes; 2 benign `react-refresh` warnings) |
+| `demo:record` | `playwright test -c demo/playwright.config.ts` | Record walkthrough demo videos |
 | `deploy` | `npm run build && npx -y firebase-tools@latest deploy --only hosting` | Build + deploy hosting |
 
 ---
@@ -73,12 +89,18 @@ App (BrowserRouter)
          └─ ProtectedRoute → Layout
              ├─ Dashboard       (/)        XP, progress, achievements, continue
              ├─ CourseMap       (/course)  lesson list + completion
-             └─ LessonPlayer    (/lesson/:lessonId)
-                 └─ ProblemPlayer
-                     ├─ GeometryBoard ──┐
-                     │                  └─ useJSXGraph (the only imperative bridge)
-                     ├─ MathField / MathText (MathLive / KaTeX)
-                     └─ FeedbackBanner
+             ├─ LessonPlayer    (/lesson/:lessonId)
+             │   └─ ProblemPlayer
+             │       ├─ GeometryBoard ──┐
+             │       │                  └─ useJSXGraph (the only imperative bridge)
+             │       ├─ MathField / MathText (MathLive / KaTeX)
+             │       └─ FeedbackBanner
+             ├─ FreeplayList    (/freeplay)             puzzle catalog
+             └─ FreeplayArena   (/freeplay/:puzzleId)   proof environment
+                 ├─ FixedFigure (read-only JSXGraph figure)
+                 ├─ FactList / GoalPanel (premises + target)
+                 ├─ StepBuilder (cite premises → apply a theorem)
+                 └─ verify() → DDAR proof-checker (src/lib/freeplay)
 ```
 
 ### The React ↔ JSXGraph boundary
@@ -91,6 +113,30 @@ unmount. Content files never touch JSXGraph directly — they emit a serializabl
 `board-types.ts` allows `{ fn }` arguments so labels/coordinates can recompute
 live as points are dragged, and `{ ref }` arguments to reference earlier
 elements.
+
+### The Freeplay DDAR proof-checker
+
+`src/lib/freeplay/` is a self-contained, from-scratch geometry proof-checker
+(no external solver), modeled on AlphaGeometry's DDAR:
+
+- `dsl.ts` — the fact language: `Rel` relations (`coll`, `para`, `cong`,
+  `cyclic`, `midp`, `eqangle`, …) and `Aval` directed-angle values, with
+  canonical keys so symmetric facts compare equal.
+- `rules.ts` — the named deduction rules (`inscribed_angle`, `pappus`,
+  `isosceles`, …); each is **coordinate-guarded** so it only fires when the
+  figure numerically supports it.
+- `ar.ts` — `AngleAR`, a Gaussian-elimination table over exact rationals that
+  closes directed-angle chases (mod 180°).
+- `check.ts` / `geom.ts` — numeric truth checks and geometry helpers.
+- `verify.ts` — the step verifier: a proposed step is accepted only if it is
+  numerically true, derivable by a **single** rule (DD or AR) from **exactly**
+  the cited premises (minimality), with "by symmetry" support (`symmetry.ts`).
+- `puzzles/` — the shipped Freeplay problems; `api.ts` selects local
+  (TypeScript) or remote checking.
+
+Candidate **new** rules are not developed in `src/`; they are prototyped, unit-
+tested, and play-tested against contest problems in `research/freeplay-rules/`
+(see that folder's README), then promoted into `rules.ts` only if desired.
 
 ### Directory map
 
@@ -107,22 +153,29 @@ brilliant-clone/
 ├─ .firebaserc               # default project: sandbox-7d4a1
 ├─ .env.example              # VITE_FIREBASE_* keys template
 ├─ README.md / PRD.md / BRAINLIFT.md
+├─ docs/                     # PROJECT_STATUS, ROADMAP, PRD-competitive-freeplay
+├─ research/
+│  └─ freeplay-rules/        # isolated DDAR rule-discovery lab (NOT bundled)
+├─ demo/                     # Playwright demo-recording specs + videos
 ├─ public/
 │  └─ favicon.svg
 ├─ dist/                     # build output (git-ignored)
-├─ scripts/                  # (empty)
 └─ src/
    ├─ main.tsx, App.tsx, index.css
    ├─ pages/
    │  ├─ Login.tsx, Signup.tsx
    │  ├─ Dashboard.tsx        # XP, progress %, achievements, "continue learning"
    │  ├─ CourseMap.tsx        # lesson list with completion state
-   │  └─ LessonPlayer.tsx     # problem sequencing, resume, lesson-complete screen
+   │  ├─ LessonPlayer.tsx     # problem sequencing, resume, lesson-complete screen
+   │  ├─ FreeplayList.tsx     # Freeplay puzzle catalog
+   │  └─ FreeplayArena.tsx    # Freeplay proof environment
    ├─ components/
    │  ├─ Layout.tsx, ProtectedRoute.tsx, Spinner.tsx
    │  ├─ MathField.tsx        # MathLive wrapper (+ mathlive.d.ts)
    │  ├─ MathText.tsx         # KaTeX/markdown-ish renderer
    │  ├─ geometry/GeometryBoard.tsx       # imperative handle over useJSXGraph
+   │  ├─ freeplay/            # FixedFigure, FactList, GoalPanel, StepBuilder,
+   │  │                       #   ProofSummary, DevPanel
    │  └─ solvables/
    │     ├─ ProblemPlayer.tsx  # answer UI + grading + overlay orchestration
    │     └─ FeedbackBanner.tsx # correct/wrong/revealed banner
@@ -144,6 +197,7 @@ brilliant-clone/
       │  ├─ useJSXGraph.ts       # the single React↔JSXGraph bridge
       │  ├─ board-types.ts       # JSXGraphDef schema
       │  ├─ measure.ts, circleAngles.ts, parallelAngles.ts  # angle math
+      ├─ freeplay/              # the DDAR proof-checker (see above) + __tests__
       └─ grading/algebra.ts      # LaTeX→math.js + symbolic-equivalence check
 ```
 
@@ -200,6 +254,20 @@ brilliant-clone/
       build artifacts and secrets git-ignored.
 - [x] **Dependency security** — `mathjs` upgraded to `^15.2.0`; `npm audit`
       reports 0 vulnerabilities.
+- [x] **Competitive Freeplay proof mode** (`/freeplay`, `/freeplay/:puzzleId`) —
+      a second mode where learners build machine-checked multi-step proofs:
+      a read-only figure, a premise/goal panel, and a `StepBuilder` that cites
+      facts and applies named theorems, each step validated by the DDAR checker.
+      Ships with several puzzles (`src/lib/freeplay/puzzles/`, incl. an
+      IMO 2019 P2 configuration).
+- [x] **DDAR proof-checker** (`src/lib/freeplay/`) — from-scratch deductive
+      database + algebraic (directed-angle) reasoning, coordinate-guarded rules,
+      and a minimality-enforcing step verifier. (See §3.)
+- [x] **Automated test suite** — Vitest (`npm test`). The Freeplay DDAR engine is
+      covered by `src/lib/freeplay/__tests__/`, and the `research/freeplay-rules/`
+      lab adds an extensive rule/problem suite (rules, length subsystem, and
+      replayed contest problems). _Note: app-UI/grading/geometry modules are not
+      yet covered — see Partial below._
 
 ### Partial / present-but-thin ⚠️
 
@@ -217,8 +285,11 @@ brilliant-clone/
 
 ### Missing / not started ❌
 
-- [ ] **Automated tests** — no test runner, no test files, no coverage. (Now the
-      single biggest engineering gap; CI is ready to run them once they exist.)
+- [ ] **Test coverage for the learning app** — Vitest now exists and covers the
+      Freeplay DDAR engine, but the course-app pure logic (`grading/algebra.ts`,
+      `geometry/measure.ts`, `circleAngles.ts`, `parallelAngles.ts`, the
+      `recordAttempt` reducer) still has no tests, and `npm test` is not yet wired
+      into CI.
 - [ ] **More than one course** (explicit non-goal for this release).
 - [ ] **AI tutor / Socratic hints** (Koji-style) — explanations are static
       authored content.
@@ -236,21 +307,27 @@ diagram-based feedback on mistakes, earn XP and achievements, and have progress
 persist and resume. The React↔JSXGraph architecture described in the PRD is
 genuinely implemented through the single `useJSXGraph` hook.
 
+Beyond the course, the app now also has a **Competitive Freeplay** proof mode
+backed by a from-scratch DDAR proof-checker — a substantially more ambitious
+piece of engineering than the quiz flow, and the most actively developed area
+(see the `research/freeplay-rules/` rule lab).
+
 Engineering hygiene now has a **baseline**: the project is under source control
 on GitHub, `npm run lint` works, CI (lint + type-check + build) runs on every
-push/PR, and dependencies are clean (`npm audit` → 0 vulnerabilities). The
-**one remaining gap** is automated tests — there is still no test runner or
-coverage, which is the next priority given how much of the app's correctness
-depends on subtle geometry/grading math.
+push/PR, dependencies are clean (`npm audit` → 0 vulnerabilities), and a **Vitest
+suite** now exists. The remaining test gap is **coverage breadth**: the Freeplay
+engine is well-tested, but the course-app pure logic (grading, geometry, progress
+reducer) is not yet, and `npm test` still needs to be added to CI.
 
 ---
 
 ## 6. Current limitations & known gaps
 
-- **No automated tests.** CI now runs lint, type-check, and build, but there is
-  still no test runner or coverage — risky for a code base whose correctness
-  depends on subtle geometry math (`measure.ts`, `circleAngles.ts`,
-  `parallelAngles.ts`) and answer grading (`algebra.ts`). This is the top gap.
+- **Partial test coverage.** A Vitest suite exists and thoroughly covers the
+  Freeplay DDAR engine (plus the `research/` rule lab), but the course-app pure
+  logic — geometry math (`measure.ts`, `circleAngles.ts`, `parallelAngles.ts`)
+  and answer grading (`algebra.ts`) — is still untested, and `npm test` is not
+  yet part of CI. Widening coverage + wiring it into CI is the top gap.
 - **Lint runs but is not strict-zero.** `npm run lint` passes with 2 benign
   `react-refresh` warnings, and the experimental React Compiler rules
   (`purity`/`refs`/`set-state-in-effect`) are deliberately disabled for now.

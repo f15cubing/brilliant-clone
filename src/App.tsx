@@ -8,6 +8,8 @@ import { Signup } from "@/pages/Signup";
 import { Dashboard } from "@/pages/Dashboard";
 import { CourseMap } from "@/pages/CourseMap";
 import { LessonPlayer } from "@/pages/LessonPlayer";
+import { FreeplayList } from "@/pages/FreeplayList";
+import { FreeplayArena } from "@/pages/FreeplayArena";
 
 export function App() {
   return (
@@ -27,6 +29,8 @@ export function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/course" element={<CourseMap />} />
               <Route path="/lesson/:lessonId" element={<LessonPlayer />} />
+              <Route path="/freeplay" element={<FreeplayList />} />
+              <Route path="/freeplay/:puzzleId" element={<FreeplayArena />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

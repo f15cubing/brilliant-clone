@@ -20,3 +20,8 @@ vite.config.d.ts
 .cursor/
 .agents/
 skills-lock.json
+
+# Playwright demo recordings + artifacts
+demo/videos
+test-results
+playwright-report

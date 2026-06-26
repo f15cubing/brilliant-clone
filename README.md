@@ -2,14 +2,16 @@
 
 [![CI](https://github.com/f15cubing/brilliant-clone/actions/workflows/ci.yml/badge.svg)](https://github.com/f15cubing/brilliant-clone/actions/workflows/ci.yml)
 
-A Brilliant-style interactive learning app for introductory geometry (Angle Chasing). Every problem features a draggable geometric construction — drag the triangle and watch the theorem hold.
+A Brilliant-style interactive learning app for introductory geometry (Angle Chasing). Every problem features a draggable geometric construction — drag the triangle and watch the theorem hold. A second **Competitive Freeplay** mode lets you build machine-checked, multi-step proofs validated by a from-scratch DDAR proof-checker.
 
-> **Status:** functional MVP — one full course (5 lessons × 5 problems), three answer types, auth, and progress sync. Engineering baseline in place (lint + CI + 0 audit vulnerabilities); **automated tests are the main remaining gap**. See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for an honest breakdown.
+> **Status:** functional MVP — one full course (5 lessons × 5 problems), three answer types, auth, and progress sync, **plus a Competitive Freeplay proof mode** backed by a TypeScript DDAR engine. Engineering baseline in place (lint + CI + 0 audit vulnerabilities) and a **Vitest suite** covering the Freeplay engine; widening test coverage to the course app and wiring `npm test` into CI is the main remaining gap. See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for an honest breakdown.
 
 ## Documentation
 
 - [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — tech stack, architecture, full feature inventory, and current limitations.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — prioritized near-/mid-/long-term expansion opportunities.
+- [`docs/PRD-competitive-freeplay.md`](docs/PRD-competitive-freeplay.md) — the Competitive Freeplay proof mode + DDAR engine design.
+- [`research/freeplay-rules/README.md`](research/freeplay-rules/README.md) — the isolated lab for discovering & testing new DDAR deduction rules against contest problems.
 - [`PRD.md`](PRD.md) — original product requirements.
 - [`BRAINLIFT.md`](BRAINLIFT.md) — research on Brilliant.org and the learning science behind the design.
 
@@ -20,6 +22,8 @@ A Brilliant-style interactive learning app for introductory geometry (Angle Chas
 - **MathLive + math.js** — algebraic answer input and equivalence checking
 - **KaTeX** — math rendering
 - **Firebase Auth + Firestore** — accounts and progress persistence
+- **Vitest** — test suite (`npm test`); covers the Freeplay DDAR engine + rule lab
+- **Custom DDAR proof-checker** (`src/lib/freeplay/`) — from-scratch deductive-database + directed-angle algebra for Competitive Freeplay
 
 ## Quick start
 
@@ -54,6 +58,8 @@ npm run dev
 | `/` | Dashboard — XP, progress, achievements, continue learning |
 | `/course` | Lesson map with completion state |
 | `/lesson/:lessonId` | Interactive problem player |
+| `/freeplay` | Competitive Freeplay — puzzle catalog |
+| `/freeplay/:puzzleId` | Proof environment (DDAR-checked multi-step proofs) |
 
 ## Adding lessons
 
@@ -72,6 +78,8 @@ Each `Problem` specifies:
 | `npm run dev` | `vite` | Start the dev server (http://localhost:5173) |
 | `npm run build` | `tsc --noEmit && vite build` | Type-check, then bundle to `dist/` |
 | `npm run preview` | `vite preview` | Serve the production build locally |
+| `npm test` | `vitest run` | Run the test suite once |
+| `npm run test:watch` | `vitest` | Run tests in watch mode |
 | `npm run deploy` | build + `firebase-tools ... deploy --only hosting` | Build and deploy to Firebase Hosting |
 | `npm run lint` | `eslint .` | Lint the project (flat config in `eslint.config.js`) |
 
@@ -91,3 +99,18 @@ npm run deploy   # builds, then deploys hosting via firebase-tools
 3. The Inscribed Angle Theorem
 4. Cyclic Quadrilaterals
 5. Incenter & Excenter Lemma
+
+## Competitive Freeplay (proof mode)
+
+`/freeplay` turns the app into a proof environment. Each puzzle gives a fixed
+figure, a set of premises, and a goal; you build a proof step by step by citing
+facts and applying named theorems. Every step is machine-checked by a
+from-scratch **DDAR** proof-checker (`src/lib/freeplay/`): a step is accepted
+only if it is numerically true in the figure and follows from **exactly** the
+cited premises by a single deduction rule or directed-angle algebra step.
+
+New deduction rules are not developed directly in `src/`. They are prototyped,
+unit-tested, and play-tested against real IMO/USAMO problems in the isolated
+[`research/freeplay-rules/`](research/freeplay-rules/) lab (outside the shipped
+bundle), then promoted into the engine if desired. Run the whole test suite with
+`npm test`.

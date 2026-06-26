@@ -12,6 +12,21 @@ extensions of what is shipped today.
 
 ## ✅ Recently completed (June 2026)
 
+**Competitive Freeplay + DDAR proof-checker.** Shipped a second mode
+(`/freeplay`) where learners build machine-checked multi-step proofs, backed by a
+from-scratch TypeScript **DDAR** checker (`src/lib/freeplay/`: a fact DSL,
+coordinate-guarded deduction rules, an exact-rational directed-angle algebra
+table, and a minimality-enforcing step verifier). See
+[`PRD-competitive-freeplay.md`](./PRD-competitive-freeplay.md).
+
+**Vitest test suite.** Added Vitest (`npm test`). The Freeplay engine is covered
+by `src/lib/freeplay/__tests__/`, and an isolated rule-discovery lab at
+`research/freeplay-rules/` adds an extensive suite of candidate rules, a parallel
+length/ratio subsystem (`eqratio` + `LengthAR`), and **replayed contest problems**
+(incl. IMO 2018 P1 proven end-to-end, the Angle Bisector Theorem, power-of-a-point,
+and a Simson-line attempt that pinpoints the next engine gap). The lab is kept
+outside the shipped bundle (excluded from `tsconfig` include).
+
 Engineering-hygiene baseline established (see commit history):
 
 - [x] **Git repo + GitHub.** Initial commit made; pushed to a private GitHub
@@ -37,13 +52,15 @@ Engineering-hygiene baseline established (see commit history):
 
 Low effort, high leverage; mostly engineering hygiene and small UX fills.
 
-- [ ] **Seed automated tests for the pure logic.** *What:* add Vitest and unit
-  test the deterministic, high-risk modules first — `grading/algebra.ts`
-  (`latexToMathExpr`, `isAlgebraicallyEquivalent`), `geometry/measure.ts`,
-  `circleAngles.ts`, `parallelAngles.ts`, and the `recordAttempt` reducer in
-  `ProgressContext`. _Why:_ correctness of the whole app hinges on this math;
-  these functions are pure and trivial to test, so coverage-per-hour is high.
-  Then add a `test` step to the existing CI workflow.
+- [ ] **Widen test coverage to the course-app pure logic + wire `test` into CI.**
+  *What:* Vitest now exists and covers the Freeplay engine, but the
+  deterministic, high-risk course modules are still untested —
+  `grading/algebra.ts` (`latexToMathExpr`, `isAlgebraicallyEquivalent`),
+  `geometry/measure.ts`, `circleAngles.ts`, `parallelAngles.ts`, and the
+  `recordAttempt` reducer in `ProgressContext`. Add tests for those, then add a
+  `test` step to `.github/workflows/ci.yml`. _Why:_ correctness of the whole app
+  hinges on this math; these functions are pure and trivial to test, and CI
+  should fail on regressions (the runner is already in place).
 
 - [ ] **Surface the data already collected.** *What:* on the lesson-complete or
   Dashboard view, show per-problem `attempts` / time from `problemStats`
@@ -66,6 +83,21 @@ Low effort, high leverage; mostly engineering hygiene and small UX fills.
 
 Multi-file features that materially improve learning or extensibility, building
 on existing abstractions.
+
+- [ ] **Promote vetted Freeplay rules + add puzzles.** *What:* graduate the
+  rules validated in `research/freeplay-rules/` into `src/lib/freeplay/rules.ts`
+  (congruence/length bridges, similarity + the `eqratio`/`LengthAR` ratio layer,
+  Pascal, power-of-a-point, "equal radii ⇒ concyclic"), and author new Freeplay
+  puzzles that exercise them. _Why:_ the rules are already unit- and
+  play-tested against contest problems; promotion is mostly a copy + a soundness
+  re-review, and each new rule unlocks a class of provable puzzles.
+- [ ] **Close the next DDAR engine gaps.** *What:* the research lab has
+  pinpointed concrete, well-scoped gaps — top of the list is a
+  "coincident-direction ⇒ collinear" bridge (`para(X,A,X,B) ⇒ coll(X,A,B)`),
+  which would close the Simson line end-to-end; then numeric-constant ratios
+  (a `log 2` generator for `LengthAR`) and signed-ratio Menelaus/Ceva. _Why:_
+  each is a small rule with an outsized increase in the set of provable
+  olympiad problems; see `research/freeplay-rules/README.md` for the gap list.
 
 - [ ] **Add the two "stretch" lessons from the PRD.** *What:* author
   _Tangent–Chord Angle_ and a multi-step _"putting it together"_ angle chase
