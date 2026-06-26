@@ -4,6 +4,31 @@ Hourly leadership summaries for this session. Newest at the top.
 
 ---
 
+## Summary #2 — Wave 1 landing + new product direction
+
+**Completed & integrated**
+- A1 DDAR audit → `docs/DDAR_ENGINE.md` (TL-verified against source).
+- A2 security audit → `docs/SECURITY_AUDIT.md`. Top risk: Firestore rules lack field
+  validation (XP/achievements forgeable; cosmetic today). App Check + the `eqratio`
+  `canonicalKey` throw both feed the new initiatives.
+- A3 math discovery: **closed the Simson–Wallace line** (the lab's #1 open gap) with a
+  new sound `coincident_direction_collinear` rule; reviewed + **merged**; 278 tests green.
+- P1: NL→DDAR design → `docs/design/NL_TO_DDAR.md` (approved for implementation).
+
+**New product direction (user):** (1) author ~6–8 graded olympiad problems, promoting
+research rules first; (2) per-step natural-language Freeplay input → OpenAI-via-Firebase-
+Function (Auth+App Check) with a local mock fallback; verifier stays the source of truth.
+
+**Current work:** A4 (course-app tests + CI), P2 (olympiad/rule-promotion plan).
+
+**Blockers:** none. **For user (non-blocking):** a few NL open questions (model/caps,
+guest access, reCAPTCHA flavor, region) — defaults chosen, listed in the NL spec §10.
+
+**Next:** integrate A4, synthesize P2 into the master implementation plan, present plan,
+then implement (rules → problems → NL feature).
+
+---
+
 ## Summary #1 — Session kickoff
 
 **Completed work**

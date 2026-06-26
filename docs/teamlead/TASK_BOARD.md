@@ -25,11 +25,11 @@ is untouched for the entire session._
 |----|------|------|------|--------|
 | A1 | DDAR Investigation | readonly | Deep technical audit | ✅ DONE → `docs/DDAR_ENGINE.md` |
 | A2 | Security | readonly | Full security audit | ✅ DONE → `docs/SECURITY_AUDIT.md` |
-| A3 | Math Discovery | worktree (writes) | Close the Simson–Wallace line gap: implement the `coincident-direction ⇒ collinear` bridge rule in `research/freeplay-rules/`, prove it end-to-end, document | running |
-| A4 | Quality/CI | worktree (writes) | Add course-app pure-logic Vitest tests (grading/algebra, geometry math, progress reducer, achievements) + wire `npm test` into CI | running |
+| A3 | Math Discovery | worktree (writes) | Close the Simson–Wallace line gap | ✅ DONE → MERGED (278 tests green) |
+| A4 | Quality/CI | worktree (writes) | Course-app pure-logic tests + wire `npm test` into CI | running |
 
-| P1 | NL→DDAR Planning | readonly | Design doc + impl plan for natural-language step input (Translator iface, OpenAI-via-Firebase-Function, App Check, mock translator, verify-as-truth, repair UX, tests) | running |
-| P2 | Olympiad/Rules Planning | readonly | Plan: ordered research-rule promotion (easy wins vs ratio subsystem) + ~6-8 graded olympiad problem slate w/ sources & required rules | running |
+| P1 | NL→DDAR Planning | readonly | Design + impl plan for NL step input | ✅ DONE → `docs/design/NL_TO_DDAR.md` |
+| P2 | Olympiad/Rules Planning | readonly | Rule-promotion + olympiad problem slate plan | running |
 
 Team Lead has independently read `verify.ts`, `dsl.ts`, `ar.ts`, `geom.ts` to enable
 critical review of A1 (architecture) and A3 (new rule soundness). Confirmed AR's
@@ -51,6 +51,9 @@ Two initiatives, to be PLANNED with the team then implemented:
 - Repository protection + green baseline.
 - A1 DDAR audit → permanent doc `docs/DDAR_ENGINE.md` (verified against source by Team Lead).
 - A2 security audit → permanent doc `docs/SECURITY_AUDIT.md`.
+- A3 Simson-line closure → **MERGED** to integration; new sound `coincident_direction_collinear`
+  rule (reviewed by TL); research lab now 13→14 rules, Simson proves end-to-end; 278 tests green.
+- P1 NL→DDAR design → permanent spec `docs/design/NL_TO_DDAR.md` (approved for implementation).
 
 ## Blocked work
 
