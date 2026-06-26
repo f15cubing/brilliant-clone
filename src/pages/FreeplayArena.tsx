@@ -160,6 +160,8 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
               busy={busy}
               disabled={solved}
               onAssert={handleAssert}
+              puzzleId={puzzle.id}
+              variableNames={Object.keys(bindings)}
             />
           )}
         </div>
