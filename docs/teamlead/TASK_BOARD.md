@@ -59,6 +59,11 @@ Wave 2 converts vetted problems → shipped puzzles after R+B land.
 | B | Ratio subsystem | `dsl.ts`,`verify.ts`,`check.ts`,`lengths/**`,`rules.ts`(spread only),`__tests__/**` | Tier C guard + eqratio/LengthAR + 4 ratio rules |
 | N | NL input | `nl/**`,`StepBuilder`,`FreeplayArena`,`config.ts`,`functions/**`,`firebase.json`,`firestore.rules`,`.env.example`,`vite-env.d.ts`,`tsconfig`(exclude) | per-step NL→DDAR, mock-default + Firebase Function scaffold |
 | C | Contest content | `research/problems/**`, `research/findings/contest-problems.md` | 6–8 real contest problems w/ literal citations, replay-verified |
+| G | Integration cleanup | 14 existing research test files (listed) | retire 15 obsolete "GAP" guards made false by R's promotion (convert to positive "now shipped" checks) |
+
+**Status note:** R MERGED — shipped gate green (188 src tests, tsc clean). Full suite is
+TEMPORARILY red (15 research GAP guards obsoleted by promotion); G is converting them.
+Expect a 2nd small GAP-cleanup pass after B (ratio rules) lands. Merge order: R✅ → G → B → N → C.
 
 ## Completed work
 
