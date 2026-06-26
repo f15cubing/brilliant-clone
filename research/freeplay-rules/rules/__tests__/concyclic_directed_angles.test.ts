@@ -104,6 +104,32 @@ describe("concyclic from equal directed angles (research rule)", () => {
     expect(r.valid).toBe(false);
   });
 
+  it("SOUNDNESS: a cited eqangle that is FALSE (undirected) is not consumed", () => {
+    // P,Q,X,Y all on a radius-5 circle, but X,Y on OPPOSITE sides of chord PQ,
+    // so the undirected ∠PXQ ≠ ∠PYQ — the cited `eqangle` is numerically FALSE.
+    // `AngleAR` would read it directionally (and it IS a true directed equality
+    // here), so the rule must refuse to reason from the false premise.
+    const c2: Coords = { P: [-4, 3], Q: [4, 3], X: [0, 5], Y: [0, -5] };
+    const eq = rel("eqangle", ["P", "X", "Q", "P", "Y", "Q"]);
+    expect(factHolds(eq, c2)).toBe(false);
+    expect(factHolds(rel("cyclic", ["P", "Q", "X", "Y"]), c2)).toBe(true);
+    const out = concyclic_from_directed_angles.derive([eq], {
+      coords: c2,
+      bindings: {},
+      points: Object.keys(c2),
+    });
+    expect(out.length).toBe(0);
+
+    const r = verifyWith([...RULES, concyclic_from_directed_angles], {
+      coords: c2,
+      bindings: {},
+      establishedFacts: [eq],
+      candidateFact: rel("cyclic", ["P", "Q", "X", "Y"]),
+      citedPremises: [eq],
+    });
+    expect(r.valid).toBe(false);
+  });
+
   it("SOUNDNESS: concyclic in coords but UNRELATED premises ⇒ no emission", () => {
     // cyclic(C,Q1,B2,A2) holds numerically, but the only cited fact is an
     // unrelated collinearity that says nothing about those four points' angles.

@@ -26,7 +26,7 @@
  *
  * SOUNDNESS.
  * - The table is fed ONLY cited facts (and consequences of cited `cyclic`s), and
- *   `AngleAR.isImplied` is symbolic (coordinates fix only signs/branches, never
+ *   `AngleAR.implies` is symbolic (coordinates fix only signs/branches, never
  *   collapse a variable), so an emission is a genuine logical consequence of the
  *   cited premises — never read off the figure. Dropping a load-bearing premise
  *   breaks the entailment, so the verifier's minimality check stays meaningful.
@@ -58,9 +58,14 @@ export const concyclic_from_directed_angles: Rule = {
     const pts = [...ptSet];
     if (pts.length < 4) return out;
 
-    // Directed-angle table from the cited facts.
+    // Directed-angle table from the cited facts. Only TRUE facts are fed in: the
+    // `eqangle` predicate's truth is UNDIRECTED (`factHolds`), but `AngleAR`
+    // reads it directionally, so an established fact that is false undirected
+    // (yet happens to be a true directed equality) must not silently license a
+    // step. Established facts in a real proof are always true; this guard simply
+    // refuses to reason from a false premise.
     const ar = new AngleAR(coords, {});
-    for (const f of cited) ar.add(f);
+    for (const f of cited) if (factHolds(f, coords, {})) ar.add(f);
 
     // Inject the directed inscribed-angle equalities of every cited circle:
     // for concyclic c0..c3, ∠(ck ci, ck cj) ≡ ∠(cl ci, cl cj) for each chord
