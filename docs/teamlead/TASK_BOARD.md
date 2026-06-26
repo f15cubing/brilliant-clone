@@ -61,13 +61,24 @@ Wave 2 converts vetted problems → shipped puzzles after R+B land.
 | C | Contest content | `research/problems/**`, `research/findings/contest-problems.md` | 6–8 real contest problems w/ literal citations, replay-verified |
 | G | Integration cleanup | 14 existing research test files (listed) | retire 15 obsolete "GAP" guards made false by R's promotion (convert to positive "now shipped" checks) |
 
-**Status note:** R ✅ + G ✅ + N ✅ MERGED — **full suite GREEN: 448 tests, tsc clean, lint 0 errors.**
+**Status note:** R ✅ + G ✅ + N ✅ + B ✅ + C ✅ ALL MERGED — **full suite GREEN: 528 tests / 63 files, tsc clean.**
 - R: 11 Tier-A rules shipped. G: obsolete GAP guards → positive "now promoted" checks.
 - N: NL step input (mock-default + Firebase Function scaffold w/ Auth+App Check; OpenAI key
   server-side only; verify() stays source of truth; +27 client tests, 18 fn tests under own runner).
   To go live: set OPENAI_API_KEY secret, install functions deps, provision reCAPTCHA/App Check,
   set VITE_FREEPLAY_NL_BACKEND=firebase. Until then deterministic mock is the default.
-Expect a 2nd small GAP-cleanup pass after B (ratio rules) lands. Merge order: R✅ → G✅ → N✅ → B → C.
+- B: LENGTH/RATIO subsystem (eqratio + LengthAR + 4 ratio rules), composed at the verify layer
+  (`ALL_RULES`) per the research `lengths/verify.ts` design — shipped `RULES` stays angle-only, so
+  no research GAP cleanup was needed. **Integration-time soundness fix (TL):** `sas_similarity`
+  validated its second SAS side ratio against COORDINATES, so in a congruent figure it bridged
+  from the included angle alone and (with a cited cong) "proved" the third side — a non-sequitur
+  that broke R's `sas_congruence`/`sas_shared_vertex` minimality. Fixed by threading cited
+  `eqratio` premises via `RuleCtx.citedRatios` and requiring the side ratio to be CITED; added a
+  cross-rule soundness regression test. (Disconnect recovery: B + C survived as committed branches;
+  C's work was uncommitted in its worktree and was recovered — no work lost.)
+- C: 6 real contest problems w/ literal citations (ISL 2010 G1, JBMO SL 2004/2010/2015 G,
+  arc-midpoint lemma, squares-on-two-sides), all replay-verified in the research lab.
+Next: Wave 2 (convert vetted problems → shipped puzzles) + final engineering report.
 
 ## Completed work
 
