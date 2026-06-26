@@ -18,31 +18,23 @@ import {
   saveTotalXp,
 } from "@/lib/firebase/progressService";
 import { COURSE } from "@/lib/content/course";
-import { earnedAchievements } from "@/lib/progress/achievements";
-import { rebuildCourseProgress, reconcileSnapshot } from "@/lib/progress/reconcile";
+import { reconcileSnapshot } from "@/lib/progress/reconcile";
+import {
+  applyAttempt,
+  emptyLesson,
+  type AttemptInput,
+  type AttemptResult,
+} from "@/lib/progress/recordAttempt";
 import {
   emptySnapshot,
   type LessonProgress,
   type ProgressSnapshot,
 } from "@/lib/progress/types";
 
+export type { AttemptInput, AttemptResult };
+
 const GUEST_KEY = "geo-progress-guest";
 const authKey = (uid: string) => `geo-progress-${uid}`;
-
-export interface AttemptInput {
-  lessonId: string;
-  problemId: string;
-  problemXp: number;
-  correct: boolean;
-  mistakeId?: string;
-  elapsedMs: number;
-}
-
-export interface AttemptResult {
-  addedXp: number;
-  lessonCompleted: boolean;
-  newAchievementIds: string[];
-}
 
 interface ProgressContextValue {
   ready: boolean;
@@ -56,10 +48,6 @@ interface ProgressContextValue {
 }
 
 const ProgressContext = createContext<ProgressContextValue | null>(null);
-
-function emptyLesson(): LessonProgress {
-  return { completedProblemIds: [], problemStats: {}, xpEarned: 0 };
-}
 
 function loadLocal(key: string): ProgressSnapshot | null {
   try {
@@ -208,72 +196,13 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       }
 
       const prev = snapshotRef.current;
-      const prevEarned = new Set(prev.earnedAchievementIds);
-
-      const lessons = { ...prev.lessons };
-      const lp: LessonProgress = {
-        ...(lessons[input.lessonId] ?? emptyLesson()),
-        problemStats: { ...(lessons[input.lessonId]?.problemStats ?? {}) },
-        completedProblemIds: [
-          ...(lessons[input.lessonId]?.completedProblemIds ?? []),
-        ],
-      };
-
-      const stat = {
-        attempts: (lp.problemStats[input.problemId]?.attempts ?? 0) + 1,
-        timeSpentMs:
-          (lp.problemStats[input.problemId]?.timeSpentMs ?? 0) + input.elapsedMs,
-        lastMistakeId:
-          !input.correct && input.mistakeId
-            ? input.mistakeId
-            : lp.problemStats[input.problemId]?.lastMistakeId,
-      };
-      lp.problemStats[input.problemId] = stat;
-
-      let addedXp = 0;
-      if (input.correct && !lp.completedProblemIds.includes(input.problemId)) {
-        lp.completedProblemIds.push(input.problemId);
-        lp.xpEarned += input.problemXp;
-        addedXp += input.problemXp;
-      }
-
-      const lessonDef = COURSE.lessons.find((l) => l.id === input.lessonId);
-      let lessonCompleted = false;
-      if (
-        lessonDef &&
-        !lp.completedAt &&
-        lessonDef.problems.every((p) => lp.completedProblemIds.includes(p.id))
-      ) {
-        lp.completedAt = Date.now();
-        lp.xpEarned += lessonDef.completionXp;
-        addedXp += lessonDef.completionXp;
-        lessonCompleted = true;
-      }
-
-      lessons[input.lessonId] = lp;
-
-      const course = rebuildCourseProgress(lessons, prev.course[COURSE.id]);
-      course.lastLessonId = input.lessonId;
-
-      const next: ProgressSnapshot = {
-        totalXp: prev.totalXp + addedXp,
-        lessons,
-        course: {
-          ...prev.course,
-          [COURSE.id]: course,
-        },
-        earnedAchievementIds: prev.earnedAchievementIds,
-      };
-
-      const earnedNow = earnedAchievements(next).map((a) => a.id);
-      const newAchievementIds = earnedNow.filter((id) => !prevEarned.has(id));
-      next.earnedAchievementIds = earnedNow;
+      const { next, result } = applyAttempt(prev, input);
 
       setSnapshot(next);
       snapshotRef.current = next;
-      await doPersist(next, input.lessonId, newAchievementIds);
+      await doPersist(next, input.lessonId, result.newAchievementIds);
 
-      return { addedXp, lessonCompleted, newAchievementIds };
+      return result;
     },
     [doPersist, testMode],
   );
