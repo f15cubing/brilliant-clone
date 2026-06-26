@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { MathText } from "@/components/MathText";
+import { useAuth } from "@/lib/auth/AuthContext";
 import {
   aval,
   canonicalKey,
@@ -17,6 +18,7 @@ import {
   descriptorToFact,
   factToDescriptor,
   getTranslator,
+  isFirebaseNLBackend,
   MapError,
   matchPremises,
   type TranslationResult,
@@ -100,8 +102,8 @@ function tryBuild(kind: Kind, slots: string[], expr: string): LFact | null {
 
 /** A lowered NL interpretation, ready to show and (on Use) to assert. */
 interface Interpretation {
-  conclusion: Fact;
-  premises: Fact[];
+  conclusion: LFact;
+  premises: LFact[];
   notes?: string;
 }
 
@@ -224,6 +226,11 @@ export function StepBuilder({
       setKind("aval");
       setSlots([c.angle[0], c.angle[1], c.angle[2]]);
       setExpr(fstr(c.form));
+    } else if (c.kind === "eqratio") {
+      // 8-slot ratio input (AB/CD = EF/GH).
+      setKind("eqratio");
+      setSlots([...c.points]);
+      setExpr("");
     } else {
       setKind(c.name);
       setSlots([...c.points]);
@@ -544,6 +551,14 @@ function NLPanel({
   onAssert,
   onEdit,
 }: NLPanelProps) {
+  const { user } = useAuth();
+  // Signed-in (non-anonymous) users get the OpenAI path when it's flagged on;
+  // guests deterministically get the local mock and never call the function.
+  const signedIn = user !== null && !user.isAnonymous;
+  // Show a "sign in for AI NL" affordance only when the paid backend is actually
+  // configured+flagged: with the mock default, NL works offline for everyone.
+  const showGuestSignInHint = isFirebaseNLBackend && !signedIn;
+
   const [text, setText] = useState("");
   const [translating, setTranslating] = useState(false);
   const [interp, setInterp] = useState<Interpretation | null>(null);
@@ -554,12 +569,11 @@ function NLPanel({
     setTranslating(true);
     setError(null);
     setInterp(null);
-    // The NL translator/mapper is angle/incidence-only; hide ratio facts from it.
-    const established = facts
-      .map((f) => f.fact)
-      .filter((f): f is Fact => f.kind !== "eqratio");
+    // v2: established ratios flow as context too (multi-step ratio chases need a
+    // prior `eqratio` as a premise of the next step). No more angle-only filter.
+    const established: LFact[] = facts.map((f) => f.fact);
     try {
-      const translator = getTranslator();
+      const translator = getTranslator({ signedIn });
       const result: TranslationResult = await translator.translate({
         text: note ? `${text}\n(note: ${note})` : text,
         puzzleId,
@@ -615,6 +629,16 @@ function NLPanel({
           the parsed step before anything is checked.
         </span>
       </label>
+
+      {showGuestSignInHint && (
+        <p className="rounded-sm border border-rule bg-panel-soft px-3 py-2 font-serif text-[0.72rem] leading-relaxed text-ink-soft">
+          <span className="font-mono uppercase tracking-wide text-ink-faint">
+            Sign in for AI-powered NL steps.
+          </span>{" "}
+          You're using the offline translator, which understands a narrower set of
+          phrasings. Sign in to use the full AI translator.
+        </p>
+      )}
 
       <button
         type="button"
