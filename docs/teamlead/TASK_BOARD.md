@@ -23,8 +23,8 @@ is untouched for the entire session._
 
 | ID | Team | Mode | Task | Status |
 |----|------|------|------|--------|
-| A1 | DDAR Investigation | readonly | Deep technical audit: architecture, algorithms, data flow, verifier/AR internals, soundness, doc-vs-impl gaps, tech debt, missing functionality | running |
-| A2 | Security | readonly | Full security audit (auth, Firestore rules, deps, secrets, injection, DoS, insecure defaults, input validation) | running |
+| A1 | DDAR Investigation | readonly | Deep technical audit | ✅ DONE → `docs/DDAR_ENGINE.md` |
+| A2 | Security | readonly | Full security audit | ✅ DONE → `docs/SECURITY_AUDIT.md` |
 | A3 | Math Discovery | worktree (writes) | Close the Simson–Wallace line gap: implement the `coincident-direction ⇒ collinear` bridge rule in `research/freeplay-rules/`, prove it end-to-end, document | running |
 | A4 | Quality/CI | worktree (writes) | Add course-app pure-logic Vitest tests (grading/algebra, geometry math, progress reducer, achievements) + wire `npm test` into CI | running |
 
@@ -49,6 +49,8 @@ Two initiatives, to be PLANNED with the team then implemented:
 ## Completed work
 
 - Repository protection + green baseline.
+- A1 DDAR audit → permanent doc `docs/DDAR_ENGINE.md` (verified against source by Team Lead).
+- A2 security audit → permanent doc `docs/SECURITY_AUDIT.md`.
 
 ## Blocked work
 
@@ -62,7 +64,14 @@ Two initiatives, to be PLANNED with the team then implemented:
 
 ## Discovered risks
 
-- (to be populated by Security Team)
+- **[High]** Firestore rules have no field validation → XP/achievements forgeable by
+  any authed user on their own doc (cosmetic today; blocker before leaderboards/comp).
+- **[Med]** mathjs `evaluate()` on user LaTeX (client-side self-DoS / sandbox concern).
+- **[Med]** No CSP/security headers; no App Check (App Check is a prerequisite for the
+  planned NL→DDAR Cloud Function).
+- **[Med]** Progress-write race conditions (last-write-wins).
+- **[Eng]** Shipped `canonicalKey` THROWS on an `eqratio`-shaped fact — must be guarded
+  BEFORE promoting any ratio rule (directly affects the olympiad-problem initiative).
 
 ## New opportunities / research directions
 
