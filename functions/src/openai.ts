@@ -175,14 +175,15 @@ export function buildJsonSchema(req: TranslateRequest): Record<string, unknown> 
     },
   ];
 
-  const descriptor = { type: "object", additionalProperties: false, anyOf: branches };
+  // OpenAI strict structured-outputs requires `anyOf` to stand alone — a sibling
+  // `type`/`additionalProperties` on the same node is rejected. Each branch above
+  // carries its own `type`/`additionalProperties`/`required`.
+  const descriptor = { anyOf: branches };
 
   // Premises additionally REQUIRE a `source`: the verbatim span of the learner's
   // sentence that states the premise. The client grounds against it
   // (`groundPremises`) and drops any premise the learner did not actually write.
   const premiseDescriptor = {
-    type: "object",
-    additionalProperties: false,
     anyOf: branches.map((b) => ({
       ...b,
       properties: { ...b.properties, source: { type: "string" } },
@@ -196,10 +197,12 @@ export function buildJsonSchema(req: TranslateRequest): Record<string, unknown> 
     properties: {
       conclusion: descriptor,
       premises: { type: "array", items: premiseDescriptor },
-      ruleHint: { type: "string" },
-      notes: { type: "string" },
+      // Strict mode requires EVERY property to appear in `required`; "optional"
+      // fields are expressed as nullable rather than omitted from `required`.
+      ruleHint: { type: ["string", "null"] },
+      notes: { type: ["string", "null"] },
     },
-    required: ["conclusion", "premises"],
+    required: ["conclusion", "premises", "ruleHint", "notes"],
   };
 }
 
