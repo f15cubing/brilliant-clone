@@ -117,6 +117,18 @@ describe("aa_similar: two eqangle facts ⇒ similar(...) statement", () => {
   it("stays silent with fewer than two cited eqangle facts", () => {
     expect(aa_similar.derive([angA], ctx)).toHaveLength(0);
   });
+
+  it("recovers the similarity when the two cited angles list the triangles in OPPOSITE order", () => {
+    // angA is ∠BAC = ∠EDF (ABC-side first); pair it with ∠DEF = ∠ABC (DEF-side
+    // first) — the same statement as angB but flipped. Angle equality is
+    // symmetric, so the correspondence must still be recovered. (Regression for
+    // a learner citing "∠ADE = ∠ACB" together with "∠BAC = ∠DAE".)
+    const angBflipped = rel("eqangle", ["D", "E", "F", "A", "B", "C"]);
+    const out = aa_similar.derive([angA, angBflipped], ctx);
+    const simOut = out.find((f) => f.kind === "rel" && f.name === "similar");
+    expect(simOut).toBeDefined();
+    expect(canonicalKey(simOut!)).toBe(canonicalKey(SIM));
+  });
 });
 
 describe("similar_proportional_sides: similar(...) ⇒ the three side proportions", () => {
@@ -170,6 +182,18 @@ describe("similar: end-to-end via verify()", () => {
       establishedFacts: [angA, angB],
       candidateFact: rel("similar", ["B", "C", "A", "E", "F", "D"]),
       citedPremises: [angA, angB],
+    });
+    expect(r).toEqual({ valid: true, rule: "AA similar triangles (statement)" });
+  });
+
+  it("(a) accepts similar(...) when the two cited angles are in opposite triangle order", () => {
+    const angBflipped = rel("eqangle", ["D", "E", "F", "A", "B", "C"]); // ∠DEF = ∠ABC
+    const r = verify({
+      coords,
+      bindings: {},
+      establishedFacts: [angA, angBflipped],
+      candidateFact: SIM,
+      citedPremises: [angA, angBflipped],
     });
     expect(r).toEqual({ valid: true, rule: "AA similar triangles (statement)" });
   });
