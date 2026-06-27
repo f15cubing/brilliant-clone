@@ -235,3 +235,48 @@ describe("LocalMockTranslator: rule citations + bare lines (no dropping)", () =>
     });
   });
 });
+
+describe("LocalMockTranslator: similarity clauses", () => {
+  const SIMPTS = ["A", "B", "C", "D", "E", "F"];
+  const trSim = new LocalMockTranslator();
+  const reqSim = (text: string): TranslateRequest => ({
+    text,
+    puzzleId: "t",
+    points: SIMPTS,
+    variables: [],
+    established: [],
+  });
+  const conclOf = async (text: string): Promise<FactDescriptor> =>
+    (await trSim.translate(reqSim(text))).conclusion;
+
+  const expected: FactDescriptor = {
+    kind: "rel",
+    name: "similar",
+    points: ["A", "B", "C", "D", "E", "F"],
+  };
+
+  // The word "tri·angle·s" contains "angle"; the similar branch must win.
+  for (const text of [
+    "△ABC ~ △DEF",
+    "ABC ~ DEF",
+    "ABC is similar to DEF",
+    "triangles ABC and DEF are similar",
+  ]) {
+    it(`"${text}" → similar [A,B,C,D,E,F]`, async () => {
+      expect(await conclOf(text)).toEqual(expected);
+    });
+  }
+
+  it("splits a similarity conclusion from its two equal-angle premises", async () => {
+    const r = await trSim.translate(
+      reqSim(
+        "triangles ABC and DEF are similar since angle BAC = angle EDF and angle ABC = angle DEF",
+      ),
+    );
+    expect(r.conclusion).toEqual(expected);
+    expect(r.premises.map((p) => (p.kind === "rel" ? p.name : p.kind))).toEqual([
+      "eqangle",
+      "eqangle",
+    ]);
+  });
+});

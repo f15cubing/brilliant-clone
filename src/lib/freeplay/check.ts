@@ -9,6 +9,7 @@ import {
   circumcenter,
   cross,
   dot,
+  isCollinear,
   norm,
   sub,
   unit,
@@ -122,6 +123,19 @@ export function factHolds(
       const a1 = angleDeg(v[0], v[1], v[2]);
       const a2 = angleDeg(v[3], v[4], v[5]);
       return Math.abs(a1 - a2) < 1e-4;
+    }
+    case "similar": {
+      // △ABC ~ △DEF (A↔D, B↔E, C↔F). Similarity allows MIRROR images, so we
+      // compare UNSIGNED angles: ∠A=∠D, ∠B=∠E, ∠C=∠F. Both triangles must be
+      // genuine (non-degenerate) for the comparison to mean anything.
+      const [a, b, c, d, e, f] = v;
+      if (isCollinear(a, b, c) || isCollinear(d, e, f)) return false;
+      const TOL = 1e-4;
+      return (
+        Math.abs(angleDeg(b, a, c) - angleDeg(e, d, f)) < TOL &&
+        Math.abs(angleDeg(a, b, c) - angleDeg(d, e, f)) < TOL &&
+        Math.abs(angleDeg(a, c, b) - angleDeg(d, f, e)) < TOL
+      );
     }
   }
 }

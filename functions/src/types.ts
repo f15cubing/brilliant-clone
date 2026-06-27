@@ -10,7 +10,8 @@ export type RelName =
   | "cong"
   | "cyclic"
   | "midp"
-  | "eqangle";
+  | "eqangle"
+  | "similar";
 
 export const REL_NAMES: RelName[] = [
   "coll",
@@ -20,6 +21,7 @@ export const REL_NAMES: RelName[] = [
   "cyclic",
   "midp",
   "eqangle",
+  "similar",
 ];
 
 // `source` is OPTIONAL premise-grounding metadata: the span of the learner's

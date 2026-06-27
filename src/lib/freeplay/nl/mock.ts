@@ -20,6 +20,7 @@
  *       perpendicular/⊥         → perp       midpoint    → midp
  *       collinear/on a line     → coll       "angle ABC = angle DEF" → eqangle
  *       "angle ABC = <expr>"    → aval       "AB = CD"   → cong
+ *       "ABC ~ DEF" / similar   → similar (△ABC ~ △DEF, 6 points in order)
  *   - a keyword-less clause that still names ≥3 figure points is read as `coll`
  *     (a bare list of points names a line), so a stated line is never dropped
  *     just because the learner omitted the word "collinear".
@@ -181,6 +182,15 @@ function parseRatioClause(clause: string, sorted: string[]): FactDescriptor | nu
 function parseClause(clause: string, points: string[]): FactDescriptor | null {
   const sorted = [...points].sort((a, b) => b.length - a.length);
   const lower = clause.toLowerCase();
+
+  // Similarity FIRST: "△ABC ~ △DEF", "ABC ~ DEF", "ABC is similar to DEF",
+  // "triangles ABC and DEF are similar". Must precede the angle branch because
+  // the word "tri·angle·s" contains the substring "angle". The 6 figure points
+  // are read in order (A,B,C,D,E,F) — correspondence A↔D, B↔E, C↔F.
+  if (lower.includes("similar") || clause.includes("~") || clause.includes("∼")) {
+    const pts = extractPoints(clause, sorted);
+    return pts.length >= 6 ? { kind: "rel", name: "similar", points: pts.slice(0, 6) } : null;
+  }
 
   if (lower.includes("angle") || clause.includes("∠")) {
     return parseAngleClause(clause, sorted);

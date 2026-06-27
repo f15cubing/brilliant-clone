@@ -20,7 +20,8 @@ export type RelName =
   | "cong" // AB = CD: 4 points
   | "cyclic" // concyclic: 4 points
   | "midp" // M is midpoint of AB: 3 points (M first)
-  | "eqangle"; // ∠(a,b,c) = ∠(d,e,f): 6 points
+  | "eqangle" // ∠(a,b,c) = ∠(d,e,f): 6 points
+  | "similar"; // △ABC ~ △DEF: 6 points (correspondence A↔D, B↔E, C↔F)
 
 export interface Rel {
   kind: "rel";
@@ -117,6 +118,11 @@ export const RELS: Record<RelName, RelMeta> = {
     slots: ["A", "B", "C", "D", "E", "F"],
     label: "Equal angles  ∠ABC = ∠DEF",
   },
+  similar: {
+    arity: 6,
+    slots: ["A", "B", "C", "D", "E", "F"],
+    label: "Similar triangles  △ABC ~ △DEF",
+  },
 };
 
 const sortPair = (a: PointId, b: PointId): [PointId, PointId] =>
@@ -149,7 +155,40 @@ function relKey(p: Rel): string {
       const a2 = angleKey(pts[3], pts[4], pts[5]);
       return `eqangle(${[a1, a2].sort().join("=")})`;
     }
+    case "similar":
+      return similarKey(pts);
   }
+}
+
+/** The 6 permutations of the three triangle-vertex positions {0,1,2}. */
+const TRI_PERMS: readonly [number, number, number][] = [
+  [0, 1, 2],
+  [0, 2, 1],
+  [1, 0, 2],
+  [1, 2, 0],
+  [2, 0, 1],
+  [2, 1, 0],
+];
+
+/**
+ * Canonical key for the similarity △ABC ~ △DEF over [A,B,C,D,E,F], collapsing
+ * the two symmetries of the relation:
+ *   - swapping the two triangles:   △ABC ~ △DEF  ⇔  △DEF ~ △ABC;
+ *   - applying the SAME vertex permutation to BOTH triangles at once (the 6
+ *     permutations of {0,1,2}), which only re-lists the SAME correspondence
+ *     (A↔D, B↔E, C↔F) — e.g. △BCA ~ △EFD is the same statement.
+ * We emit every equivalent encoding (6 permutations × the unordered triangle
+ * pair) and keep the lexicographically smallest. Vertices are comma-separated so
+ * multi-character labels (A2, B2, …) never run together ambiguously.
+ */
+export function similarKey(pts: PointId[]): string {
+  const t1 = [pts[0], pts[1], pts[2]];
+  const t2 = [pts[3], pts[4], pts[5]];
+  const tri = (t: string[], [i, j, k]: readonly [number, number, number]): string =>
+    `${t[i]},${t[j]},${t[k]}`;
+  const forms = TRI_PERMS.map((p) => [tri(t1, p), tri(t2, p)].sort().join("~"));
+  forms.sort();
+  return `similar(${forms[0]})`;
 }
 
 /** Canonical token for the UNORDERED segment {p, q} (so PQ = QP). */
@@ -234,5 +273,7 @@ export function factLabel(f: LFact): string {
       return `$${a}$ is the midpoint of $${b}${c}$`;
     case "eqangle":
       return `$\\angle ${a}${b}${c} = \\angle ${d}${e}${g}$`;
+    case "similar":
+      return `$\\triangle ${a}${b}${c} \\sim \\triangle ${d}${e}${g}$`;
   }
 }
