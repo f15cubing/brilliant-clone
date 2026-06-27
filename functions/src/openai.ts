@@ -61,11 +61,16 @@ const SYSTEM_PROMPT = [
   "Rules:",
   "- Use ONLY the points provided. NEVER invent points or relations.",
   "- Output EXACTLY ONE conclusion. Put any extra observations in `notes`.",
-  "- Cite ONLY premises the learner EXPLICITLY stated in THIS sentence. The",
-  "  `established` facts in the context are a REFERENCE for naming/phrasing — they",
-  "  are NOT a menu to pad from. Do NOT add any premise the learner did not write,",
-  "  even if it is true or would help the deduction. Citing fewer, faithful",
-  "  premises is ALWAYS better than citing extra ones.",
+  "- Cite a premise for EVERY relation the learner states as a reason in THIS",
+  "  sentence — translate them ALL. Do NOT omit a stated premise even if it seems",
+  "  obvious, redundant, or already implied by a named theorem: the lines a",
+  "  theorem is applied to are `coll` premises, and the equal sides/angles a",
+  "  congruence cites are `cong`/`eqangle` premises. Dropping a premise the",
+  "  learner actually wrote makes the step fail to verify.",
+  "- Do NOT INVENT premises the learner did not write. The `established` facts in",
+  "  the context are a REFERENCE for naming/phrasing, NOT a menu to pad from. The",
+  "  downstream checker — not you — decides which premises are necessary; your job",
+  "  is complete, faithful translation, never minimization.",
   "- For EACH premise, set `source` to the SHORTEST verbatim span of the learner's",
   "  sentence that states it (copy the learner's words; never the whole sentence).",
   "  If you cannot point to where the learner stated a premise, OMIT that premise.",
@@ -75,12 +80,15 @@ const SYSTEM_PROMPT = [
 ].join("\n");
 
 /**
- * Worked examples (the model emits ONLY the JSON object). These anchor the two
- * ratio shapes the `eqratio` kind covers (power-of-a-point and similar-triangle
- * proportional sides) AND demonstrate faithful premise grounding: every premise
- * has a `source` copied verbatim from the statement, and NO premise is cited
- * that the statement does not state. They mirror the shipped `power_of_a_point`
- * / `sas_similarity` rule emissions so a faithful translation verifies.
+ * Worked examples (the model emits ONLY the JSON object). The first two anchor
+ * the ratio shapes the `eqratio` kind covers (power-of-a-point and similar-
+ * triangle proportional sides); the third anchors the COMPLETENESS rule on a
+ * multi-premise step (Pappus), showing that the lines a theorem is applied to
+ * are cited as `coll` premises rather than dropped as "obvious". All three
+ * demonstrate faithful grounding: every premise has a `source` copied verbatim
+ * from the statement, and NO premise is cited that the statement does not state.
+ * They mirror the shipped `power_of_a_point` / `sas_similarity` / `pappus` rule
+ * emissions so a faithful translation verifies.
  */
 const FEW_SHOTS = [
   "Examples (emit ONLY the JSON conclusion/premises object):",
@@ -107,6 +115,21 @@ const FEW_SHOTS = [
   "       {\"kind\":\"rel\",\"name\":\"eqangle\",\"points\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\"],\"source\":\"angle ABC = DEF\"}",
   "     ]",
   "   }",
+  "",
+  "3) A named theorem applied to lines — capture EVERY stated premise (do not trim",
+  "   the ones that feel obvious). Figure points include A,B,P,Q,A1,B1,A2,B2.",
+  "   Statement: \"A2B2 ∥ AB by infinite Pappus on A,P,A1 and B,Q,B1, since",
+  "   PQ ∥ AB.\"",
+  "   Output: {",
+  "     \"conclusion\": {\"kind\":\"rel\",\"name\":\"para\",\"points\":[\"A2\",\"B2\",\"A\",\"B\"]},",
+  "     \"premises\": [",
+  "       {\"kind\":\"rel\",\"name\":\"coll\",\"points\":[\"A\",\"P\",\"A1\"],\"source\":\"A,P,A1\"},",
+  "       {\"kind\":\"rel\",\"name\":\"coll\",\"points\":[\"B\",\"Q\",\"B1\"],\"source\":\"B,Q,B1\"},",
+  "       {\"kind\":\"rel\",\"name\":\"para\",\"points\":[\"P\",\"Q\",\"A\",\"B\"],\"source\":\"PQ ∥ AB\"}",
+  "     ]",
+  "   }",
+  "   The two lines named after \"on\" are `coll` premises — cite them; never leave a",
+  "   stated premise as prose in `notes`.",
 ].join("\n");
 
 function buildMessages(req: TranslateRequest): LLMMessage[] {

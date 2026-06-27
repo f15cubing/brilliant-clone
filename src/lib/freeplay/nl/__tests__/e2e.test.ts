@@ -158,3 +158,70 @@ describe("premise grounding drops AI padding before verify()", () => {
     });
   });
 });
+
+/**
+ * The faithful-completeness fix on a real multi-premise step: a Pappus citation
+ * names two collinear lines + a parallel, and ALL THREE must reach verify() for
+ * the step to be accepted. Exercises both translators end-to-end (translate ->
+ * groundPremises -> matchPremises -> verify) on the shipped imo-2019-p2 figure.
+ */
+describe("multi-premise steps translate faithfully (no dropping)", () => {
+  const imo = getPuzzle("imo-2019-p2")!;
+  const points = Object.keys(imo.coords);
+  const established = imo.given.filter((f): f is Fact => f.kind !== "eqratio");
+
+  const runGrounded = async (translator: Translator, text: string) => {
+    const tr = await translator.translate({
+      text,
+      puzzleId: imo.id,
+      points,
+      variables: Object.keys(imo.variables ?? {}),
+      established: established.map(factToDescriptor),
+    });
+    const { kept } = groundPremises(tr.premises, text);
+    return verify({
+      coords: imo.coords,
+      bindings: imo.variables ?? {},
+      establishedFacts: established,
+      candidateFact: descriptorToFact(tr.conclusion, points),
+      citedPremises: matchPremises(kept, established, points),
+    });
+  };
+
+  it("mock: an inline Pappus citation keeps all 3 premises and verifies", async () => {
+    const text =
+      "A2B2 is parallel to AB by infinite Pappus on APA1 and BQB1, and PQ parallel to AB";
+    expect(await runGrounded(new LocalMockTranslator(), text)).toEqual({
+      valid: true,
+      rule: "Pappus's theorem",
+    });
+  });
+
+  it("OpenAI-shaped: a faithful 3-premise response survives grounding + verifies", async () => {
+    const text = "A2B2 ∥ AB by infinite Pappus on A,P,A1 and B,Q,B1, since PQ ∥ AB";
+    const stub = new StubTranslator({
+      conclusion: { kind: "rel", name: "para", points: ["A2", "B2", "A", "B"] },
+      premises: [
+        { kind: "rel", name: "coll", points: ["A", "P", "A1"], source: "A,P,A1" },
+        { kind: "rel", name: "coll", points: ["B", "Q", "B1"], source: "B,Q,B1" },
+        { kind: "rel", name: "para", points: ["P", "Q", "A", "B"], source: "PQ ∥ AB" },
+      ],
+    });
+    expect(await runGrounded(stub, text)).toEqual({ valid: true, rule: "Pappus's theorem" });
+  });
+
+  it("no-drop: every grounded premise of an N-premise response is kept", async () => {
+    const text = "A2B2 ∥ AB by infinite Pappus on A,P,A1 and B,Q,B1, since PQ ∥ AB";
+    const stub = new StubTranslator({
+      conclusion: { kind: "rel", name: "para", points: ["A2", "B2", "A", "B"] },
+      premises: [
+        { kind: "rel", name: "coll", points: ["A", "P", "A1"], source: "A,P,A1" },
+        { kind: "rel", name: "coll", points: ["B", "Q", "B1"], source: "B,Q,B1" },
+        { kind: "rel", name: "para", points: ["P", "Q", "A", "B"], source: "PQ ∥ AB" },
+      ],
+    });
+    const { kept, dropped } = groundPremises((await stub.translate()).premises, text);
+    expect(kept).toHaveLength(3);
+    expect(dropped).toBe(0);
+  });
+});

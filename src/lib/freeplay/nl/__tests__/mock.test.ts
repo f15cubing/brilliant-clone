@@ -171,3 +171,67 @@ describe("LocalMockTranslator: failures", () => {
     }
   });
 });
+
+/**
+ * Rule citations (" by <rule> on …") and bare point-lists: the GENERAL no-drop
+ * improvements. A theorem's named lines must become their own `coll` premises
+ * (each grounded) instead of being swallowed into the conclusion — this is the
+ * deterministic mirror of the OpenAI faithful-completeness fix, and it is not
+ * special-cased to Pappus.
+ */
+describe("LocalMockTranslator: rule citations + bare lines (no dropping)", () => {
+  const IMO = ["A", "B", "C", "P", "Q", "A1", "B1", "A2", "B2", "P1", "Q1"];
+  const trIMO = new LocalMockTranslator();
+  const reqIMO = (text: string): TranslateRequest => ({
+    text,
+    puzzleId: "imo-2019-p2",
+    points: IMO,
+    variables: [],
+    established: [],
+  });
+  // Name + points only (the exact `source` span is asserted separately).
+  const shape = (p: FactDescriptor) =>
+    p.kind === "rel" ? { name: p.name, points: p.points } : { kind: p.kind };
+
+  it("inline 'by Pappus on L1 and L2, and PQ ∥ AB' captures ALL three premises", async () => {
+    const r = await trIMO.translate(
+      reqIMO("A2B2 is parallel to AB by infinite Pappus on APA1 and BQB1, and PQ parallel to AB"),
+    );
+    expect(r.conclusion).toEqual({ kind: "rel", name: "para", points: ["A2", "B2", "A", "B"] });
+    expect(r.premises.map(shape)).toEqual([
+      { name: "coll", points: ["A", "P", "A1"] },
+      { name: "coll", points: ["B", "Q", "B1"] },
+      { name: "para", points: ["P", "Q", "A", "B"] },
+    ]);
+    // Every premise carries a (non-empty) source span so it grounds downstream.
+    expect(r.premises.every((p) => typeof p.source === "string" && p.source.length > 0)).toBe(
+      true,
+    );
+  });
+
+  it("is NOT Pappus-gated: any 'by <rule> on L1 and L2' yields two coll premises", async () => {
+    const r = await trIMO.translate(
+      reqIMO("A2B2 is parallel to AB by some theorem on ABC and A1B1C, and PQ parallel to AB"),
+    );
+    expect(r.conclusion).toEqual({ kind: "rel", name: "para", points: ["A2", "B2", "A", "B"] });
+    expect(r.premises.map(shape)).toEqual([
+      { name: "coll", points: ["A", "B", "C"] },
+      { name: "coll", points: ["A1", "B1", "C"] },
+      { name: "para", points: ["P", "Q", "A", "B"] },
+    ]);
+  });
+
+  it("reads a bare point-list premise (no 'collinear' keyword) as coll", async () => {
+    const r = await trIMO.translate(reqIMO("A2B2 is parallel to AB since A, P, A1"));
+    expect(r.premises.map(shape)).toEqual([{ name: "coll", points: ["A", "P", "A1"] }]);
+  });
+
+  it("regression: 'by power of a point, …' still parses the conclusion (after 'by')", async () => {
+    // POINTS (with D) — the " by " split must keep the conclusion AFTER "by" here.
+    const r = await tr.translate(reqFor("by power of a point, PA·PB = PC·PD"));
+    expect(r.conclusion).toEqual({
+      kind: "eqratio",
+      points: ["P", "A", "P", "C", "P", "D", "P", "B"],
+    });
+  });
+});

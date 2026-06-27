@@ -10,12 +10,19 @@
  * The grammar (see spec §5):
  *   - clause connectors split conclusion from premises:
  *       "<concl> since|because|as <prem(s)>"  or  "<prem(s)> so|therefore|hence <concl>"
+ *   - when no plain connector is present, a " by <rule> on L1 and L2 …" rule
+ *     citation is used as the separator instead (direction chosen by which side
+ *     parses), so a theorem's named lines/premises after "by" are captured as
+ *     their own premises rather than swallowed into the conclusion.
  *   - premises are split on " and " / ";".
  *   - per-clause keyword → relation:
  *       concyclic/cyclic/circle → cyclic     parallel/∥ → para
  *       perpendicular/⊥         → perp       midpoint    → midp
  *       collinear/on a line     → coll       "angle ABC = angle DEF" → eqangle
  *       "angle ABC = <expr>"    → aval       "AB = CD"   → cong
+ *   - a keyword-less clause that still names ≥3 figure points is read as `coll`
+ *     (a bare list of points names a line), so a stated line is never dropped
+ *     just because the learner omitted the word "collinear".
  *
  * Crucially, only point tokens that appear in the figure are ever emitted, and
  * arity/expr are still re-checked by the (untrusted-input) mapper + verify().
@@ -228,6 +235,38 @@ function parseClause(clause: string, points: string[]): FactDescriptor | null {
     const pts = extractPoints(clause, sorted);
     return pts.length >= 4 ? { kind: "rel", name: "cong", points: pts.slice(0, 4) } : null;
   }
+  // Fallback: a keyword-less clause that still names ≥3 figure points is read as
+  // a line (collinear). This lets a theorem's named lines — "APA1", "A,P,A1",
+  // "A P A1", "Pappus on APA1" — be captured as `coll` premises even without the
+  // word "collinear", so the interpreter never silently drops a stated line.
+  // (Reached only when no relation keyword and no "=" matched above; gibberish
+  // with no figure points still yields null and is rejected upstream.)
+  const bare = extractPoints(clause, sorted);
+  return bare.length >= 3 ? { kind: "rel", name: "coll", points: bare } : null;
+}
+
+/**
+ * Use a " by <rule> …" rule citation as a clause separator when no plain
+ * connector (since/because/so/…) is present. "by" is directionally ambiguous, so
+ * we keep whichever side yields a parseable conclusion:
+ *   - "<concl> by <rule> on L1 and L2, and <prem>"  → conclusion BEFORE "by"
+ *   - "by <rule>, <concl>"                          → conclusion AFTER "by"
+ * The reason side is split into premise clauses like any other reason, so each
+ * named line/relation after "by" becomes its own (later grounded) premise
+ * instead of being swallowed into the conclusion. Returns null when "by" isn't a
+ * usable separator here (so the caller keeps its original split).
+ */
+function splitOnBy(text: string, points: string[]): SplitResult | null {
+  const m = /\bby\b/i.exec(text);
+  if (m === null) return null;
+  const left = text.slice(0, m.index).trim();
+  const right = text.slice(m.index + m[0].length).trim();
+  if (left.length > 0 && parseClause(left, points) !== null) {
+    return { conclusion: left, premises: splitPremises(right) };
+  }
+  if (right.length > 0 && parseClause(right, points) !== null) {
+    return { conclusion: right, premises: splitPremises(left) };
+  }
   return null;
 }
 
@@ -242,7 +281,14 @@ export class LocalMockTranslator implements Translator {
   readonly id = "mock" as const;
 
   async translate(req: TranslateRequest): Promise<TranslationResult> {
-    const { conclusion, premises } = splitClauses(req.text);
+    const standard = splitClauses(req.text);
+    // With no plain connector, fall back to a " by <rule> on …" rule citation as
+    // the separator; otherwise the lines/premises after "by" get swallowed into
+    // the conclusion and silently dropped.
+    const { conclusion, premises } =
+      standard.premises.length === 0
+        ? (splitOnBy(req.text, req.points) ?? standard)
+        : standard;
     const concl = parseClause(conclusion, req.points);
     if (!concl) {
       throw new TranslateError(

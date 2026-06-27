@@ -162,3 +162,73 @@ describe("translateWithLLM: eqratio path (injected fake client)", () => {
     await expect(translateWithLLM(client, req, "m")).rejects.toThrow(ValidationError);
   });
 });
+
+/**
+ * The faithfulness/completeness contract: the prompt must instruct the model to
+ * cite EVERY stated premise (no minimization bias that silently drops the
+ * "obvious" ones), and a faithful multi-premise response must pass through the
+ * function boundary with all premises + their `source` quotes intact. This is
+ * the general fix for steps like Pappus / SAS-SSS / directed-angle concyclic
+ * that cite 3+ premises.
+ */
+describe("faithful completeness: prompt + multi-premise pass-through", () => {
+  it("the prompt requires citing every stated premise and drops the minimization bias", async () => {
+    const client = fakeClient({
+      conclusion: { kind: "rel", name: "eqangle", points: ["A", "P", "B", "A", "Q", "B"] },
+      premises: [],
+    });
+    await translateWithLLM(client, req, "m");
+    const call = (client.createStructured as unknown as { mock: { calls: LLMRequest[][] } })
+      .mock.calls[0][0];
+    const prompt = call.messages.map((m) => m.content).join("\n");
+    // The minimization bias that made the model drop stated premises is gone…
+    expect(prompt).not.toContain("ALWAYS better");
+    expect(prompt).not.toMatch(/citing fewer/i);
+    // …replaced by an explicit completeness rule + a multi-premise worked example.
+    expect(prompt).toMatch(/cite a premise for every relation the learner states/i);
+    expect(prompt).toContain("never minimization");
+    expect(prompt).toContain("Pappus");
+  });
+
+  it("keeps all three premises (2 coll + para) of a faithful Pappus response", async () => {
+    const pappusReq: TranslateRequest = {
+      text: "A2B2 ∥ AB by infinite Pappus on A,P,A1 and B,Q,B1, since PQ ∥ AB",
+      puzzleId: "imo-2019-p2",
+      points: ["A", "B", "C", "P", "Q", "A1", "B1", "A2", "B2", "P1", "Q1"],
+      variables: [],
+      established: [],
+    };
+    const client = fakeClient({
+      conclusion: { kind: "rel", name: "para", points: ["A2", "B2", "A", "B"] },
+      premises: [
+        { kind: "rel", name: "coll", points: ["A", "P", "A1"], source: "A,P,A1" },
+        { kind: "rel", name: "coll", points: ["B", "Q", "B1"], source: "B,Q,B1" },
+        { kind: "rel", name: "para", points: ["P", "Q", "A", "B"], source: "PQ ∥ AB" },
+      ],
+    });
+    const res = await translateWithLLM(client, pappusReq, "m");
+    expect(res.premises).toHaveLength(3);
+    expect(res.premises.map((p) => p.source)).toEqual(["A,P,A1", "B,Q,B1", "PQ ∥ AB"]);
+  });
+
+  it("keeps all three cong premises of an SSS-style response (with sources)", async () => {
+    const sssReq: TranslateRequest = {
+      text: "angle ABC = angle DEF since AB = DE and BC = EF and CA = FD",
+      puzzleId: "t",
+      points: ["A", "B", "C", "D", "E", "F"],
+      variables: [],
+      established: [],
+    };
+    const client = fakeClient({
+      conclusion: { kind: "rel", name: "eqangle", points: ["A", "B", "C", "D", "E", "F"] },
+      premises: [
+        { kind: "rel", name: "cong", points: ["A", "B", "D", "E"], source: "AB = DE" },
+        { kind: "rel", name: "cong", points: ["B", "C", "E", "F"], source: "BC = EF" },
+        { kind: "rel", name: "cong", points: ["C", "A", "F", "D"], source: "CA = FD" },
+      ],
+    });
+    const res = await translateWithLLM(client, sssReq, "m");
+    expect(res.premises).toHaveLength(3);
+    expect(res.premises.map((p) => p.source)).toEqual(["AB = DE", "BC = EF", "CA = FD"]);
+  });
+});
