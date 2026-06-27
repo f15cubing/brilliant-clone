@@ -71,11 +71,16 @@ const KINDS: { id: Kind; label: string; slots: string[] }[] = [
 
 const MAX_COLL = 8;
 
-function tryBuild(kind: Kind, slots: string[], expr: string): LFact | null {
+function tryBuild(
+  kind: Kind,
+  slots: string[],
+  expr: string,
+  knownLabels: readonly string[],
+): LFact | null {
   if (kind === "aval") {
     if (slots.length !== 3) return null;
     try {
-      return aval([slots[0], slots[1], slots[2]], parseForm(expr));
+      return aval([slots[0], slots[1], slots[2]], parseForm(expr, knownLabels));
     } catch {
       return null;
     }
@@ -181,8 +186,8 @@ export function StepBuilder({
     : meta.slots;
 
   const preview = useMemo(
-    () => tryBuild(kind, slots, expr),
-    [kind, slots, expr],
+    () => tryBuild(kind, slots, expr, pointIds),
+    [kind, slots, expr, pointIds],
   );
   const exprError =
     kind === "aval" && expr.trim().length > 0 && slots.length === 3 && !preview;

@@ -203,6 +203,18 @@ describe("angle arithmetic between angles (angle tokens)", () => {
     expect(feq(parseForm("\\angle A,O,C / 2"), parseForm("angle(A,O,C)/2"))).toBe(true);
   });
 
+  it("splits a bare \\angle run by known multi-character labels (A2,B2,C)", () => {
+    // IMO-style figures use labels like A2/B2/Q1; "\\angle A2B2C" must resolve to
+    // angle(A2,B2,C), NOT angle(A,2,B,2,C). Without a label set, single-letter
+    // expressions still work via the char-split fallback.
+    const labels = ["A2", "B2", "C", "Q1"];
+    expect(
+      feq(parseForm("180 - \\angle A2B2C", labels), parseForm("180 - angle(A2,B2,C)")),
+    ).toBe(true);
+    // The comma form needs no label set (already unambiguous).
+    expect(feq(parseForm("\\angle A2,B2,C"), parseForm("angle(A2,B2,C)"))).toBe(true);
+  });
+
   it("numerically checks an angle-to-angle relation", () => {
     // ∠AOB = 135°, ∠AOC = 45°, so ∠AOB = 180 − ∠AOC holds
     expect(

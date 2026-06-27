@@ -63,7 +63,9 @@ export function descriptorToFact(d: FactDescriptor, points: string[]): LFact {
     }
     let form;
     try {
-      form = parseForm(d.expr);
+      // Pass `points` so a LaTeX-angle fallback (`\angle A2B2C`) can split
+      // multi-character labels correctly instead of into single characters.
+      form = parseForm(d.expr, points);
     } catch (e) {
       throw new MapError(
         "bad_expr",

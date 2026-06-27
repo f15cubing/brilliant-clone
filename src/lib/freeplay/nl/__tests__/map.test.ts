@@ -83,6 +83,22 @@ describe("descriptorToFact", () => {
     expect(canonicalKey(latex)).toBe(canonicalKey(canonical));
   });
 
+  it("tolerates a LaTeX angle expr with MULTI-CHARACTER labels (180 - \\angle A2B2C)", () => {
+    // The reported case: an IMO-style figure with labels A2/B2/Q1. descriptorToFact
+    // has the figure's points, so `\angle A2B2C` splits as angle(A2,B2,C) — not
+    // angle(A,2,B,2,C) — and lowers to the same fact as the canonical comma form.
+    const figure = ["A2", "B2", "C", "Q1"];
+    const latex = descriptorToFact(
+      { kind: "aval", angle: ["A2", "B2", "Q1"], expr: "180 - \\angle A2B2C" },
+      figure,
+    );
+    const canonical = descriptorToFact(
+      { kind: "aval", angle: ["A2", "B2", "Q1"], expr: "180 - angle(A2,B2,C)" },
+      figure,
+    );
+    expect(canonicalKey(latex)).toBe(canonicalKey(canonical));
+  });
+
   it("rejects an unknown relation → unknown_relation", () => {
     try {
       descriptorToFact(

@@ -178,23 +178,43 @@ function vdiv(a: Val, b: Val): Val {
 type Tok = { t: "num"; v: number } | { t: "id"; v: string } | { t: "op"; v: string };
 
 /**
+ * Split the labels out of a `\angle …` body. A comma-separated body is taken
+ * verbatim; a bare run (`A2B2C`) is resolved by greedy longest-match against the
+ * figure's `known` labels (so multi-character points like `A2`,`B2` split as
+ * `[A2, B2, C]`, not `[A,2,B,2,C]`). With no label set we fall back to single
+ * characters — correct for the standard single-letter case — and any leftover is
+ * surfaced later as an arity error by `parseAngleCall`.
+ */
+function splitAngleBody(body: string, known: readonly string[] | null): string[] {
+  if (body.includes(",")) {
+    return body.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  if (known && known.length > 0) {
+    const byLenDesc = [...known].filter((l) => l.length > 0).sort((a, b) => b.length - a.length);
+    const out: string[] = [];
+    let rest = body;
+    while (rest.length > 0) {
+      const match = byLenDesc.find((l) => rest.startsWith(l));
+      if (!match) break; // unresolvable greedily — fall through to char split
+      out.push(match);
+      rest = rest.slice(match.length);
+    }
+    if (rest.length === 0 && out.length > 0) return out;
+  }
+  return body.split("");
+}
+
+/**
  * Rewrite display angle notation into the canonical `angle(A,B,C)` call so a
  * producer that speaks LaTeX/Unicode (the AI translator, or `fstr` output that
  * leaked into an editable field) still parses. Handles `\angle ABC`, `∠ABC`, and
- * comma-separated `\angle A,B,C`. A bare run of labels (`ABC`) is split into
- * single characters — the standard single-letter case; multi-letter labels must
- * be comma-separated to stay unambiguous (which is exactly what `formToExpr`
- * emits), otherwise the resulting arity error is surfaced by `parseAngleCall`.
+ * comma-separated `\angle A,B,C`. Pass `known` (the figure's point labels) to
+ * disambiguate bare multi-character runs.
  */
-function normalizeAngleNotation(input: string): string {
+function normalizeAngleNotation(input: string, known?: readonly string[]): string {
   return input.replace(
     /(?:\\angle|∠)\s*([A-Za-z0-9]+(?:\s*,\s*[A-Za-z0-9]+)*)/g,
-    (_match, body: string) => {
-      const labels = body.includes(",")
-        ? body.split(",").map((s) => s.trim()).filter(Boolean)
-        : body.split("");
-      return `angle(${labels.join(",")})`;
-    },
+    (_match, body: string) => `angle(${splitAngleBody(body, known ?? null).join(",")})`,
   );
 }
 
@@ -231,9 +251,13 @@ function tokenize(s: string): Tok[] {
   return toks;
 }
 
-/** Parse a linear expression (integers, + - * /, parens, variable names). */
-export function parseForm(input: string): Form {
-  const toks = tokenize(normalizeAngleNotation(input));
+/**
+ * Parse a linear expression (integers, + - * /, parens, variable names).
+ * `knownLabels` (the figure's point labels) lets the LaTeX-angle fallback split
+ * bare multi-character runs like `\angle A2B2C` into `angle(A2,B2,C)`.
+ */
+export function parseForm(input: string, knownLabels?: readonly string[]): Form {
+  const toks = tokenize(normalizeAngleNotation(input, knownLabels));
   let pos = 0;
   const peek = (): Tok | undefined => toks[pos];
   const eat = (): Tok => {
