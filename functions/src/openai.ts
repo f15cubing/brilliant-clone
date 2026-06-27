@@ -61,6 +61,14 @@ const SYSTEM_PROMPT = [
   "Rules:",
   "- Use ONLY the points provided. NEVER invent points or relations.",
   "- Output EXACTLY ONE conclusion. Put any extra observations in `notes`.",
+  "- Cite ONLY premises the learner EXPLICITLY stated in THIS sentence. The",
+  "  `established` facts in the context are a REFERENCE for naming/phrasing — they",
+  "  are NOT a menu to pad from. Do NOT add any premise the learner did not write,",
+  "  even if it is true or would help the deduction. Citing fewer, faithful",
+  "  premises is ALWAYS better than citing extra ones.",
+  "- For EACH premise, set `source` to the SHORTEST verbatim span of the learner's",
+  "  sentence that states it (copy the learner's words; never the whole sentence).",
+  "  If you cannot point to where the learner stated a premise, OMIT that premise.",
   "- `ruleHint` is optional and cosmetic.",
   "- If unsure, still emit your best single conclusion; the downstream verifier",
   "  is the final judge.",
@@ -68,22 +76,24 @@ const SYSTEM_PROMPT = [
 
 /**
  * Worked examples (the model emits ONLY the JSON object). These anchor the two
- * ratio shapes the `eqratio` kind covers: power-of-a-point and similar-triangle
- * proportional sides. They mirror the shipped `power_of_a_point` /
- * `sas_similarity` rule emissions so a faithful translation verifies.
+ * ratio shapes the `eqratio` kind covers (power-of-a-point and similar-triangle
+ * proportional sides) AND demonstrate faithful premise grounding: every premise
+ * has a `source` copied verbatim from the statement, and NO premise is cited
+ * that the statement does not state. They mirror the shipped `power_of_a_point`
+ * / `sas_similarity` rule emissions so a faithful translation verifies.
  */
 const FEW_SHOTS = [
   "Examples (emit ONLY the JSON conclusion/premises object):",
   "",
   "1) Power of a point. Figure points include P,A,B,C,D.",
-  "   Statement: \"Since A, B, C, D are concyclic and the chords meet at P,",
-  "   PA·PB = PC·PD.\"",
+  "   Statement: \"Since A, B, C, D are concyclic, with P on line AB and P on",
+  "   line CD, PA·PB = PC·PD.\"",
   "   Output: {",
   "     \"conclusion\": {\"kind\":\"eqratio\",\"points\":[\"P\",\"A\",\"P\",\"C\",\"P\",\"D\",\"P\",\"B\"]},",
   "     \"premises\": [",
-  "       {\"kind\":\"rel\",\"name\":\"cyclic\",\"points\":[\"A\",\"B\",\"C\",\"D\"]},",
-  "       {\"kind\":\"rel\",\"name\":\"coll\",\"points\":[\"P\",\"A\",\"B\"]},",
-  "       {\"kind\":\"rel\",\"name\":\"coll\",\"points\":[\"P\",\"C\",\"D\"]}",
+  "       {\"kind\":\"rel\",\"name\":\"cyclic\",\"points\":[\"A\",\"B\",\"C\",\"D\"],\"source\":\"A, B, C, D are concyclic\"},",
+  "       {\"kind\":\"rel\",\"name\":\"coll\",\"points\":[\"P\",\"A\",\"B\"],\"source\":\"P on line AB\"},",
+  "       {\"kind\":\"rel\",\"name\":\"coll\",\"points\":[\"P\",\"C\",\"D\"],\"source\":\"P on line CD\"}",
   "     ]",
   "   }",
   "",
@@ -93,8 +103,8 @@ const FEW_SHOTS = [
   "   Output: {",
   "     \"conclusion\": {\"kind\":\"eqratio\",\"points\":[\"A\",\"B\",\"D\",\"E\",\"C\",\"A\",\"F\",\"D\"]},",
   "     \"premises\": [",
-  "       {\"kind\":\"eqratio\",\"points\":[\"A\",\"B\",\"D\",\"E\",\"B\",\"C\",\"E\",\"F\"]},",
-  "       {\"kind\":\"rel\",\"name\":\"eqangle\",\"points\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\"]}",
+  "       {\"kind\":\"eqratio\",\"points\":[\"A\",\"B\",\"D\",\"E\",\"B\",\"C\",\"E\",\"F\"],\"source\":\"AB/DE = BC/EF\"},",
+  "       {\"kind\":\"rel\",\"name\":\"eqangle\",\"points\":[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\"],\"source\":\"angle ABC = DEF\"}",
   "     ]",
   "   }",
 ].join("\n");
@@ -127,47 +137,65 @@ function buildMessages(req: TranslateRequest): LLMMessage[] {
 /** Build a per-request JSON schema whose enums lock points + relation names. */
 export function buildJsonSchema(req: TranslateRequest): Record<string, unknown> {
   const pointEnum = { type: "string", enum: req.points };
-  const descriptor = {
+  // The three descriptor branches, shared by conclusion + premises.
+  const branches: {
+    type: "object";
+    additionalProperties: false;
+    properties: Record<string, unknown>;
+    required: string[];
+  }[] = [
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        kind: { type: "string", enum: ["rel"] },
+        name: { type: "string", enum: REL_NAMES },
+        points: { type: "array", items: pointEnum, minItems: 3, maxItems: 8 },
+      },
+      required: ["kind", "name", "points"],
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        kind: { type: "string", enum: ["aval"] },
+        angle: { type: "array", items: pointEnum, minItems: 3, maxItems: 3 },
+        expr: { type: "string" },
+      },
+      required: ["kind", "angle", "expr"],
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        kind: { type: "string", enum: ["eqratio"] },
+        points: { type: "array", items: pointEnum, minItems: 8, maxItems: 8 },
+      },
+      required: ["kind", "points"],
+    },
+  ];
+
+  const descriptor = { type: "object", additionalProperties: false, anyOf: branches };
+
+  // Premises additionally REQUIRE a `source`: the verbatim span of the learner's
+  // sentence that states the premise. The client grounds against it
+  // (`groundPremises`) and drops any premise the learner did not actually write.
+  const premiseDescriptor = {
     type: "object",
     additionalProperties: false,
-    anyOf: [
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          kind: { type: "string", enum: ["rel"] },
-          name: { type: "string", enum: REL_NAMES },
-          points: { type: "array", items: pointEnum, minItems: 3, maxItems: 8 },
-        },
-        required: ["kind", "name", "points"],
-      },
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          kind: { type: "string", enum: ["aval"] },
-          angle: { type: "array", items: pointEnum, minItems: 3, maxItems: 3 },
-          expr: { type: "string" },
-        },
-        required: ["kind", "angle", "expr"],
-      },
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          kind: { type: "string", enum: ["eqratio"] },
-          points: { type: "array", items: pointEnum, minItems: 8, maxItems: 8 },
-        },
-        required: ["kind", "points"],
-      },
-    ],
+    anyOf: branches.map((b) => ({
+      ...b,
+      properties: { ...b.properties, source: { type: "string" } },
+      required: [...b.required, "source"],
+    })),
   };
+
   return {
     type: "object",
     additionalProperties: false,
     properties: {
       conclusion: descriptor,
-      premises: { type: "array", items: descriptor },
+      premises: { type: "array", items: premiseDescriptor },
       ruleHint: { type: "string" },
       notes: { type: "string" },
     },

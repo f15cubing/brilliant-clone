@@ -113,8 +113,24 @@ describe("LocalMockTranslator: premise splitting", () => {
       name: "eqangle",
       points: ["A", "P", "B", "A", "Q", "B"],
     });
+    // Each premise is tagged with the clause it was parsed from (grounding).
     expect(r.premises).toEqual([
-      { kind: "rel", name: "cyclic", points: ["A", "B", "P", "Q"] },
+      {
+        kind: "rel",
+        name: "cyclic",
+        points: ["A", "B", "P", "Q"],
+        source: "A, B, P, Q are concyclic",
+      },
+    ]);
+  });
+
+  it("tags each premise with its `source` clause (so it grounds)", async () => {
+    const r = await tr.translate(
+      reqFor("AB = CD since AB is parallel to CD and A, B, C are collinear"),
+    );
+    expect(r.premises.map((p) => p.source)).toEqual([
+      "AB is parallel to CD",
+      "A, B, C are collinear",
     ]);
   });
 

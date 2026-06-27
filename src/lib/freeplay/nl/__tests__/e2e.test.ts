@@ -6,9 +6,9 @@
 import { describe, expect, it } from "vitest";
 import { verify } from "../../verify";
 import { getPuzzle } from "../../puzzles";
-import type { Fact } from "../../dsl";
+import { rel, type Fact } from "../../dsl";
 import type { Puzzle } from "../../types";
-import { descriptorToFact, factToDescriptor, matchPremises } from "../map";
+import { descriptorToFact, factToDescriptor, groundPremises, matchPremises } from "../map";
 import { LocalMockTranslator } from "../mock";
 import type { TranslationResult, Translator } from "../types";
 
@@ -88,5 +88,73 @@ describe("the AI cannot bypass verify() (negatives)", () => {
     });
     const result = await runPipeline(stub, "wrong premise", inscribed);
     expect(result).toEqual({ valid: false, reason: "unknown_premise" });
+  });
+});
+
+/**
+ * Grounding (the real NLPanel flow): translate → GROUND against the learner's
+ * text → map → verify. AI-invented premises (no `source` quote in the sentence)
+ * are dropped before verify, so they no longer trip the minimality check — while
+ * premises the learner actually wrote stay and are still held to minimality.
+ */
+describe("premise grounding drops AI padding before verify()", () => {
+  const points = Object.keys(inscribed.coords);
+  // Context = the real given (cyclic) plus a TRUE but EXTRANEOUS length fact:
+  // the two radii OA, OB are equal. The inscribed-angle step needs only cyclic.
+  const established: Fact[] = [
+    rel("cyclic", ["A", "B", "P", "Q"]),
+    rel("cong", ["O", "A", "O", "B"]),
+  ];
+
+  const groundedVerify = (tr: TranslationResult, text: string) => {
+    const { kept } = groundPremises(tr.premises, text);
+    return verify({
+      coords: inscribed.coords,
+      bindings: inscribed.variables ?? {},
+      establishedFacts: established,
+      candidateFact: descriptorToFact(tr.conclusion, points),
+      citedPremises: matchPremises(kept, established, points),
+    });
+  };
+
+  it("accepts the step once an UNGROUNDED extra premise is dropped", async () => {
+    const text = "angle APB = angle AQB since A, B, P, Q are concyclic";
+    // The AI pads with cong(O,A,O,B), which the learner never wrote (no source).
+    const stub = new StubTranslator({
+      conclusion: { kind: "rel", name: "eqangle", points: ["A", "P", "B", "A", "Q", "B"] },
+      premises: [
+        {
+          kind: "rel",
+          name: "cyclic",
+          points: ["A", "B", "P", "Q"],
+          source: "A, B, P, Q are concyclic",
+        },
+        { kind: "rel", name: "cong", points: ["O", "A", "O", "B"] },
+      ],
+    });
+    expect(await groundedVerify(await stub.translate(), text)).toEqual({
+      valid: true,
+      rule: "inscribed angle (same arc)",
+    });
+  });
+
+  it("still rejects an extraneous premise the learner DID write (grounded)", async () => {
+    const text = "angle APB = angle AQB since A, B, P, Q are concyclic and OA = OB";
+    const stub = new StubTranslator({
+      conclusion: { kind: "rel", name: "eqangle", points: ["A", "P", "B", "A", "Q", "B"] },
+      premises: [
+        {
+          kind: "rel",
+          name: "cyclic",
+          points: ["A", "B", "P", "Q"],
+          source: "A, B, P, Q are concyclic",
+        },
+        { kind: "rel", name: "cong", points: ["O", "A", "O", "B"], source: "OA = OB" },
+      ],
+    });
+    expect(await groundedVerify(await stub.translate(), text)).toEqual({
+      valid: false,
+      reason: "extraneous_premises",
+    });
   });
 });

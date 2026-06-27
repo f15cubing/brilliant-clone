@@ -132,6 +132,61 @@ export function matchPremises(
   });
 }
 
+// --- Premise grounding ------------------------------------------------------
+//
+// The AI translator is prone to PADDING a step with premises the learner never
+// wrote (pulled from the established-facts context), which then trips verify()'s
+// minimality check (`extraneous_premises`). To keep that check honest WITHOUT
+// blaming the learner for the AI's additions, every premise descriptor may carry
+// a `source`: the span of the learner's sentence that states it. `groundPremises`
+// drops any premise whose `source` is not actually present in the sentence, so
+// AI-invented premises are removed BEFORE verify() — while premises the learner
+// really wrote survive and stay subject to the minimality check.
+
+/** A 1–2 char "source" is too weak to count as a genuine quote. */
+const GROUND_MIN_LEN = 3;
+/** Above this normalized sentence length, apply the near-whole-echo guard. */
+const ECHO_MIN_HAYSTACK = 16;
+/** A source covering this fraction of a long sentence is the "echo" bypass. */
+const ECHO_FRACTION = 0.9;
+
+/** Fold case and strip everything but [a-z0-9] so punctuation/spacing/glyphs
+ * (·, =, /, …) never defeat a substring match. */
+function normalizeForGrounding(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** Is `source` a faithful quote from the (already-normalized) sentence? */
+function isGrounded(source: string | undefined, haystack: string): boolean {
+  if (typeof source !== "string" || haystack.length === 0) return false;
+  const needle = normalizeForGrounding(source);
+  if (needle.length < GROUND_MIN_LEN) return false;
+  if (!haystack.includes(needle)) return false;
+  // Anti-abuse: a `source` that IS (or nearly is) the whole sentence isn't a
+  // pointer to a specific premise — it's the trivial "echo the sentence" bypass.
+  if (needle === haystack) return false;
+  if (haystack.length >= ECHO_MIN_HAYSTACK && needle.length >= haystack.length * ECHO_FRACTION) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Drop premises the learner did not actually write. A premise is KEPT only when
+ * its `source` is a verbatim (normalization-tolerant) substring of `text`.
+ * Returns the kept descriptors plus how many were dropped (for a UI note).
+ * This runs on descriptors, BEFORE lowering/verify, so it's backend-agnostic
+ * (both the OpenAI and mock translators emit `source`).
+ */
+export function groundPremises(
+  premises: FactDescriptor[],
+  text: string,
+): { kept: FactDescriptor[]; dropped: number } {
+  const haystack = normalizeForGrounding(text);
+  const kept = premises.filter((p) => isGrounded(p.source, haystack));
+  return { kept, dropped: premises.length - kept.length };
+}
+
 /**
  * Inverse of `descriptorToFact`: serialize an established `Fact` back to a
  * descriptor (used to give the translator context about what's already known).

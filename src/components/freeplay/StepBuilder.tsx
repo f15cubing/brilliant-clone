@@ -18,6 +18,7 @@ import {
   descriptorToFact,
   factToDescriptor,
   getTranslator,
+  groundPremises,
   isFirebaseNLBackend,
   MapError,
   matchPremises,
@@ -581,10 +582,22 @@ function NLPanel({
         variables: variableNames,
         established: established.map(factToDescriptor),
       });
+      // Drop premises the AI added that aren't grounded in the learner's own
+      // words, so the engine's minimality check isn't tripped by AI padding.
+      // Grounding runs on the ORIGINAL `text`, never the optional repair note.
+      const { kept, dropped } = groundPremises(result.premises, text);
       // Lower + strictly validate BEFORE any verify() call.
       const conclusion = descriptorToFact(result.conclusion, pointIds);
-      const premises = matchPremises(result.premises, established, pointIds);
-      setInterp({ conclusion, premises, notes: result.notes });
+      const premises = matchPremises(kept, established, pointIds);
+      let groundingNote: string | undefined;
+      if (dropped > 0) {
+        groundingNote =
+          dropped === 1
+            ? "Ignored 1 cited fact that wasn't part of your statement."
+            : `Ignored ${dropped} cited facts that weren't part of your statement.`;
+      }
+      const notes = [groundingNote, result.notes].filter(Boolean).join(" ");
+      setInterp({ conclusion, premises, notes: notes.length > 0 ? notes : undefined });
     } catch (err) {
       if (err instanceof MapError) {
         setError(err.message);

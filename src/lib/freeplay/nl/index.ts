@@ -35,6 +35,7 @@ export {
   descriptorToFact,
   matchPremises,
   factToDescriptor,
+  groundPremises,
   MapError,
   MAX_COLL,
   type MapErrorCode,

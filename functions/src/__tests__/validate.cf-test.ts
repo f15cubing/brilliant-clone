@@ -82,4 +82,47 @@ describe("validateResultShape", () => {
       ),
     ).toThrow(ValidationError);
   });
+
+  it("preserves a premise `source` (grounding metadata), but never on the conclusion", () => {
+    const res = validateResultShape(
+      {
+        // A `source` on the conclusion must be ignored.
+        conclusion: {
+          kind: "rel",
+          name: "eqangle",
+          points: ["A", "P", "B", "A", "Q", "B"],
+          source: "should be dropped",
+        },
+        premises: [
+          {
+            kind: "rel",
+            name: "cyclic",
+            points: ["A", "B", "P", "Q"],
+            source: "A, B, P, Q are concyclic",
+          },
+        ],
+      },
+      points,
+    );
+    expect(res.premises[0].source).toBe("A, B, P, Q are concyclic");
+    expect((res.conclusion as { source?: string }).source).toBeUndefined();
+  });
+
+  it("caps an over-long premise `source` at the text limit", () => {
+    const res = validateResultShape(
+      {
+        conclusion: { kind: "rel", name: "eqangle", points: ["A", "P", "B", "A", "Q", "B"] },
+        premises: [
+          {
+            kind: "rel",
+            name: "cyclic",
+            points: ["A", "B", "P", "Q"],
+            source: "x".repeat(LIMITS.text + 50),
+          },
+        ],
+      },
+      points,
+    );
+    expect(res.premises[0].source).toHaveLength(LIMITS.text);
+  });
 });

@@ -22,14 +22,18 @@ export const REL_NAMES: RelName[] = [
   "eqangle",
 ];
 
+// `source` is OPTIONAL premise-grounding metadata: the span of the learner's
+// sentence that states this premise. The client uses it to drop AI-invented
+// premises before `verify()`. Mirrors the client's `nl/types.ts` — keep in sync.
 export type FactDescriptor =
-  | { kind: "rel"; name: RelName; points: string[] }
-  | { kind: "aval"; angle: [string, string, string]; expr: string }
+  | { kind: "rel"; name: RelName; points: string[]; source?: string }
+  | { kind: "aval"; angle: [string, string, string]; expr: string; source?: string }
   // A length PROPORTION AB/CD = EF/GH over EXACTLY 8 ordered point labels
   // [A,B,C,D,E,F,G,H]. Mirrors the client's `nl/types.ts` variant — keep in sync.
   | {
       kind: "eqratio";
       points: [string, string, string, string, string, string, string, string];
+      source?: string;
     };
 
 export interface TranslationResult {

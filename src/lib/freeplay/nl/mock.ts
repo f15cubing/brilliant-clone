@@ -249,8 +249,14 @@ export class LocalMockTranslator implements Translator {
         "Couldn't understand that statement. Try naming the relation and its points, e.g. \"angle APB = angle AQB since A, B, P, Q are concyclic\".",
       );
     }
+    // Tag each premise with the clause it was parsed from, so the grounding step
+    // (`groundPremises`) treats mock premises uniformly with the AI's — they come
+    // straight from the learner's text, so they always ground.
     const premiseDescriptors = premises
-      .map((p) => parseClause(p, req.points))
+      .map((p): FactDescriptor | null => {
+        const d = parseClause(p, req.points);
+        return d ? { ...d, source: p } : null;
+      })
       .filter((p): p is FactDescriptor => p !== null);
 
     return {

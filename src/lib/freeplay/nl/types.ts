@@ -9,15 +9,21 @@
  */
 import type { RelName } from "../dsl";
 
+// `source` is OPTIONAL premise-grounding metadata: the exact span of the
+// learner's sentence that states this premise. The mapper ignores it; the NL
+// pipeline uses it (see `groundPremises`) to drop premises the AI invented but
+// the learner never wrote, BEFORE `verify()` runs. It is meaningless on a
+// conclusion and absent there.
 export type FactDescriptor =
-  | { kind: "rel"; name: RelName; points: string[] }
-  | { kind: "aval"; angle: [string, string, string]; expr: string }
+  | { kind: "rel"; name: RelName; points: string[]; source?: string }
+  | { kind: "aval"; angle: [string, string, string]; expr: string; source?: string }
   // A length PROPORTION AB/CD = EF/GH over EXACTLY 8 ordered point labels
   // [A,B,C,D,E,F,G,H] — the argument order of the `eqratio(...)` constructor.
   // The AI emits strings only; `map.ts` lowers it to an `EqRatio`/`LFact`.
   | {
       kind: "eqratio";
       points: [string, string, string, string, string, string, string, string];
+      source?: string;
     };
 
 export interface TranslationResult {

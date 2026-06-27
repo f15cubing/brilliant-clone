@@ -32,11 +32,25 @@ const isString = (x: unknown): x is string => typeof x === "string";
 const isRelName = (x: unknown): x is RelName =>
   isString(x) && (REL_NAMES as string[]).includes(x);
 
-function validateDescriptor(d: unknown, points: Set<string>, where: string): FactDescriptor {
+function validateDescriptor(
+  d: unknown,
+  points: Set<string>,
+  where: string,
+  keepSource = false,
+): FactDescriptor {
   if (!d || typeof d !== "object") {
     throw new ValidationError(`${where} is not an object.`);
   }
   const obj = d as Record<string, unknown>;
+
+  // Premise-grounding metadata. Preserved (capped) only when requested, so a
+  // premise's `source` quote survives re-validation and reaches the client,
+  // which grounds against it. Never enforced here — `verify()` is the real gate.
+  const withSource = (desc: FactDescriptor): FactDescriptor =>
+    keepSource && isString(obj.source) && obj.source.length > 0
+      ? { ...desc, source: obj.source.slice(0, LIMITS.text) }
+      : desc;
+
   if (obj.kind === "rel") {
     if (!isRelName(obj.name)) throw new ValidationError(`${where} has an invalid relation name.`);
     if (!Array.isArray(obj.points) || obj.points.length < 3 || obj.points.length > 8) {
@@ -47,7 +61,7 @@ function validateDescriptor(d: unknown, points: Set<string>, where: string): Fac
         throw new ValidationError(`${where} references an unknown point.`);
       }
     }
-    return { kind: "rel", name: obj.name, points: obj.points as string[] };
+    return withSource({ kind: "rel", name: obj.name, points: obj.points as string[] });
   }
   if (obj.kind === "aval") {
     if (!Array.isArray(obj.angle) || obj.angle.length !== 3) {
@@ -62,7 +76,7 @@ function validateDescriptor(d: unknown, points: Set<string>, where: string): Fac
       throw new ValidationError(`${where} has an invalid expression.`);
     }
     const angle = obj.angle as string[];
-    return { kind: "aval", angle: [angle[0], angle[1], angle[2]], expr: obj.expr };
+    return withSource({ kind: "aval", angle: [angle[0], angle[1], angle[2]], expr: obj.expr });
   }
   if (obj.kind === "eqratio") {
     if (!Array.isArray(obj.points) || obj.points.length !== 8) {
@@ -74,10 +88,10 @@ function validateDescriptor(d: unknown, points: Set<string>, where: string): Fac
       }
     }
     const pts = obj.points as string[];
-    return {
+    return withSource({
       kind: "eqratio",
       points: [pts[0], pts[1], pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]],
-    };
+    });
   }
   throw new ValidationError(`${where} has an unknown kind.`);
 }
@@ -150,11 +164,12 @@ export function validateResultShape(data: unknown, points: string[]): Translatio
   }
   const obj = data as Record<string, unknown>;
   const pointSet = new Set(points);
+  // The conclusion carries no `source`; premises preserve it (grounding metadata).
   const conclusion = validateDescriptor(obj.conclusion, pointSet, "conclusion");
   const premisesRaw = Array.isArray(obj.premises) ? obj.premises : [];
   if (premisesRaw.length > 32) throw new ValidationError("Too many premises.");
   const premises = premisesRaw.map((p, i) =>
-    validateDescriptor(p, pointSet, `premises[${i}]`),
+    validateDescriptor(p, pointSet, `premises[${i}]`, true),
   );
   const result: TranslationResult = { conclusion, premises };
   if (isString(obj.ruleHint)) result.ruleHint = obj.ruleHint.slice(0, 120);

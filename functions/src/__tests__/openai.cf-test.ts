@@ -48,6 +48,25 @@ describe("buildJsonSchema", () => {
     expect(points.maxItems).toBe(8);
     expect((points.items as { enum: string[] }).enum).toEqual(req.points);
   });
+
+  it("REQUIRES a `source` on every premise branch, but NOT on the conclusion", () => {
+    const schema = buildJsonSchema(req) as Record<string, unknown>;
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+
+    // The conclusion descriptor carries no `source` requirement.
+    for (const b of props.conclusion.anyOf as Array<Record<string, unknown>>) {
+      expect(b.required as string[]).not.toContain("source");
+    }
+
+    // Every premise descriptor branch requires a string `source`.
+    const premiseItems = props.premises.items as Record<string, unknown>;
+    const premiseBranches = premiseItems.anyOf as Array<Record<string, unknown>>;
+    expect(premiseBranches.length).toBeGreaterThan(0);
+    for (const b of premiseBranches) {
+      expect(b.required as string[]).toContain("source");
+      expect((b.properties as Record<string, unknown>).source).toEqual({ type: "string" });
+    }
+  });
 });
 
 describe("translateWithLLM", () => {
@@ -63,6 +82,22 @@ describe("translateWithLLM", () => {
       points: ["A", "P", "B", "A", "Q", "B"],
     });
     expect(res.premises).toHaveLength(1);
+  });
+
+  it("preserves a premise `source` quote through output re-validation", async () => {
+    const client = fakeClient({
+      conclusion: { kind: "rel", name: "eqangle", points: ["A", "P", "B", "A", "Q", "B"] },
+      premises: [
+        {
+          kind: "rel",
+          name: "cyclic",
+          points: ["A", "B", "P", "Q"],
+          source: "A, B, P, Q are concyclic",
+        },
+      ],
+    });
+    const res = await translateWithLLM(client, req, "m");
+    expect(res.premises[0].source).toBe("A, B, P, Q are concyclic");
   });
 
   it("passes the configured model through to the client", async () => {
