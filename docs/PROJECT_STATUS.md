@@ -128,11 +128,16 @@ elements.
 - `ar.ts` — `AngleAR`, a Gaussian-elimination table over exact rationals that
   closes directed-angle chases (mod 180°).
 - `check.ts` / `geom.ts` — numeric truth checks and geometry helpers.
+- `realize.ts` — samples several independent generic realizations of a puzzle
+  (from its `construct(rng)`), each validated to satisfy the givens.
 - `verify.ts` — the step verifier: a proposed step is accepted only if it is
-  numerically true, derivable by a **single** rule (DD or AR) from **exactly**
-  the cited premises (minimality), with "by symmetry" support (`symmetry.ts`).
-- `puzzles/` — the shipped Freeplay problems; `api.ts` selects local
-  (TypeScript) or remote checking.
+  numerically true and derivable by a **single** rule (DD or AR) from **exactly**
+  the cited premises (minimality) **across all sampled realizations**, with "by
+  symmetry" support (`symmetry.ts`). Checking many cases (not one fixed figure)
+  rejects steps that only hold by coincidence in the canonical diagram.
+- `puzzles/` — the shipped Freeplay problems (each with a `construct(rng)`);
+  `api.ts` selects local (TypeScript) or remote checking. Making the figure
+  itself draggable is scoped in `docs/design/MOVABLE_FIGURES.md`.
 
 Candidate **new** rules are not developed in `src/`; they are prototyped, unit-
 tested, and play-tested against contest problems in `research/freeplay-rules/`

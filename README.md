@@ -8,6 +8,7 @@ A Brilliant-style interactive learning app for introductory geometry (Angle Chas
 
 ## Documentation
 
+- [`docs/teamlead/ENGINEERING_REPORT.md`](docs/teamlead/ENGINEERING_REPORT.md) — latest engineering report + roadmap, the API-key go-live TODO, and a hands-on "try it out" QA guide.
 - [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — tech stack, architecture, full feature inventory, and current limitations.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — prioritized near-/mid-/long-term expansion opportunities.
 - [`docs/PRD-competitive-freeplay.md`](docs/PRD-competitive-freeplay.md) — the Competitive Freeplay proof mode + DDAR engine design.

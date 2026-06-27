@@ -1,8 +1,8 @@
 import { angleMark, circle, COLORS, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
-import type { V } from "@/lib/freeplay/geom";
+import { lineCircleIntersect, pointOnCircleAtAngle, unit, type V } from "@/lib/freeplay/geom";
 import { eqratio } from "@/lib/freeplay/lengths/dsl";
-import type { Puzzle } from "@/lib/freeplay/types";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 /**
  * JBMO Shortlist 2005 G2 — tangent-segment power (difficulty "core").
@@ -71,6 +71,37 @@ const R = rot(Rraw);
 
 const coords = { O, A, M, B, R };
 
+/**
+ * Generic realization: a circle (center O, radius ρ) with A on it; M sits on the
+ * tangent at A (so MA ⟂ OA and M is external), and a secant from M cuts the
+ * circle at B (near) and R (far). The power of M then gives MA² = MB·MR (the
+ * goal). Free: O, A (on the circle), M (on the tangent); B, R dependent.
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const Oc: V = [rnd(-1, 1), rnd(-1, 1)];
+  const rho = rnd(3, 5);
+  const Ap = pointOnCircleAtAngle(Oc, rho, rnd(0, 360));
+  const oaDir = unit([Ap[0] - Oc[0], Ap[1] - Oc[1]]) ?? [1, 0];
+  const tanDir: V = [-oaDir[1], oaDir[0]]; // tangent at A ⟂ OA
+  const sgn = rng() < 0.5 ? 1 : -1;
+  const ma = rnd(6, 10); // tangent length MA (M external)
+  const Mp: V = [Ap[0] + sgn * tanDir[0] * ma, Ap[1] + sgn * tanDir[1] * ma];
+  // Secant from M aimed at O, jittered so it stays a genuine secant.
+  const base = Math.atan2(Oc[1] - Mp[1], Oc[0] - Mp[0]);
+  const moLen = Math.hypot(Oc[0] - Mp[0], Oc[1] - Mp[1]);
+  const maxOff = Math.asin(Math.min(1, rho / moLen)) * 0.7;
+  const ang = base + (rng() * 2 - 1) * maxOff;
+  const [Bp, Rp] = lineCircleIntersect(
+    Mp,
+    [Mp[0] + Math.cos(ang), Mp[1] + Math.sin(ang)],
+    Oc,
+    rho,
+  );
+  if (!Bp || !Rp) throw new Error("secant misses the circle");
+  return { coords: { O: Oc, A: Ap, M: Mp, B: Bp, R: Rp } };
+}
+
 const congB = rel("cong", ["O", "A", "O", "B"]); // B on k
 const congR = rel("cong", ["O", "A", "O", "R"]); // R on k
 const tangent = rel("perp", ["O", "A", "A", "M"]); // MA tangent at A (OA ⟂ AM)
@@ -88,6 +119,8 @@ export const jbmo_shortlist_2005_g2: Puzzle = {
     "Prove MA² = MB·MR (equivalently MA/MB = MR/MA).",
   difficulty: "core",
   coords,
+  construct,
+  freePoints: ["O", "A", "M"],
   figure: [
     // The circle k (A, B, R lie on it) drawn through A about its centre O.
     circle("k", "O", "A", { strokeColor: COLORS.BRAND, strokeWidth: 1.5 }),

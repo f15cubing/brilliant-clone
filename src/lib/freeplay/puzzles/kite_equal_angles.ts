@@ -1,6 +1,22 @@
 import { COLORS, angleMark, polygon, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
-import type { Puzzle } from "@/lib/freeplay/types";
+import { reflectOverLine, type V } from "@/lib/freeplay/geom";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
+
+/**
+ * Generic realization: pick the axis vertices A, C and one wing B freely, then
+ * take D as the reflection of B across the axis line AC. Reflection makes
+ * AB = AD and CB = CD exactly (A and C lie on the mirror), so the kite givens
+ * hold by construction. Free: A, B, C (D is dependent).
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const A: V = [rnd(-1, 1), rnd(3, 5)];
+  const C: V = [rnd(-1, 1), rnd(-4, -2)];
+  const B: V = [rnd(1.5, 3.5), rnd(-1, 2)];
+  const D = reflectOverLine(B, A, C);
+  return { coords: { A, B, C, D } };
+}
 
 /**
  * Kite equal-angles theorem (intro).
@@ -24,6 +40,8 @@ export const kiteEqualAngles: Puzzle = {
     C: [0, -3],
     D: [-2, 1],
   },
+  construct,
+  freePoints: ["A", "B", "C"],
   figure: [
     polygon(["A", "B", "C", "D"]),
     // Axis of symmetry AC and the splitting diagonal BD (auxiliary line).

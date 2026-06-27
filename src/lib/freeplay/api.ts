@@ -22,6 +22,10 @@ async function remoteVerify(
   input: VerifyInput,
   problemId: string,
 ): Promise<VerifyResult> {
+  // The remote backend resolves the figure from `problemId` server-side, so the
+  // client's sampled `realizations` are deliberately NOT sent — multi-case
+  // resampling is a local-engine feature for now. (The local `verify()` below
+  // consumes `input.realizations` directly.)
   const token = await idToken();
   const res = await fetch(`${API_URL}/verify-step`, {
     method: "POST",

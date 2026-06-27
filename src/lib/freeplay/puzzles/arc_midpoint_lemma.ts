@@ -1,7 +1,7 @@
 import { COLORS, circle, polygon, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
-import type { V } from "@/lib/freeplay/geom";
-import type { Puzzle } from "@/lib/freeplay/types";
+import { pointOnCircleAtAngle, type V } from "@/lib/freeplay/geom";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 // Circumcircle is centered at the origin; scale the unit circle up for a legible
 // board. Uniform scaling preserves cyclic / cong / eqangle, so every given,
@@ -19,6 +19,31 @@ const M = deg(270); // midpoint of arc BC not containing A
 const O: V = [0, 0]; // circumcenter
 
 /**
+ * Generic realization: A, B, C on a circle with M placed at the midpoint of the
+ * arc BC NOT containing A (its angle is the mean of B's and C's), so AM bisects
+ * ∠BAC and the equal chords MB = MC hold by construction. Free: A, B, C.
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const O: V = [rnd(-1, 1), rnd(-1, 1)];
+  const r = rnd(2.5, 4.5);
+  const aA = rnd(60, 120);
+  const aB = rnd(180, 235);
+  const aC = rnd(300, 350);
+  // Midpoint of arc BC away from A (A is in the top arc; B, C bracket the bottom).
+  const aM = (aB + aC) / 2;
+  return {
+    coords: {
+      A: pointOnCircleAtAngle(O, r, aA),
+      B: pointOnCircleAtAngle(O, r, aB),
+      C: pointOnCircleAtAngle(O, r, aC),
+      M: pointOnCircleAtAngle(O, r, aM),
+      O,
+    },
+  };
+}
+
+/**
  * Arc-midpoint ("trillium") lemma (intro).
  *
  * The bisector of ∠BAC meets the circumcircle of ABC again at M, the midpoint of
@@ -33,6 +58,8 @@ export const arcMidpointLemma: Puzzle = {
     "circle again at M (the midpoint of arc BC not containing A). Prove MB = MC.",
   difficulty: "intro",
   coords: { A, B, C, M, O },
+  construct,
+  freePoints: ["A", "B", "C"],
   figure: [
     circle("circumcircle", "O", "A"),
     polygon(["A", "B", "C"]),

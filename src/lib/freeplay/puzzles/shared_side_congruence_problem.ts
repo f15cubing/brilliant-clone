@@ -1,7 +1,8 @@
 import { COLORS, angleMark, polygon, segment } from "@/lib/content/boards";
 import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
-import type { Puzzle } from "@/lib/freeplay/types";
+import { add, midpoint, scale, sub, unit, type V } from "@/lib/freeplay/geom";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 const coords: Coords = {
   A: [1, 6],
@@ -11,6 +12,22 @@ const coords: Coords = {
 };
 
 const goal = rel("eqangle", ["B", "A", "M", "C", "A", "M"]); // ∠BAM = ∠CAM
+
+/**
+ * Generic realization: pick the base B, C freely and place the apex A on the
+ * perpendicular bisector of BC (so AB = AC exactly), with M the midpoint of BC.
+ * The isosceles + midpoint givens then hold by construction. Free: B, C, A.
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const B: V = [rnd(-4, -2), rnd(-1, 1)];
+  const C: V = [rnd(2, 4), rnd(-1, 1)];
+  const M = midpoint(B, C);
+  const dir = unit(sub(C, B)) ?? [1, 0];
+  const perp: V = [-dir[1], dir[0]]; // unit normal to BC
+  const A = add(M, scale(perp, rnd(4, 7))); // apex on the perpendicular bisector
+  return { coords: { A, B, C, M } };
+}
 
 /**
  * Isosceles median bisects the apex angle (core).
@@ -31,6 +48,8 @@ export const shared_side_congruence_problem: Puzzle = {
     "∠BAM = ∠CAM.",
   difficulty: "core",
   coords,
+  construct,
+  freePoints: ["A", "B", "C"],
   figure: [
     polygon(["A", "B", "C"]),
     segment("A", "M", { strokeColor: COLORS.BRAND, strokeWidth: 2 }), // the median AM

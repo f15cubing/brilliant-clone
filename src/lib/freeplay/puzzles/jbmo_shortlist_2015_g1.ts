@@ -1,8 +1,8 @@
 import { COLORS, circle, polygon, segment } from "@/lib/content/boards";
 import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
-import type { V } from "@/lib/freeplay/geom";
-import type { Puzzle } from "@/lib/freeplay/types";
+import { pointOnCircleAtAngle, unit, type V } from "@/lib/freeplay/geom";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 const deg = (d: number): V => [Math.cos((d * Math.PI) / 180), Math.sin((d * Math.PI) / 180)];
 const sub = (p: V, q: V): V => [p[0] - q[0], p[1] - q[1]];
@@ -29,6 +29,31 @@ const E = meet([PK, -5], [PK, 5], A, C); // p ∩ line CA
 
 const coords: Coords = { O, A, B, C, T, D, E };
 
+/**
+ * Generic realization: A, B, C on a circle (center O, the circumcenter, so all
+ * radii are equal); the tangent at C is perpendicular to OC, with T a point on
+ * it; the line p ∥ tangent is offset outward from C and meets lines CB, CA at
+ * D, E. The theorem (A, B, D, E concyclic) holds across the family.
+ * Free: A, B, C.
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const Oc: V = [rnd(-1, 1), rnd(-1, 1)];
+  const r = rnd(3, 4.5);
+  const Ap = pointOnCircleAtAngle(Oc, r, rnd(110, 150));
+  const Bp = pointOnCircleAtAngle(Oc, r, rnd(195, 235));
+  const Cp = pointOnCircleAtAngle(Oc, r, rnd(330, 360));
+  const ocDir = unit(sub(Cp, Oc)) ?? [1, 0]; // radius direction at C
+  const tanDir: V = [-ocDir[1], ocDir[0]]; // tangent at C ⟂ OC
+  const Tp = add(Cp, mul(tanDir, 1.5)); // a point on the tangent
+  // Line p ∥ tangent, offset outward from C along the radius direction.
+  const P0 = add(Cp, mul(ocDir, rnd(0.6, 1.3)));
+  const P1 = add(P0, tanDir);
+  const Dp = meet(P0, P1, Bp, Cp); // p ∩ line CB
+  const Ep = meet(P0, P1, Ap, Cp); // p ∩ line CA
+  return { coords: { O: Oc, A: Ap, B: Bp, C: Cp, T: Tp, D: Dp, E: Ep } };
+}
+
 const feeder = rel("eqangle", ["B", "A", "E", "B", "D", "E"]); // ∠BAE = ∠BDE
 const goal = rel("cyclic", ["A", "B", "D", "E"]); // A, B, D, E concyclic
 
@@ -52,6 +77,8 @@ export const jbmo_shortlist_2015_g1: Puzzle = {
     "so OA = OB = OC; T marks the tangent t at C, so t ⟂ OC.)",
   difficulty: "core",
   coords,
+  construct,
+  freePoints: ["A", "B", "C"],
   figure: [
     circle("circumcircle", "O", "A"),
     polygon(["A", "B", "C"]),

@@ -17,6 +17,7 @@ import { LengthAR } from "./lengths/lengthAR";
 import { RATIO_RULES } from "./lengths/rules";
 import { RULES } from "./rules";
 import { analogSource, isGivenSymmetry, type Subst } from "./symmetry";
+import type { Realization } from "./types";
 
 /**
  * The full single-step rule set the verifier runs: the shipped angle/incidence
@@ -65,6 +66,15 @@ export interface VerifyInput {
   givens?: LFact[];
   /** When present, the step is justified "by symmetry" under this relabeling. */
   analogy?: { subst: Subst };
+  /**
+   * Independent generic realizations of the figure (all satisfying the givens) to
+   * check the step against. When present (≥1), the step must be true AND derivable
+   * in EVERY realization — so a step that is only coincidentally valid in the one
+   * canonical figure is rejected. When omitted, the single `coords`/`bindings`
+   * realization is used and behavior is identical to the original single-figure
+   * verifier.
+   */
+  realizations?: Realization[];
 }
 
 export type VerifyResult =
@@ -140,7 +150,21 @@ function deriveOnce(
 }
 
 export function verify(input: VerifyInput): VerifyResult {
-  const { coords, bindings, establishedFacts, candidateFact, citedPremises } = input;
+  const { establishedFacts, candidateFact, citedPremises } = input;
+
+  // The realizations to check the step against. Default to the single canonical
+  // figure carried on `input` (so omitting `realizations` is exactly the original
+  // single-figure verifier). All realizations satisfy the givens by construction.
+  const realizations: Realization[] =
+    input.realizations && input.realizations.length > 0
+      ? input.realizations
+      : [{ coords: input.coords, bindings: input.bindings }];
+
+  const ctxOf = (r: Realization) => ({
+    coords: r.coords,
+    bindings: r.bindings ?? {},
+    points: Object.keys(r.coords),
+  });
 
   // ---- "By symmetry" / analogous argument --------------------------------
   if (input.analogy) {
@@ -150,7 +174,7 @@ export function verify(input: VerifyInput): VerifyResult {
     if (candidateFact.kind === "eqratio") {
       return { valid: false, reason: "unjustified" };
     }
-    const points = Object.keys(coords);
+    const points = Object.keys(realizations[0].coords);
     const givens = (input.givens ?? establishedFacts).filter(
       (f): f is Fact => f.kind !== "eqratio",
     );
@@ -165,24 +189,29 @@ export function verify(input: VerifyInput): VerifyResult {
     if (!analogSource(candidateFact, input.analogy.subst, ordinaryEstablished)) {
       return { valid: false, reason: "unjustified" };
     }
-    // Safety gate: the consequence must hold numerically (it always should).
-    if (!factHolds(candidateFact, coords, bindings)) {
-      return { valid: false, reason: "not_true" };
+    // Safety gate: the consequence must hold numerically in EVERY realization.
+    for (const r of realizations) {
+      if (!factHolds(candidateFact, r.coords, r.bindings ?? {})) {
+        return { valid: false, reason: "not_true" };
+      }
     }
     return { valid: true, rule: "by symmetry (analogous argument)" };
   }
 
-  // Cited premises must all be established.
+  // Cited premises must all be established (figure-independent).
   for (const prem of citedPremises) {
     if (!isAmong(prem, establishedFacts)) {
       return { valid: false, reason: "unknown_premise" };
     }
   }
 
-  // Numeric truth gate (ratio-aware: `factHoldsL` checks `eqratio` proportions
-  // and delegates to the shipped `factHolds` for ordinary facts).
-  if (!factHoldsL(candidateFact, coords, bindings)) {
-    return { valid: false, reason: "not_true" };
+  // Numeric truth gate across every realization (ratio-aware): a step that is
+  // false in ANY valid configuration is rejected. This is what kills a fact that
+  // only happens to hold in the one canonical figure.
+  for (const r of realizations) {
+    if (!factHoldsL(candidateFact, r.coords, r.bindings ?? {})) {
+      return { valid: false, reason: "not_true" };
+    }
   }
 
   // De-duplicate cited premises by canonical key.
@@ -197,23 +226,32 @@ export function verify(input: VerifyInput): VerifyResult {
   // A justified step must cite the facts it uses.
   if (cited.length === 0) return { valid: false, reason: "unjustified" };
 
-  const ctx = { coords, bindings, points: Object.keys(coords) };
+  // The cited facts must derive the candidate in one step (DD rule or AR) in
+  // EVERY realization. A derivation that fires only in the canonical figure
+  // (a figure-specific coincidence, e.g. an accidental branch in the angle table)
+  // is not a general one-step deduction, so it is rejected as `unjustified`.
+  let rule: string | null = null;
+  for (const r of realizations) {
+    const got = deriveOnce(cited, candidateFact, ctxOf(r));
+    if (got === null) return { valid: false, reason: "unjustified" };
+    if (rule === null) rule = got;
+  }
 
-  // The cited facts must derive the candidate in one step (DD rule or AR).
-  const rule = deriveOnce(cited, candidateFact, ctx);
-  if (!rule) return { valid: false, reason: "unjustified" };
-
-  // Minimality / necessity: every cited fact must be REQUIRED. If the candidate
-  // still derives after dropping one, that fact was extraneous — so citing
-  // "everything" can't cheat the checker.
+  // Minimality / necessity across cases: a cited fact is REQUIRED if dropping it
+  // breaks the derivation in AT LEAST ONE realization. Only when the candidate
+  // still derives in EVERY realization without it is it truly extraneous — so a
+  // premise that matters only in some configurations is not falsely flagged.
   for (let i = 0; i < cited.length; i++) {
     const without = cited.filter((_, k) => k !== i);
-    if (deriveOnce(without, candidateFact, ctx) !== null) {
+    const droppableEverywhere = realizations.every(
+      (r) => deriveOnce(without, candidateFact, ctxOf(r)) !== null,
+    );
+    if (droppableEverywhere) {
       return { valid: false, reason: "extraneous_premises" };
     }
   }
 
-  return { valid: true, rule };
+  return { valid: true, rule: rule! };
 }
 
 /**

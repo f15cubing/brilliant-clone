@@ -1,9 +1,19 @@
 import { COLORS, polygon, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
-import type { Puzzle } from "@/lib/freeplay/types";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 import { buildImo2019p2Config } from "./imo2019p2Config";
 
 const { coords } = buildImo2019p2Config();
+
+/**
+ * Generic realization: the full IMO 2019 P2 construction with a randomized
+ * triangle and placement ratios (A, B kept on the x-axis so PQ ∥ AB stays an
+ * equal-y condition). P1/Q1 are solved numerically along their rays; samples
+ * with no solution throw and are resampled. Free: A, B, C.
+ */
+function construct(rng: () => number): Realization {
+  return { coords: buildImo2019p2Config(rng).coords };
+}
 
 /**
  * IMO 2019 Problem 2 (challenge / stress test).
@@ -31,6 +41,8 @@ export const imo2019p2: Puzzle = {
     "A1 on BC, B1 on CA; P on AA1, Q on BB1 with PQ ∥ AB. P1 on ray PB1 beyond B1 with ∠PP1C = ∠BAC; Q1 on ray QA1 beyond A1 with ∠CQ1Q = ∠CBA. Prove P1, Q1, P, Q are concyclic. (You may use Pappus freely; A2 = QA1∩AC and B2 = PB1∩BC are provided.)",
   difficulty: "challenge",
   coords,
+  construct,
+  freePoints: ["A", "B", "C"],
   figure: [
     polygon(["A", "B", "C"]),
     segment("A", "A1", { strokeColor: COLORS.ACCENT, strokeWidth: 1.2 }),

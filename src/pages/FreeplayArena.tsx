@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FactList } from "@/components/freeplay/FactList";
@@ -18,6 +18,7 @@ import {
   type Feedback,
 } from "@/lib/freeplay/proof";
 import { getPuzzle } from "@/lib/freeplay/puzzles";
+import { sampleRealizations } from "@/lib/freeplay/realize";
 // R2-D2 (proof archive): compile + record the proof on a win.
 import { compileProof } from "@/lib/freeplay/proofRecord";
 import { useProofRecorder } from "@/lib/freeplay/useProofRecorder";
@@ -93,6 +94,12 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
   const pointIds = Object.keys(puzzle.coords);
   const bindings = puzzle.variables ?? {};
 
+  // Multi-case verification: sample several independent generic realizations of
+  // this puzzle's figure (all satisfying the givens) once per puzzle load. Every
+  // step is then checked against all of them, so a step that is only
+  // coincidentally true/derivable in the one canonical figure is rejected.
+  const realizations = useMemo(() => sampleRealizations(puzzle), [puzzle]);
+
   const handleAssert = async (
     fact: LFact,
     premises: LFact[],
@@ -113,6 +120,7 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
           citedPremises: premises,
           givens: puzzle.given,
           analogy: opts?.subst ? { subst: opts.subst } : undefined,
+          realizations,
         },
         puzzle.id,
       );

@@ -1,7 +1,45 @@
 import { angleMark, circle, COLORS, fixedPoint, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
+import { lineCircleIntersect, type V } from "@/lib/freeplay/geom";
 import { eqratio } from "@/lib/freeplay/lengths/dsl";
-import type { Puzzle } from "@/lib/freeplay/types";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
+
+/**
+ * The two intersections (near, then far) of the secant from the external point
+ * `A` at heading `angDeg` with the circle (center `O`, radius `R`). Throws when
+ * the line misses the circle, so the sampler resamples.
+ */
+function secantHits(A: V, O: V, R: number, angDeg: number): [V, V] {
+  const t = (angDeg * Math.PI) / 180;
+  const d: V = [Math.cos(t), Math.sin(t)];
+  const pts = lineCircleIntersect(A, [A[0] + d[0], A[1] + d[1]], O, R);
+  if (pts.length < 2) throw new Error("secant misses the circle");
+  return [pts[0], pts[1]]; // ascending parameter ⇒ near, then far
+}
+
+/**
+ * Generic realization: an external point A with two secants of a circle (center
+ * O, radius R). Secant 1 meets it at C (near) and B (far); secant 2 at E (near)
+ * and D (far). The power of A gives AB·AC = AD·AE, and the two secants share the
+ * angle at A — so both givens hold and the cross-chord ratio (the goal) follows.
+ * Free: A and the two secant directions (B, C, D, E dependent).
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const O: V = [rnd(-1, 1), rnd(-1, 1)];
+  const R = rnd(3, 5);
+  const aoLen = R * rnd(1.8, 2.6);
+  const aDir = rnd(0, 360);
+  const A: V = [
+    O[0] + aoLen * Math.cos((aDir * Math.PI) / 180),
+    O[1] + aoLen * Math.sin((aDir * Math.PI) / 180),
+  ];
+  const base = aDir + 180; // heading from A toward O
+  const maxOff = (Math.asin(R / aoLen) * 180) / Math.PI; // half-angle of the cone to the circle
+  const [C, B] = secantHits(A, O, R, base + rnd(0.2, 0.8) * maxOff);
+  const [E, D] = secantHits(A, O, R, base - rnd(0.2, 0.8) * maxOff);
+  return { coords: { A, B, C, D, E } };
+}
 
 /**
  * Converse power of a point, via SAS similarity (difficulty "core").
@@ -45,6 +83,8 @@ export const sas_similarity_problem: Puzzle = {
     "not AA.",
   difficulty: "core",
   coords,
+  construct,
+  freePoints: ["A", "B", "D"],
   figure: [
     // The circle (B, C, D, E lie on x²+y²=25) drawn through B about its center.
     fixedPoint("O", 0, 0, { name: "O", size: 2, withLabel: true }),

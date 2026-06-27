@@ -9,9 +9,20 @@ source) and intended for future developers. Companion docs:
 [`research/freeplay-rules/`](../research/freeplay-rules/)._
 
 > Scope note: the shipped engine is a **cite-driven, single-step DD+AR verifier**
-> with numeric-truth gating, minimality enforcement, and "by symmetry" support —
-> deliberately **not** a full DDAR closure solver. It checks one learner step at a
-> time. Multi-hop search / hints / auxiliary constructions are out of scope today.
+> with **multi-realization** numeric-truth gating, minimality enforcement, and
+> "by symmetry" support — deliberately **not** a full DDAR closure solver. It
+> checks one learner step at a time, but against **several independent generic
+> realizations** of the figure (not one), so a coincidence in the canonical
+> diagram cannot be exploited. Multi-hop search / hints / auxiliary constructions
+> are out of scope today.
+
+> Multi-case verification (this is the key soundness upgrade): each puzzle ships a
+> parametric `construct(rng)` that re-samples generic figures satisfying its
+> givens; `realize.ts` validates and collects them; `verify()` requires every step
+> to be true AND one-step-derivable in **all** of them. A step is `not_true` if it
+> fails in any realization, `unjustified` if the derivation fires only in some, and
+> a premise is `extraneous` only if droppable in **all**. The same construction is
+> the basis for the planned movable figures ([`design/MOVABLE_FIGURES.md`](./design/MOVABLE_FIGURES.md)).
 
 ---
 
@@ -87,12 +98,14 @@ flowchart TD
 | `check.ts` | Numeric truth gate `factHolds`; `evalVars` / `angleVarValue` |
 | `rules.ts` | 13 coordinate-guarded DD rules; `Rule.derive(cited, ctx) → Fact[]` |
 | `ar.ts` | `AngleAR`: directed-angle Gaussian elimination mod 180° |
-| `verify.ts` | Step acceptance: truth + one-step derivability + minimality; `deriveAll` |
+| `realize.ts` | `sampleRealizations`: seeded RNG + per-puzzle `construct` → N validated generic realizations |
+| `verify.ts` | Step acceptance over N realizations: truth + one-step derivability + minimality; `deriveAll` |
 | `symmetry.ts` | "By symmetry": point relabeling, givens automorphism check |
 | `proof.ts` | Client proof state reducer (`initProofState`, `proofReducer`, `isGoal`) |
 | `api.ts` | `verifyStep`: optional remote `/verify-step`, fallback to local `verify` |
-| `figure.ts` | `buildFigureDef`: JSXGraph board from puzzle coords + figure elements |
-| `puzzles/*` | Curated problems + coordinate builders (`*Config.ts`) |
+| `figure.ts` | `buildFigureDef`: JSXGraph board from the canonical realization + figure elements |
+| `types.ts` | `Puzzle` (incl. `construct`/`freePoints`), `Realization`, `SolutionStep` |
+| `puzzles/*` | Curated problems + parametric `construct(rng)` builders (`*Config.ts`) |
 
 ### 1.3 Control flow: one proof-step verification
 
@@ -254,14 +267,19 @@ already-known/false/duplicate facts.
 ## 5. Data flow
 
 ```
-Puzzle module (puzzles/*.ts: coords, given[], goal, variables?, figure)
+Puzzle module (puzzles/*.ts: coords, given[], goal, variables?, figure, construct?, freePoints?)
   → initProofState(puzzle)         facts[] seeded from givens (source:"given")
-  → buildFigureDef(puzzle)         JSXGraphDef → FixedFigure
+  → buildFigureDef(puzzle)         JSXGraphDef → FixedFigure (canonical realization)
+  → sampleRealizations(puzzle)     N validated generic realizations (memoized per puzzle)
   → learner: StepBuilder           candidateFact + cited FactEntry ids
   → verifyStep({coords, bindings, establishedFacts, candidateFact,
-                citedPremises, givens, analogy?}, puzzle.id) → VerifyResult
+                citedPremises, givens, analogy?, realizations}, puzzle.id) → VerifyResult
   → proofReducer                   accept → append derived FactEntry; isGoal → solved
 ```
+
+`realizations` is the multi-case list (realization 0 = canonical `coords`/`variables`).
+Omitting it falls back to the single canonical figure, so `verify()` is fully
+backwards-compatible (every pre-existing test calls it without realizations).
 
 The **remote** payload (`api.ts:21–40`) omits `bindings`, `givens`, and `analogy`
 — so symmetry and bindings are effectively local-only unless a backend is extended.
@@ -270,9 +288,17 @@ The **remote** payload (`api.ts:21–40`) omits `bindings`, `givens`, and `analo
 
 ## 6. Soundness & coordinate-guarding
 
-Two layers: (1) the **numeric truth gate** (`factHolds`) blocks any fact false in the
-fixed realization; (2) **rule guards** (via `geom.ts`) only emit facts the figure
-supports; (3) AR is cite-driven (coordinates only fix signs/branches).
+Layers: (1) the **numeric truth gate** (`factHolds`/`factHoldsL`) blocks any fact
+false in a realization; (2) **rule guards** (via `geom.ts`) only emit facts the
+figure supports; (3) AR is cite-driven (coordinates only fix signs/branches); and
+(4) the **multi-realization wrapper** (`realize.ts` + `verify.ts`) runs (1)–(3)
+against several independent generic realizations and accepts only on unanimous
+agreement. (4) is what closes the "true in one diagram by accident" gap: rule
+guards and AR branch selection both read coordinates, so a single non-generic
+figure could license a figure-specific step; requiring the step in **every**
+sampled realization removes that. The per-puzzle `construct(rng)` builds those
+realizations so the givens hold by construction (see `realize.ts`); samples that
+are degenerate or violate a given are rejected and resampled.
 
 **Tolerances in use:** `check.ts` EPS `1e-6` (most rels), `1e-3` (aval), `1e-4`
 (eqangle); `geom.ts` `1e-9`–`1e-6`; `ar.ts` `ZERO_DEG = 1e-3`; assorted rule guards

@@ -2,7 +2,7 @@ import { COLORS, polygon, segment } from "@/lib/content/boards";
 import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
 import type { V } from "@/lib/freeplay/geom";
-import type { Puzzle } from "@/lib/freeplay/types";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 const sub = (p: V, q: V): V => [p[0] - q[0], p[1] - q[1]];
 const add = (p: V, q: V): V => [p[0] + q[0], p[1] + q[1]];
@@ -13,15 +13,32 @@ const rot = (v: V, d: number): V => {
   return [v[0] * c - v[1] * s, v[0] * s + v[1] * c];
 };
 
+/** Build the squares ABDE, ACFG (erected outward) from a triangle ABC. */
+function squaresFrom(A: V, B: V, C: V): Coords {
+  const E = add(A, rot(sub(B, A), -90)); // square ABDE: AE = AB, external (away from C)
+  const D = add(B, rot(sub(B, A), -90));
+  const G = add(A, rot(sub(C, A), 90)); // square ACFG: AG = AC, external (away from B)
+  const F = add(C, rot(sub(C, A), 90));
+  return { A, B, C, D, E, F, G };
+}
+
 const A: V = [0, 0];
 const B: V = [4, 0];
 const C: V = [1, 3];
-const E = add(A, rot(sub(B, A), -90)); // square ABDE: AE = AB, external (away from C)
-const D = add(B, rot(sub(B, A), -90));
-const G = add(A, rot(sub(C, A), 90)); // square ACFG: AG = AC, external (away from B)
-const F = add(C, rot(sub(C, A), 90));
+const coords: Coords = squaresFrom(A, B, C);
 
-const coords: Coords = { A, B, C, D, E, F, G };
+/**
+ * Generic realization: a random scalene triangle ABC with the two squares
+ * erected externally by ±90° rotations (so AE = AB, AG = AC and the right
+ * angles hold by construction). Free: A, B, C (D, E, F, G dependent).
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const a: V = [rnd(-1, 1), rnd(-1, 1)];
+  const b: V = [a[0] + rnd(3, 5), a[1] + rnd(-1, 1)];
+  const c: V = [a[0] + rnd(0, 2), a[1] + rnd(2.5, 4.5)];
+  return { coords: squaresFrom(a, b, c) };
+}
 
 const eqBAG_EAC = rel("eqangle", ["B", "A", "G", "E", "A", "C"]); // ∠BAG = ∠EAC
 const goal = rel("cong", ["B", "G", "C", "E"]); // BG = CE
@@ -44,6 +61,8 @@ export const squares_on_two_sides: Puzzle = {
     "∠EAB = ∠GAC = 90°). Prove that BG = CE.",
   difficulty: "core",
   coords,
+  construct,
+  freePoints: ["A", "B", "C"],
   figure: [
     polygon(["A", "B", "C"]),
     polygon(["A", "B", "D", "E"], { fillColor: COLORS.BRAND, fillOpacity: 0.06 }),

@@ -1,7 +1,7 @@
 import { COLORS, angleMark, circle, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
-import { dist, type V } from "@/lib/freeplay/geom";
-import type { Puzzle } from "@/lib/freeplay/types";
+import { dist, rotate, type V } from "@/lib/freeplay/geom";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 const sub = (p: V, q: V): V => [p[0] - q[0], p[1] - q[1]];
 const add = (p: V, q: V): V => [p[0] + q[0], p[1] + q[1]];
@@ -18,6 +18,20 @@ function circleCircle(c1: V, r1: number, c2: V, r2: number): [V, V] {
   return [add(mid, mul(perp, h)), sub(mid, mul(perp, h))];
 }
 
+/**
+ * The two-circles configuration from points A, B (the common chord), the two
+ * circle centers O1, O2 (on the perpendicular bisector of AB so both circles
+ * pass through A and B), and the radius rC of circle C centered at A. M, P are
+ * C ∩ C1 and N, Q are C ∩ C2.
+ */
+function buildConfig(A: V, B: V, O1: V, O2: V, rC: number): Record<string, V> {
+  const R1 = dist(O1, A);
+  const R2 = dist(O2, A);
+  const [M, P] = circleCircle(A, rC, O1, R1);
+  const [N, Q] = circleCircle(A, rC, O2, R2);
+  return { A, B, M, P, N, Q, O1, O2 };
+}
+
 // Faithful generic realization (from the contest configuration). C1 and C2 pass
 // through A and B (centers on the perpendicular bisector of AB); C is the circle
 // of radius rC < AB centered at A.
@@ -25,12 +39,32 @@ const A: V = [0, 0];
 const B: V = [0, 2];
 const O1: V = [-1.3, 1]; // center of C1
 const O2: V = [1.1, 1]; // center of C2
-const R1 = dist(O1, A);
-const R2 = dist(O2, A);
-const rC = 0.9; // radius of C, < AB = 2
+const { M, P, N, Q } = buildConfig(A, B, O1, O2, 0.9) as Record<string, V>;
 
-const [M, P] = circleCircle(A, rC, O1, R1); // C ∩ C1
-const [N, Q] = circleCircle(A, rC, O2, R2); // C ∩ C2
+/**
+ * Generic realization: keep the configuration type (A, B on the y-axis with the
+ * two circle centers on their perpendicular bisector, O1 left and O2 right, and
+ * a circle C centered at A of radius rC < AB) but randomize every parameter and
+ * rotate/translate the whole figure so nothing is axis-aligned. The contest
+ * theorem ∠MBQ = ∠NBP holds across the family. Free: A, B, O1, O2.
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const ab = rnd(1.8, 2.6);
+  const A0: V = [0, 0];
+  const B0: V = [0, ab];
+  const my = ab / 2; // perpendicular bisector of AB is the line y = ab/2
+  const O1l: V = [rnd(-1.6, -1.0), my];
+  const O2r: V = [rnd(1.0, 1.6), my];
+  const rC = rnd(0.7, 1.0);
+  const base = buildConfig(A0, B0, O1l, O2r, rC);
+  // Rotate + translate the whole figure for genericity.
+  const ang = rnd(10, 80);
+  const t: V = [rnd(-2, 2), rnd(-2, 2)];
+  const out: Record<string, V> = {};
+  for (const k of Object.keys(base)) out[k] = add(rotate(base[k], A0, ang), t);
+  return { coords: out };
+}
 
 /**
  * JBMO Shortlist 2004 G1 (core).
@@ -49,6 +83,8 @@ export const jbmoShortlist2004G1: Puzzle = {
     "and Q on opposite sides of line MP and AB > AM. Prove that ∠MBQ = ∠NBP.",
   difficulty: "core",
   coords: { A, B, M, P, N, Q, O1, O2 },
+  construct,
+  freePoints: ["A", "B", "O1", "O2"],
   figure: [
     circle("C1", "O1", "A", { strokeColor: COLORS.BRAND, strokeWidth: 1 }),
     circle("C2", "O2", "A", { strokeColor: COLORS.BRAND, strokeWidth: 1 }),

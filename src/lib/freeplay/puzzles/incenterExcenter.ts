@@ -2,11 +2,21 @@ import { COLORS, polygon, segment } from "@/lib/content/boards";
 import type { BoardElementDef } from "@/lib/geometry/board-types";
 import { aval, rel } from "@/lib/freeplay/dsl";
 import { parseForm } from "@/lib/freeplay/form";
-import type { Puzzle } from "@/lib/freeplay/types";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 import { buildIncenterConfig } from "./incenterExcenterConfig";
 
 const { coords } = buildIncenterConfig();
 const F = (s: string) => parseForm(s);
+
+/**
+ * Generic realization: a random acute, scalene triangle ABC with I the incenter
+ * and L the second meeting of ray AI with the circumcircle, so every given
+ * (incenter angle-bisector values, A-I-L collinear, A,B,C,L concyclic) holds by
+ * construction. Free: A, B, C (I, L dependent).
+ */
+function construct(rng: () => number): Realization {
+  return { coords: buildIncenterConfig(rng).coords };
+}
 
 const circumcircle: BoardElementDef = {
   type: "circumcircle",
@@ -31,6 +41,8 @@ export const incenterExcenter: Puzzle = {
     "I is the incenter of triangle ABC; ray AI meets the circumcircle again at L. Prove that LI = LB (so L is equidistant from B and the incenter).",
   difficulty: "challenge",
   coords,
+  construct,
+  freePoints: ["A", "B", "C"],
   variables: {
     A: ["B", "A", "C"],
     B: ["A", "B", "C"],

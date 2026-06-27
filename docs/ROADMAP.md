@@ -19,6 +19,13 @@ coordinate-guarded deduction rules, an exact-rational directed-angle algebra
 table, and a minimality-enforcing step verifier). See
 [`PRD-competitive-freeplay.md`](./PRD-competitive-freeplay.md).
 
+**Multi-case verification.** The checker no longer trusts a single figure: each
+puzzle ships a parametric `construct(rng)`, `realize.ts` samples several
+independent generic realizations (all satisfying the givens), and `verify()`
+accepts a step only if it holds in **all** of them — closing the "true in one
+diagram by accident" gap. This construction model is the foundation for the
+planned **movable freeplay figures** ([`design/MOVABLE_FIGURES.md`](./design/MOVABLE_FIGURES.md)).
+
 **Vitest test suite.** Added Vitest (`npm test`). The Freeplay engine is covered
 by `src/lib/freeplay/__tests__/`, and an isolated rule-discovery lab at
 `research/freeplay-rules/` adds an extensive suite of candidate rules, a parallel
@@ -98,6 +105,24 @@ on existing abstractions.
   (a `log 2` generator for `LengthAR`) and signed-ratio Menelaus/Ceva. _Why:_
   each is a small rule with an outsized increase in the set of provable
   olympiad problems; see `research/freeplay-rules/README.md` for the gap list.
+
+- [ ] **Movable freeplay figures.** *What:* make the freeplay board draggable —
+  render each puzzle's `freePoints` as gliders/free points, recompute the
+  dependent points live via the existing `construct(rng)`, and re-verify the
+  in-progress proof against the dragged position (surfacing "valid across N
+  sampled positions"). _Why:_ the construction model and multi-case verifier are
+  already in place; this is the rendering/UX half. Full staged plan in
+  [`design/MOVABLE_FIGURES.md`](./design/MOVABLE_FIGURES.md).
+
+- [ ] **Movable freeplay figures.** *What:* make the freeplay board draggable on
+  the construction model the verifier already uses — render each puzzle's
+  `freePoints` as draggable points/gliders, recompute dependents via
+  `construct` on drag, and re-validate the in-progress proof against the live
+  position (surfacing "valid across N sampled positions"), while keeping the
+  givens enforced so dragging can't break a hypothesis. _Why:_ restores the
+  interactivity of course-mode boards and makes the multi-case soundness
+  tangible to learners. Full staged plan in
+  [`design/MOVABLE_FIGURES.md`](./design/MOVABLE_FIGURES.md).
 
 - [ ] **Add the two "stretch" lessons from the PRD.** *What:* author
   _Tangent–Chord Angle_ and a multi-step _"putting it together"_ angle chase

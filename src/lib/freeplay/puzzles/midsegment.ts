@@ -1,6 +1,19 @@
 import { COLORS, polygon, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
-import type { Puzzle } from "@/lib/freeplay/types";
+import { midpoint, type V } from "@/lib/freeplay/geom";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
+
+/**
+ * Generic realization: a random scalene triangle ABC with M, N the exact
+ * midpoints of AB and AC. Free: A, B, C (M, N dependent).
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const A: V = [rnd(-1, 1), rnd(4, 6)];
+  const B: V = [rnd(-5, -3), rnd(-3, -1)];
+  const C: V = [rnd(3, 6), rnd(-2, 0)];
+  return { coords: { A, B, C, M: midpoint(A, B), N: midpoint(A, C) } };
+}
 
 /**
  * Core (1 step): the midsegment MN of triangle ABC is parallel to BC. Scalene
@@ -19,6 +32,8 @@ export const midsegment: Puzzle = {
     M: [-2, 1.5],
     N: [2.5, 2],
   },
+  construct,
+  freePoints: ["A", "B", "C"],
   figure: [
     polygon(["A", "B", "C"]),
     segment("M", "N", { strokeColor: COLORS.ACCENT, strokeWidth: 2.5 }),

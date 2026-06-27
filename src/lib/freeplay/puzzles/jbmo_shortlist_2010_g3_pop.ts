@@ -1,8 +1,8 @@
 import { angleMark, circle, COLORS, fixedPoint, polygon, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
-import type { V } from "@/lib/freeplay/geom";
+import { lineCircleIntersect, type V } from "@/lib/freeplay/geom";
 import { eqratio } from "@/lib/freeplay/lengths/dsl";
-import type { Puzzle } from "@/lib/freeplay/types";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 /**
  * (Reduced from) JBMO Shortlist 2010 G3 — power of a point (difficulty
@@ -38,6 +38,41 @@ const [E, C] = lineCircle(A, [1.5, -2.8]); // secant 2: E near, C far
 
 const coords = { A, B, C, D, E };
 
+/**
+ * The two intersections (near, then far) of the secant from the external point
+ * `A` at heading `angDeg` with the circle (center `O`, radius `R`).
+ */
+function secantHits(A: V, O: V, r: number, angDeg: number): [V, V] {
+  const t = (angDeg * Math.PI) / 180;
+  const dir: V = [Math.cos(t), Math.sin(t)];
+  const pts = lineCircleIntersect(A, [A[0] + dir[0], A[1] + dir[1]], O, r);
+  if (pts.length < 2) throw new Error("secant misses the circle");
+  return [pts[0], pts[1]];
+}
+
+/**
+ * Generic realization: a circle ω₁ (center O, radius R) and an external point A
+ * with two secants — secant 1 meets ω₁ at D (near) and B (far), secant 2 at E
+ * (near) and C (far). The power of A gives AD·AB = AE·AC (the goal); B, C, D, E
+ * are concyclic on ω₁. Free: A and the two secant directions.
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const O: V = [rnd(-1, 1), rnd(-1, 1)];
+  const r = rnd(2, 3.5);
+  const aoLen = r * rnd(1.7, 2.4);
+  const aDir = rnd(0, 360);
+  const A0: V = [
+    O[0] + aoLen * Math.cos((aDir * Math.PI) / 180),
+    O[1] + aoLen * Math.sin((aDir * Math.PI) / 180),
+  ];
+  const base = aDir + 180;
+  const maxOff = (Math.asin(r / aoLen) * 180) / Math.PI;
+  const [Dp, Bp] = secantHits(A0, O, r, base + rnd(0.2, 0.8) * maxOff);
+  const [Ep, Cp] = secantHits(A0, O, r, base - rnd(0.2, 0.8) * maxOff);
+  return { coords: { A: A0, B: Bp, C: Cp, D: Dp, E: Ep } };
+}
+
 const cyc = rel("cyclic", ["B", "C", "D", "E"]); // ω₁ through B, C, D, E
 const secant1 = rel("coll", ["A", "D", "B"]); // secant A–D–B
 const secant2 = rel("coll", ["A", "E", "C"]); // secant A–E–C
@@ -53,6 +88,8 @@ export const jbmo_shortlist_2010_g3_pop: Puzzle = {
     "at D and E. Prove AD·AB = AE·AC (equivalently AD/AE = AC/AB).",
   difficulty: "challenge",
   coords,
+  construct,
+  freePoints: ["A", "D", "E"],
   figure: [
     // The circle ω₁ (B, C, D, E concyclic) drawn through B about its center O.
     fixedPoint("O", 0, 0, { name: "O", size: 2, withLabel: true }),

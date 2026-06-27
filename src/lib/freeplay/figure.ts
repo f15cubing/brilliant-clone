@@ -3,9 +3,16 @@ import type { BoardElementDef, JSXGraphDef } from "@/lib/geometry/board-types";
 import type { Puzzle } from "./types";
 
 /**
- * Builds a declarative JSXGraph board for a puzzle: one fixed labeled point per
+ * Builds a declarative JSXGraph board for a puzzle: one labeled point per
  * coordinate, then the puzzle's extra figure elements (segments, circles, …)
- * which reference those points by id. v1 figures are static (deferred render).
+ * which reference those points by id.
+ *
+ * Today this renders the canonical realization (`puzzle.coords`) as a static
+ * board. The verifier, however, no longer trusts a single figure: it checks each
+ * step against several independent realizations sampled from `puzzle.construct`
+ * (see `realize.ts`). That same construction is the foundation for the planned
+ * MOVABLE figure (drag the puzzle's `freePoints`, recompute dependents live) —
+ * see `docs/design/MOVABLE_FIGURES.md`.
  */
 export function buildFigureDef(puzzle: Puzzle): JSXGraphDef {
   const ids = Object.keys(puzzle.coords);

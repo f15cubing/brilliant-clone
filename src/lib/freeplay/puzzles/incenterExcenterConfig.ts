@@ -6,16 +6,33 @@
  *   I = incenter of ABC
  *   L = second intersection of ray AI with the circumcircle (arc midpoint of BC)
  */
-import { circumcenter, dist, dot, sub, type V } from "../geom";
+import { circumcenter, dist, dot, pointOnCircleAtAngle, sub, type V } from "../geom";
 
 export interface IncenterConfig {
   coords: Record<string, V>;
 }
 
-export function buildIncenterConfig(): IncenterConfig {
-  const A: V = [0.6, 5.2];
-  const B: V = [-4.3, -1.4];
-  const C: V = [5.1, -2.1];
+/**
+ * Build the incenter–excenter configuration from a triangle ABC. When `rng` is
+ * supplied, A, B, C are sampled as an acute, scalene triangle on a random circle
+ * (well-separated arcs keep all angles < 90°); otherwise the fixed canonical
+ * triangle is used. Throws on a degenerate sample so the multi-case sampler can
+ * resample.
+ */
+export function buildIncenterConfig(rng?: () => number): IncenterConfig {
+  let A: V = [0.6, 5.2];
+  let B: V = [-4.3, -1.4];
+  let C: V = [5.1, -2.1];
+
+  if (rng) {
+    const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+    const Oc: V = [rnd(-1, 1), rnd(-1, 1)];
+    const r = rnd(3.5, 5);
+    // Three well-spread angles ⇒ acute, scalene triangle (center inside).
+    A = pointOnCircleAtAngle(Oc, r, rnd(75, 105));
+    B = pointOnCircleAtAngle(Oc, r, rnd(195, 225));
+    C = pointOnCircleAtAngle(Oc, r, rnd(315, 345));
+  }
 
   // side lengths opposite each vertex
   const a = dist(B, C);

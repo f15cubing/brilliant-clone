@@ -1,7 +1,7 @@
 import { circle, COLORS, fixedPoint, polygon, segment } from "@/lib/content/boards";
 import { rel } from "@/lib/freeplay/dsl";
-import type { V } from "@/lib/freeplay/geom";
-import type { Puzzle } from "@/lib/freeplay/types";
+import { lineCircleIntersect, pointOnCircleAtAngle, type V } from "@/lib/freeplay/geom";
+import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 /**
  * IMO Shortlist 2010 G1 (proposed by the United Kingdom) — difficulty
@@ -62,6 +62,30 @@ const Q = meet(B, P, D, F); // BP ∩ DF
 
 const coords = { A, B, C, D, E, F, P, Q };
 
+/**
+ * Generic realization: a random acute, scalene triangle ABC on a circle (center
+ * O, radius R); D, E, F the altitude feet; P the second meeting of line EF with
+ * the circumcircle (Solution 1, Case 1 ⇒ the far intersection along E→F); and
+ * Q = BP ∩ DF. Every incidence/perpendicularity/concyclicity given holds by
+ * construction, and the theorem AP = AQ follows. Free: A, B, C.
+ */
+function construct(rng: () => number): Realization {
+  const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+  const O: V = [rnd(-1, 1), rnd(-1, 1)];
+  const R = rnd(3, 4.5);
+  const Av = pointOnCircleAtAngle(O, R, rnd(95, 125));
+  const Bv = pointOnCircleAtAngle(O, R, rnd(195, 225));
+  const Cv = pointOnCircleAtAngle(O, R, rnd(325, 355));
+  const Dv = foot(Av, Bv, Cv);
+  const Ev = foot(Bv, Cv, Av);
+  const Fv = foot(Cv, Av, Bv);
+  const hits = lineCircleIntersect(Ev, Fv, O, R); // line EF ∩ circumcircle
+  if (hits.length < 2) throw new Error("EF misses the circumcircle");
+  const Pv = hits[1]; // far intersection along E→F (matches the canonical pick)
+  const Qv = meet(Bv, Pv, Dv, Fv);
+  return { coords: { A: Av, B: Bv, C: Cv, D: Dv, E: Ev, F: Fv, P: Pv, Q: Qv } };
+}
+
 // ---- givens / goal ----------------------------------------------------------
 
 const cycABCP = rel("cyclic", ["A", "B", "C", "P"]); // circumcircle carries P
@@ -97,6 +121,8 @@ export const imo_shortlist_2010_g1: Puzzle = {
     "Prove AP = AQ.",
   difficulty: "challenge",
   coords,
+  construct,
+  freePoints: ["A", "B", "C"],
   figure: [
     // Circumcircle of ABC (carries P).
     fixedPoint("O", 0, 0, { name: "O", size: 2, withLabel: true }),
