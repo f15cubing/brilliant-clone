@@ -30,6 +30,9 @@ import type { Realization } from "./types";
  */
 const ALL_RULES: LRule[] = [...RULES, ...RATIO_RULES];
 
+/** Collinearity is treated as FREE figure structure for the angle chase (see `verify`). */
+const isColl = (f: LFact): f is Fact => f.kind === "rel" && f.name === "coll";
+
 /**
  * Expand every coll(≥4) into all its 3-point sub-collinearities (keeping the
  * original). Lets the learner state a whole line once — `coll(Q,A1,Q1,A2)` —
@@ -106,6 +109,7 @@ function deriveOnce(
   cited: LFact[],
   candidate: LFact,
   ctx: { coords: Coords; bindings: VarBindings; points: string[] },
+  freeColls: Fact[] = [],
 ): string | null {
   // The DD rules and the angle table only reason about ordinary facts; `eqratio`
   // premises are routed straight to the length layer. They are also exposed to
@@ -134,10 +138,16 @@ function deriveOnce(
     }
   }
 
-  // Angle layer (only meaningful for ordinary angle candidates).
+  // Angle layer (only meaningful for ordinary angle candidates). `freeColls` —
+  // established collinearity — is added here as FREE figure structure: the
+  // directed-angle chase may swing an arm across any known line (e.g. ∠ADE→∠BDE
+  // because A,D,B are collinear) WITHOUT the learner citing that line. It is fed
+  // ONLY to this algebraic chase — never to the named DD/length theorems (Pappus,
+  // power-of-a-point, …), which still require their lines cited, so those theorems
+  // don't fire "for free" and silently make a learner's other premises redundant.
   if (candidate.kind !== "eqratio") {
     const ar = new AngleAR(ctx.coords, ctx.bindings);
-    for (const f of [...facts, ...ddDerived]) ar.add(f);
+    for (const f of [...facts, ...ddDerived, ...freeColls]) ar.add(f);
     if (ar.implies(candidate)) return "algebraic angle-chase";
   }
 
@@ -226,25 +236,44 @@ export function verify(input: VerifyInput): VerifyResult {
   // A justified step must cite the facts it uses.
   if (cited.length === 0) return { valid: false, reason: "unjustified" };
 
-  // The cited facts must derive the candidate in one step (DD rule or AR) in
-  // EVERY realization. A derivation that fires only in the canonical figure
-  // (a figure-specific coincidence, e.g. an accidental branch in the angle table)
-  // is not a general one-step deduction, so it is rejected as `unjustified`.
+  // Collinearity is FREE figure structure for the ANGLE CHASE: every established
+  // "X, Y, Z are collinear" is available to the directed-angle closure without
+  // being cited, so the learner need only cite the load-bearing reasons (e.g.
+  // `cyclic`) and the lines those points lie on come along for free. Only
+  // ESTABLISHED colls are free — an unproven collinearity (e.g. one that is
+  // itself a goal) is not granted. (Named DD/length theorems still require their
+  // lines cited; `deriveOnce` feeds these only to the algebraic angle table.)
+  const freeColls = establishedFacts.filter(isColl);
+
+  // The cited facts (+ free collinearity) must derive the candidate in one step
+  // (DD rule or AR) in EVERY realization. A derivation that fires only in the
+  // canonical figure (a figure-specific coincidence, e.g. an accidental branch in
+  // the angle table) is not a general one-step deduction, so it is rejected as
+  // `unjustified`.
   let rule: string | null = null;
   for (const r of realizations) {
-    const got = deriveOnce(cited, candidateFact, ctxOf(r));
+    const got = deriveOnce(cited, candidateFact, ctxOf(r), freeColls);
     if (got === null) return { valid: false, reason: "unjustified" };
     if (rule === null) rule = got;
   }
+
+  // A cited premise is FREE STRUCTURE — never required, never flagged — if it is
+  // collinearity itself OR follows from the established lines alone in EVERY
+  // realization (e.g. "∠IAC = ∠LAC because A, I, L are collinear" is just the
+  // line restated). Citing such facts stays optional and harmless; only genuinely
+  // independent reasons remain subject to the necessity check below.
+  const isFreeStructure = (p: LFact): boolean =>
+    isColl(p) || realizations.every((r) => deriveOnce([], p, ctxOf(r), freeColls) !== null);
 
   // Minimality / necessity across cases: a cited fact is REQUIRED if dropping it
   // breaks the derivation in AT LEAST ONE realization. Only when the candidate
   // still derives in EVERY realization without it is it truly extraneous — so a
   // premise that matters only in some configurations is not falsely flagged.
   for (let i = 0; i < cited.length; i++) {
+    if (isFreeStructure(cited[i])) continue;
     const without = cited.filter((_, k) => k !== i);
     const droppableEverywhere = realizations.every(
-      (r) => deriveOnce(without, candidateFact, ctxOf(r)) !== null,
+      (r) => deriveOnce(without, candidateFact, ctxOf(r), freeColls) !== null,
     );
     if (droppableEverywhere) {
       return { valid: false, reason: "extraneous_premises" };

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { rel } from "@/lib/freeplay/dsl";
 import { eqratio, factHoldsL, type LFact } from "@/lib/freeplay/lengths/dsl";
 import { getPuzzle } from "@/lib/freeplay/puzzles";
 import { verify } from "@/lib/freeplay/verify";
@@ -61,5 +62,40 @@ describe("puzzle: jbmo-2010-g3-power-of-a-point (power of a point)", () => {
       citedPremises: solution[solution.length - 1].premises,
     });
     expect(result.valid).toBe(true);
+  });
+});
+
+/**
+ * Lenient angle chase: collinearity is FREE figure structure. The learner's
+ * "∠ADE = ∠ACB because of cyclic" should pass WITHOUT also citing the two secant
+ * collinearities (A–D–B, A–E–C) — those lines are the diagram, not a reason. The
+ * load-bearing `cyclic` is still required, and the engine still only accepts what
+ * actually follows.
+ */
+describe("lenient angle chase: collinearity is free (cyclic-only ∠ADE = ∠ACB)", () => {
+  const { coords } = puzzle;
+  const cyc = rel("cyclic", ["B", "C", "D", "E"]);
+  const adb = rel("coll", ["A", "D", "B"]);
+  const aec = rel("coll", ["A", "E", "C"]);
+  const established = [cyc, adb, aec];
+  const angEq = rel("eqangle", ["A", "D", "E", "A", "C", "B"]); // ∠ADE = ∠ACB
+
+  const check = (citedPremises: typeof established) =>
+    verify({ coords, bindings: {}, establishedFacts: established, candidateFact: angEq, citedPremises });
+
+  it("verifies citing ONLY cyclic — the secant collinearities come for free", () => {
+    expect(check([cyc])).toEqual({ valid: true, rule: "algebraic angle-chase" });
+  });
+
+  it("also accepts (does NOT flag extraneous) when the free collinearities are cited too", () => {
+    expect(check([cyc, adb, aec])).toEqual({ valid: true, rule: "algebraic angle-chase" });
+  });
+
+  it("still requires the load-bearing reason: the (free) collinearities alone do not prove it", () => {
+    expect(check([adb, aec])).toEqual({ valid: false, reason: "unjustified" });
+  });
+
+  it("still rejects asserting the fact with nothing cited", () => {
+    expect(check([])).toEqual({ valid: false, reason: "unjustified" });
   });
 });
