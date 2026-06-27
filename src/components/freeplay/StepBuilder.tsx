@@ -24,6 +24,7 @@ import {
   matchPremises,
   type TranslationResult,
 } from "@/lib/freeplay/nl";
+import { resolveFactRefs } from "@/lib/freeplay/nl/factrefs";
 import {
   applySubst,
   parseSwaps,
@@ -577,13 +578,23 @@ function NLPanel({
     setTranslating(true);
     setError(null);
     setInterp(null);
+    // Resolve "by fact N" citations against the numbered Established-facts panel
+    // (1-based). Referenced facts become cited premises directly, and the citation
+    // phrases are stripped so only the actual claim reaches the translator.
+    const { numbers, cleanedText, outOfRange } = resolveFactRefs(text, facts.length);
+    const refPremises = numbers.map((n) => facts[n - 1].fact);
+    if (cleanedText.trim().length === 0) {
+      setError("Add the claim you're asserting, not just the fact numbers.");
+      setTranslating(false);
+      return;
+    }
     // v2: established ratios flow as context too (multi-step ratio chases need a
     // prior `eqratio` as a premise of the next step). No more angle-only filter.
     const established: LFact[] = facts.map((f) => f.fact);
     try {
       const translator = getTranslator({ signedIn });
       const result: TranslationResult = await translator.translate({
-        text: note ? `${text}\n(note: ${note})` : text,
+        text: note ? `${cleanedText}\n(note: ${note})` : cleanedText,
         puzzleId,
         points: pointIds,
         variables: variableNames,
@@ -591,11 +602,20 @@ function NLPanel({
       });
       // Drop premises the AI added that aren't grounded in the learner's own
       // words, so the engine's minimality check isn't tripped by AI padding.
-      // Grounding runs on the ORIGINAL `text`, never the optional repair note.
-      const { kept, dropped } = groundPremises(result.premises, text);
+      // Grounding runs on the citation-free `cleanedText`, never the repair note.
+      const { kept, dropped } = groundPremises(result.premises, cleanedText);
       // Lower + strictly validate BEFORE any verify() call.
       const conclusion = descriptorToFact(result.conclusion, pointIds);
-      const premises = matchPremises(kept, established, pointIds);
+      // Numbered citations join the grounded/AI premises, deduped by canonicalKey
+      // with the explicit "fact N" refs taking precedence (first occurrence wins).
+      const seen = new Set<string>();
+      const premises: LFact[] = [];
+      for (const p of [...refPremises, ...matchPremises(kept, established, pointIds)]) {
+        const key = canonicalKey(p);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        premises.push(p);
+      }
       let groundingNote: string | undefined;
       if (dropped > 0) {
         groundingNote =
@@ -603,7 +623,13 @@ function NLPanel({
             ? "Ignored 1 cited fact that wasn't part of your statement."
             : `Ignored ${dropped} cited facts that weren't part of your statement.`;
       }
-      const notes = [groundingNote, result.notes].filter(Boolean).join(" ");
+      let rangeNote: string | undefined;
+      if (outOfRange.length > 0) {
+        const refLabel = outOfRange.length === 1 ? "fact" : "facts";
+        const countLabel = facts.length === 1 ? "fact" : "facts";
+        rangeNote = `Ignored ${refLabel} ${outOfRange.join(", ")} (there are only ${facts.length} ${countLabel}).`;
+      }
+      const notes = [rangeNote, groundingNote, result.notes].filter(Boolean).join(" ");
       setInterp({ conclusion, premises, notes: notes.length > 0 ? notes : undefined });
     } catch (err) {
       if (err instanceof MapError) {
@@ -645,8 +671,9 @@ function NLPanel({
         />
         <span className="font-mono text-[0.58rem] leading-relaxed text-ink-faint">
           Name the relation and its points; cite the facts you're using with{" "}
-          <code>since</code> / <code>because</code> / <code>so</code>. We'll show
-          the parsed step before anything is checked.
+          <code>since</code> / <code>because</code> / <code>so</code>, or cite a
+          fact by its number, e.g. <code>by fact 3</code>. We'll show the parsed
+          step before anything is checked.
         </span>
       </label>
 
