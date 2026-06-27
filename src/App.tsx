@@ -10,6 +10,7 @@ import { CourseMap } from "@/pages/CourseMap";
 import { LessonPlayer } from "@/pages/LessonPlayer";
 import { FreeplayList } from "@/pages/FreeplayList";
 import { FreeplayArena } from "@/pages/FreeplayArena";
+import { ProofArchive } from "@/pages/ProofArchive";
 
 export function App() {
   return (
@@ -31,6 +32,7 @@ export function App() {
               <Route path="/lesson/:lessonId" element={<LessonPlayer />} />
               <Route path="/freeplay" element={<FreeplayList />} />
               <Route path="/freeplay/:puzzleId" element={<FreeplayArena />} />
+              <Route path="/proofs" element={<ProofArchive />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

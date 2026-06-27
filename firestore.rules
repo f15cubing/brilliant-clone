@@ -21,6 +21,19 @@ service cloud.firestore {
         && request.resource.data.stepCount is int;
     }
 
+    // In-progress freeplay proofs ("drafts"): at most one doc per puzzle at
+    // users/{uid}/freeplayDrafts/{puzzleId}, overwritten on auto-save and
+    // deleted on solve/reset. Owner-only (private) with minimal shape
+    // validation on write. (Also covered by the per-user wildcard above; this
+    // block documents intent and validates the stored shape.)
+    match /users/{userId}/freeplayDrafts/{puzzleId} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.puzzleId is string
+        && request.resource.data.stepCount is int;
+    }
+
     // NL translateStep rate-limit counters are managed exclusively by the
     // Cloud Function via the Admin SDK (which bypasses these rules). Deny ALL
     // client access so a learner can't read or tamper with their own quota.

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { MathText } from "@/components/MathText";
 import { factLabel } from "@/lib/freeplay/dsl";
 import { FREEPLAY_PUZZLES } from "@/lib/freeplay/puzzles";
+import { useFreeplayStatus } from "@/lib/freeplay/useFreeplayStatus";
 import type { Difficulty } from "@/lib/freeplay/types";
 
 const DIFFICULTY_STYLE: Record<Difficulty, string> = {
@@ -11,6 +12,7 @@ const DIFFICULTY_STYLE: Record<Difficulty, string> = {
 };
 
 export function FreeplayList() {
+  const { solvedIds, draftIds } = useFreeplayStatus();
   return (
     <div className="flex flex-col gap-9">
       <header>
@@ -43,6 +45,15 @@ export function FreeplayList() {
                 <h2 className="font-display text-xl tracking-tight text-ink">
                   {p.title}
                 </h2>
+                {solvedIds.has(p.id) ? (
+                  <span className="ml-auto rounded-sm border border-correct/50 bg-correct/15 px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-wide text-correct">
+                    ✓ Solved
+                  </span>
+                ) : draftIds.has(p.id) ? (
+                  <span className="ml-auto rounded-sm border border-ochre/40 bg-ochre/10 px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-wide text-ochre-deep">
+                    Continue
+                  </span>
+                ) : null}
               </div>
               <p className="font-serif text-ink-soft">{p.blurb}</p>
               <p className="font-serif text-sm text-ink-faint">

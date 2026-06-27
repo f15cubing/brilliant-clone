@@ -58,6 +58,9 @@ export function Layout() {
               <Link to="/freeplay" className="transition hover:text-vermilion">
                 Freeplay
               </Link>
+              <Link to="/proofs" className="transition hover:text-vermilion">
+                Proofs
+              </Link>
             </nav>
             {configured && user && (
               <button

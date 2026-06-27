@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Spinner } from "@/components/Spinner";
 import { FactList } from "@/components/freeplay/FactList";
 import { FixedFigure } from "@/components/freeplay/FixedFigure";
 import { GoalPanel } from "@/components/freeplay/GoalPanel";
@@ -13,15 +14,19 @@ import { factHoldsL } from "@/lib/freeplay/lengths/dsl";
 import {
   alreadyKnown,
   establishedFacts,
-  initProofState,
+  hydrateProofState,
   proofReducer,
   type Feedback,
+  type FactEntry,
+  type ProofDraft,
 } from "@/lib/freeplay/proof";
 import { getPuzzle } from "@/lib/freeplay/puzzles";
 import { sampleRealizations } from "@/lib/freeplay/realize";
 // R2-D2 (proof archive): compile + record the proof on a win.
 import { compileProof } from "@/lib/freeplay/proofRecord";
 import { useProofRecorder } from "@/lib/freeplay/useProofRecorder";
+// R3-D3 (resume): auto-save / restore the in-progress proof.
+import { useProofDraft } from "@/lib/freeplay/useProofDraft";
 import type { Subst } from "@/lib/freeplay/symmetry";
 import type { Puzzle } from "@/lib/freeplay/types";
 
@@ -72,8 +77,23 @@ function FeedbackBanner({ feedback }: { feedback: Feedback }) {
   );
 }
 
-function Arena({ puzzle }: { puzzle: Puzzle }) {
-  const [state, dispatch] = useReducer(proofReducer, puzzle, initProofState);
+function Arena({
+  puzzle,
+  initialDraft,
+  persistDraft,
+  clearDraft,
+}: {
+  puzzle: Puzzle;
+  // R3-D3 (resume): the saved in-progress proof to restore (null = fresh).
+  initialDraft: ProofDraft | null;
+  persistDraft: (facts: FactEntry[]) => void;
+  clearDraft: () => void;
+}) {
+  const [state, dispatch] = useReducer(
+    proofReducer,
+    { puzzle, draft: initialDraft },
+    ({ puzzle: p, draft }) => hydrateProofState(p, draft),
+  );
   const [busy, setBusy] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
 
@@ -91,6 +111,26 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
     const compiled = compileProof(state.facts, puzzle);
     recordSolvedProof(compiled, `${puzzle.id}#${attemptRef.current}`);
   }, [state.status, state.facts, puzzle, recordSolvedProof]);
+
+  // R3-D3 (resume): auto-save the in-progress proof so the learner can leave
+  // and come back. Skip the initial (hydrated) render so opening a puzzle never
+  // re-writes or clears the draft. On solve the proof moves to the archive, so
+  // the draft is cleared; resetting (facts back to givens) also clears it.
+  const firstAutoSave = useRef(true);
+  useEffect(() => {
+    if (firstAutoSave.current) {
+      firstAutoSave.current = false;
+      return;
+    }
+    if (state.status === "solved") {
+      clearDraft();
+      return;
+    }
+    const hasDerived = state.facts.some((f) => f.source === "derived");
+    if (hasDerived) persistDraft(state.facts);
+    else clearDraft();
+  }, [state.facts, state.status, persistDraft, clearDraft]);
+
   const pointIds = Object.keys(puzzle.coords);
   const bindings = puzzle.variables ?? {};
 
@@ -223,6 +263,9 @@ function Arena({ puzzle }: { puzzle: Puzzle }) {
 export function FreeplayArena() {
   const { puzzleId } = useParams<{ puzzleId: string }>();
   const puzzle = puzzleId ? getPuzzle(puzzleId) : undefined;
+  // R3-D3 (resume): load any saved in-progress proof for this puzzle. Called
+  // unconditionally (hooks rule); harmless for an unknown puzzle id.
+  const draft = useProofDraft(puzzle?.id ?? "");
 
   if (!puzzle) {
     return (
@@ -238,5 +281,23 @@ export function FreeplayArena() {
     );
   }
 
-  return <Arena key={puzzle.id} puzzle={puzzle} />;
+  // Wait for the draft to resolve before mounting the arena, so the reducer
+  // hydrates from the final draft exactly once (no flash of an empty proof).
+  if (draft.loading) {
+    return (
+      <div className="grid min-h-[40vh] place-items-center">
+        <Spinner label="Loading your proof…" />
+      </div>
+    );
+  }
+
+  return (
+    <Arena
+      key={puzzle.id}
+      puzzle={puzzle}
+      initialDraft={draft.initialDraft}
+      persistDraft={draft.persist}
+      clearDraft={draft.clear}
+    />
+  );
 }

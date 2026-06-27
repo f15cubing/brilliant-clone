@@ -38,6 +38,20 @@ export interface ProofState {
   feedback?: Feedback;
 }
 
+/** Current draft schema version (bump if the stored draft shape changes). */
+export const DRAFT_VERSION = 1;
+
+/**
+ * A saved, IN-PROGRESS proof: just the DERIVED steps. Givens are always
+ * rebuilt from the puzzle, so a draft stays valid even if the puzzle's content
+ * changes. Defined here (in the pure module) so persistence helpers can import
+ * it without dragging Firebase into the proof logic.
+ */
+export interface ProofDraft {
+  version: number;
+  derived: FactEntry[];
+}
+
 export type ProofAction =
   // R2-D2 (proof archive): `premises`/`analogy` are optional & additive so the
   // accepted step can record exactly what it cited for the stored proof.
@@ -72,6 +86,64 @@ export function initProofState(puzzle: Puzzle): ProofState {
     facts,
     nextId: facts.length,
     status: "playing",
+    feedback: undefined,
+  };
+}
+
+/** Extract the persistable draft (derived steps only) from live proof facts. */
+export function draftFromFacts(facts: FactEntry[]): ProofDraft {
+  return {
+    version: DRAFT_VERSION,
+    derived: facts.filter((f) => f.source === "derived"),
+  };
+}
+
+function isLFactShape(f: unknown): f is LFact {
+  if (!f || typeof f !== "object") return false;
+  const kind = (f as { kind?: unknown }).kind;
+  return kind === "rel" || kind === "aval" || kind === "eqratio";
+}
+
+/** Structural check for a stored derived step (a fact entry with a real fact). */
+function isDerivedEntryShape(e: unknown): e is FactEntry {
+  return Boolean(e) && typeof e === "object" && isLFactShape((e as FactEntry).fact);
+}
+
+/**
+ * Build the initial proof state for a puzzle, replaying a saved draft on top of
+ * the puzzle's givens. Derived steps get fresh sequential ids (premises are
+ * stored as fact VALUES, so re-numbering ids is safe). A structurally invalid
+ * draft is ignored wholesale — we fall back to a fresh proof rather than
+ * hydrate an inconsistent one.
+ */
+export function hydrateProofState(
+  puzzle: Puzzle,
+  draft?: ProofDraft | null,
+): ProofState {
+  const base = initProofState(puzzle);
+  if (!draft || !Array.isArray(draft.derived) || draft.derived.length === 0) {
+    return base;
+  }
+  if (!draft.derived.every(isDerivedEntryShape)) return base;
+
+  let nextId = base.nextId;
+  const derived: FactEntry[] = draft.derived.map((entry) => ({
+    id: nextId++,
+    fact: entry.fact,
+    source: "derived" as const,
+    rule: entry.rule,
+    premises: entry.premises,
+    analogy: entry.analogy,
+  }));
+  const facts = [...base.facts, ...derived];
+
+  return {
+    ...base,
+    facts,
+    nextId,
+    // Drafts are deleted on solve, so this is normally "playing"; recompute
+    // defensively in case a goal-reaching step was ever persisted.
+    status: derived.some((d) => isGoal(puzzle, d.fact)) ? "solved" : "playing",
     feedback: undefined,
   };
 }
