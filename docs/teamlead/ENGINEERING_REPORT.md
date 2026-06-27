@@ -49,7 +49,7 @@ The repository is left substantially better understood, better documented, more 
 
 ### DDAR proof-checker (`src/lib/freeplay/`)
 
-The checker accepts a step only if it is **numerically true across several independent realizations** of the figure **and** follows from **exactly** the cited premises by a single deduction rule or one algebra step. Each puzzle ships a parametric `construct(rng)` (free points placed from a seeded RNG, dependent points derived) that re-samples generic, givens-preserving diagrams; `realize.ts` validates each sample and `verify()` requires a step to hold in **every** one — so a step that is only coincidentally true/derivable in the canonical figure is rejected (`not_true`/`unjustified`), and a premise counts as extraneous only if droppable in **all** realizations. (This same construction model is the foundation for the planned movable freeplay figures; see `[docs/design/MOVABLE_FIGURES.md](../design/MOVABLE_FIGURES.md)`.) Two reasoning layers:
+The checker accepts a step only if it is **numerically true across several independent realizations** of the figure **and** follows from **exactly** the cited premises by a single deduction rule or one algebra step. Each puzzle ships a parametric `construct(rng)` (free points placed from a seeded RNG, dependent points derived) that re-samples generic, givens-preserving diagrams; `realize.ts` validates each sample and `verify()` requires a step to hold in **every** one — so a step that is only coincidentally true/derivable in the canonical figure is rejected (`not_true`/`unjustified`), and a premise counts as extraneous only if droppable in **all** realizations. (This same construction model is the foundation for the planned movable freeplay figures; see [`docs/design/MOVABLE_FIGURES.md`](../design/MOVABLE_FIGURES.md).) Two reasoning layers:
 
 - **Angle / incidence layer** — `Fact`s (`coll`, `para`, `perp`, `cong`, `cyclic`, `midp`, `eqangle`) + directed-angle algebra (`AngleAR`). **26 rules** = 13 hand-written `CORE_RULES` (`rules.ts`) + 13 `PROMOTED_RULES` (`rules/`, incl. `thales_diameter`, `concyclic_directed_angles`, `pascal`, `sss_congruence`, `perp_bisector`, …), composed as `RULES = [...CORE_RULES, ...PROMOTED_RULES]`.
 - **Length / ratio layer** — `EqRatio` facts unioned with `Fact` into `LFact`; `LengthAR` reasons over unsigned `log|PQ|` generators. Rules in `src/lib/freeplay/lengths/rules/` are composed via `RATIO_RULES` (`power_of_a_point`, `sas_similarity`, `similar_triangles_aa`, `tangent_secant_power`, `thales_basic_proportionality`).
@@ -71,11 +71,11 @@ On transition to `status === "solved"`, `compileProof()` serializes the in-memor
 
 ## 4. Security posture
 
-Full audit: `[docs/security/NL_OPENAI_REVIEW.md](../security/NL_OPENAI_REVIEW.md)`. **Verdict: SAFE — with conditions.** Critical 0 · High 0 · Medium 2 · Low 3.
+Full audit: [`docs/security/NL_OPENAI_REVIEW.md`](../security/NL_OPENAI_REVIEW.md). **Verdict: SAFE — with conditions.** Critical 0 · High 0 · Medium 2 · Low 3.
 
 - **API key (PASS):** server-only secret, absent from the client `package.json`, no `sk-…` in tree/history, raw OpenAI errors never cross to the client.
 - **Auth/App Check (PASS):** function rejects unauthenticated + missing App Check; guests are routed to the mock and never construct the callable.
-- **Rate-limit integrity (PASS):** `ratelimits/`** is `allow … if false`; counters written only by the Admin SDK inside a transaction.
+- **Rate-limit integrity (PASS):** `ratelimits/**` is `allow … if false`; counters written only by the Admin SDK inside a transaction.
 - **2 Medium items are go-live config gaps, not code defects:** (APPCHECK-1) provision a reCAPTCHA v3 site key; (COST-1) set a GCP billing budget + alert. Both are in the §7 TODO.
 - **Dev-only dependency advisories** (`vitest`/`vite`/`esbuild`) are not shipped or production-reachable; bump when convenient.
 
@@ -134,12 +134,12 @@ The NL converter ships **off** (deterministic mock). To switch on the live OpenA
   ```bash
   VITE_FIREBASE_RECAPTCHA_SITE_KEY=<your-recaptcha-v3-site-key>
   ```
-- [ ] **4. Flip the client backend flag and rebuild** (with the existing `VITE_FIREBASE_`* config present):
+- [ ] **4. Flip the client backend flag and rebuild** (with the existing `VITE_FIREBASE_*` config present):
   ```bash
   VITE_FREEPLAY_NL_BACKEND=firebase
   npm run build
   ```
-- [ ] **5. Deploy Firestore rules** (locks `ratelimits/`**):
+- [ ] **5. Deploy Firestore rules** (locks `ratelimits/**`):
   ```bash
   firebase deploy --only firestore:rules
   ```
@@ -169,7 +169,7 @@ Everything below works in **guest mode** (no Firebase needed) unless noted. The 
 
 ### A. Browse the expanded catalog
 
-1. Go to `**/freeplay`**. You should see **14 puzzles** grouped intro → core → challenge.
+1. Go to **`/freeplay`**. You should see **14 puzzles** grouped intro → core → challenge.
 2. New this session (try a few):
 
 

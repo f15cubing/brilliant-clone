@@ -1,7 +1,7 @@
 # BrainLift: Freeplay — How a Proof Verifier Teaches Differently
 
 **Date:** June 26, 2026  
-**Scope:** The Brilliant-clone app's **Freeplay mode** — a Lean/Rocq-style, machine-checked geometry proof arena (React + TS + JSXGraph + a browser-resident DDAR engine). Companion to `[BRAINLIFT.md](./BRAINLIFT.md)` (which analyzes Brilliant.org) and to `[docs/PRD-competitive-freeplay.md](./docs/PRD-competitive-freeplay.md)`.  
+**Scope:** The Brilliant-clone app's **Freeplay mode** — a Lean/Rocq-style, machine-checked geometry proof arena (React + TS + JSXGraph + a browser-resident DDAR engine). Companion to [`BRAINLIFT.md`](./BRAINLIFT.md) (which analyzes Brilliant.org) and to [`docs/PRD-competitive-freeplay.md`](./docs/PRD-competitive-freeplay.md).  
 **Framework:** Depth of Knowledge (DOK) levels 1–4, ending in Spiky Points of View (SPOVs).  
 **Lens:** This document is *not* a feature spec. It is a pedagogy thesis — it isolates the **learning techniques** Freeplay applies and the spiky, non-consensus bet about *how it teaches that no recall-based ed-tech product does.*
 
@@ -20,12 +20,12 @@
 
 | Source                                                                      | Path                                                                                                                                      |
 | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Freeplay PRD + as-built engine (§13 Implementation Status)                  | `[docs/PRD-competitive-freeplay.md](./docs/PRD-competitive-freeplay.md)`                                                                  |
-| Shipped verifier (DD + AR + length/ratio + minimality + by-symmetry)        | `[src/lib/freeplay/verify.ts](./src/lib/freeplay/verify.ts)`                                                                              |
-| Rule library (31 shipped rules: 13 core + 13 promoted + 5 ratio)            | `[rules.ts](./src/lib/freeplay/rules.ts)` + `[rules/](./src/lib/freeplay/rules/)` + `[lengths/rules/](./src/lib/freeplay/lengths/rules/)` |
-| Algebraic-reasoning tables (angles + lengths)                               | `[src/lib/freeplay/ar.ts](./src/lib/freeplay/ar.ts)` + `[lengths/lengthAR.ts](./src/lib/freeplay/lengths/lengthAR.ts)`                    |
-| Rule-discovery research harness (18 promotable rules + 20 contest problems) | `[research/freeplay-rules/README.md](./research/freeplay-rules/README.md)`                                                                |
-| Sibling BrainLift on Brilliant.org                                          | `[BRAINLIFT.md](./BRAINLIFT.md)`                                                                                                          |
+| Freeplay PRD + as-built engine (§13 Implementation Status)                  | [`docs/PRD-competitive-freeplay.md`](./docs/PRD-competitive-freeplay.md)                                                                  |
+| Shipped verifier (DD + AR + length/ratio + minimality + by-symmetry)        | [`src/lib/freeplay/verify.ts`](./src/lib/freeplay/verify.ts)                                                                              |
+| Rule library (31 shipped rules: 13 core + 13 promoted + 5 ratio)            | [`rules.ts`](./src/lib/freeplay/rules.ts) + [`rules/`](./src/lib/freeplay/rules/) + [`lengths/rules/`](./src/lib/freeplay/lengths/rules/) |
+| Algebraic-reasoning tables (angles + lengths)                               | [`src/lib/freeplay/ar.ts`](./src/lib/freeplay/ar.ts) + [`lengths/lengthAR.ts`](./src/lib/freeplay/lengths/lengthAR.ts)                    |
+| Rule-discovery research harness (18 promotable rules + 20 contest problems) | [`research/freeplay-rules/README.md`](./research/freeplay-rules/README.md)                                                                |
+| Sibling BrainLift on Brilliant.org                                          | [`BRAINLIFT.md`](./BRAINLIFT.md)                                                                                                          |
 
 
 ### Learning science (the techniques we are betting on)
@@ -58,7 +58,7 @@
 1. A Freeplay puzzle presents three panels: **established facts** (left), a **fixed geometric figure** (center), and a **goal plus curator-authored equivalent reformulations** (right), with a **step builder** at the bottom. *(PRD §4.1)*
 2. A learner advances by **asserting a new fact together with the established facts it relies on** — "x is y *because we have z*." Naming the theorem is **not required**. *(PRD §3, §13.1)*
 3. The verifier accepts a step **iff** (a) the asserted fact is numerically true in the figure **and** (b) some rule derives it **in one step** from **exactly** the cited facts. *(`verify.ts`, PRD §13.1)*
-4. Rejections return one of three machine-distinguished reasons: `**not_true`** (false in the figure), `**unjustified**` (true but not derivable from the cited facts in one step), and `**unknown_premise**` (cited a fact that isn't established). *(PRD §6.3, §13.1)*
+4. Rejections return one of three machine-distinguished reasons: **`not_true`** (false in the figure), **`unjustified`** (true but not derivable from the cited facts in one step), and **`unknown_premise`** (cited a fact that isn't established). *(PRD §6.3, §13.1)*
 5. A **minimality / necessity check** rejects (`extraneous_premises`) if any cited fact can be dropped and the step still derives — so "cite everything" cannot cheat the checker. *(PRD §13.1)*
 6. The engine bounds reasoning to **one inference step**, so a learner cannot assert the goal directly on step 1; they must build a forward chain from givens. *(PRD §6.2–6.3)*
 7. On a win, the app renders an **assembled, human-readable proof** — the ordered chain, each line showing the engine-supplied rule name and the cited premises. *(PRD §4.3, §13.1)*
@@ -247,4 +247,4 @@ Distilled from this BrainLift — the inversions of `BRAINLIFT.md`'s appendix:
 
 ---
 
-*BrainLift v1.0 (Freeplay) — companion to `[BRAINLIFT.md](./BRAINLIFT.md)`. Thesis: the unit of feedback should be the reason, not the answer.*
+*BrainLift v1.0 (Freeplay) — companion to [`BRAINLIFT.md`](./BRAINLIFT.md). Thesis: the unit of feedback should be the reason, not the answer.*
