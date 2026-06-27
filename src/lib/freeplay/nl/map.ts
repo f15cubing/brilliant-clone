@@ -10,7 +10,7 @@
  * resolve against the established facts by `canonicalKey`.
  */
 import { aval, canonicalKey, rel, RELS, type RelName } from "../dsl";
-import { fstr, parseForm } from "../form";
+import { formToExpr, parseForm } from "../form";
 import { eqratio, type LFact } from "../lengths/dsl";
 import type { FactDescriptor } from "./types";
 
@@ -190,12 +190,13 @@ export function groundPremises(
 /**
  * Inverse of `descriptorToFact`: serialize an established `Fact` back to a
  * descriptor (used to give the translator context about what's already known).
- * Angle expressions are serialized with `fstr`; this is lossy for angle-token
- * forms but is only ever used as model context, never for verification.
+ * Angle expressions use `formToExpr` (the SAME `angle(A,B,C)` syntax `parseForm`
+ * accepts and the prompt asks for) — NOT `fstr`'s `\angle ABC` LaTeX — so the
+ * context the model mirrors round-trips cleanly back through `descriptorToFact`.
  */
 export function factToDescriptor(f: LFact): FactDescriptor {
   if (f.kind === "aval") {
-    return { kind: "aval", angle: [...f.angle], expr: fstr(f.form) };
+    return { kind: "aval", angle: [...f.angle], expr: formToExpr(f.form) };
   }
   if (f.kind === "eqratio") {
     // Lossless: there's no `Form` to stringify, unlike the `aval` branch.

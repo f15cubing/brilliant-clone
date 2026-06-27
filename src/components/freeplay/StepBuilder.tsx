@@ -12,7 +12,7 @@ import {
   type LFact,
   type RelName,
 } from "@/lib/freeplay/dsl";
-import { fstr, parseForm } from "@/lib/freeplay/form";
+import { formToExpr, parseForm } from "@/lib/freeplay/form";
 import type { FactEntry } from "@/lib/freeplay/proof";
 import {
   descriptorToFact,
@@ -226,7 +226,9 @@ export function StepBuilder({
     if (c.kind === "aval") {
       setKind("aval");
       setSlots([c.angle[0], c.angle[1], c.angle[2]]);
-      setExpr(fstr(c.form));
+      // Parse syntax (`angle(A,B,C)`), not `fstr` LaTeX, so re-submitting the
+      // structured builder (which calls `parseForm(expr)`) round-trips.
+      setExpr(formToExpr(c.form));
     } else if (c.kind === "eqratio") {
       // 8-slot ratio input (AB/CD = EF/GH).
       setKind("eqratio");

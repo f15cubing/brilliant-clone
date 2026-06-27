@@ -49,6 +49,9 @@ const SYSTEM_PROMPT = [
   "  the angle vertices.",
   "- aval: an angle VALUE. `angle` is 3 points (vertex in the MIDDLE) and `expr`",
   "  is a degree expression, e.g. \"180 - A/2 - B/2\", \"90\", or \"angle(B,I,A)\".",
+  "  Inside `expr`, write any angle ONLY as `angle(P,Q,R)` (vertex Q in the",
+  "  middle, comma-separated). NEVER use LaTeX or symbols like \"\\angle PQR\" or",
+  "  \"∠PQR\" — the established facts in context use this same `angle(P,Q,R)` form.",
   "- eqratio: a length PROPORTION. `points` is EXACTLY 8 points [A,B,C,D,E,F,G,H]",
   "  meaning AB/CD = EF/GH (the ratio of segment AB to CD equals EF to GH).",
   "  Segment endpoints are unordered (AB = BA). Use this for:",
@@ -130,6 +133,16 @@ const FEW_SHOTS = [
   "   }",
   "   The two lines named after \"on\" are `coll` premises — cite them; never leave a",
   "   stated premise as prose in `notes`.",
+  "",
+  "4) An angle VALUE — note `expr` uses `angle(A,O,C)`, NOT \"\\angle AOC\" or \"∠AOC\".",
+  "   Figure points include A,B,C,O.",
+  "   Statement: \"Since B, O, C are collinear, ∠AOB = 180 − ∠AOC.\"",
+  "   Output: {",
+  "     \"conclusion\": {\"kind\":\"aval\",\"angle\":[\"A\",\"O\",\"B\"],\"expr\":\"180 - angle(A,O,C)\"},",
+  "     \"premises\": [",
+  "       {\"kind\":\"rel\",\"name\":\"coll\",\"points\":[\"B\",\"O\",\"C\"],\"source\":\"B, O, C are collinear\"}",
+  "     ]",
+  "   }",
 ].join("\n");
 
 function buildMessages(req: TranslateRequest): LLMMessage[] {

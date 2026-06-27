@@ -6,7 +6,7 @@ import { factHoldsL } from "@/lib/freeplay/lengths/dsl";
 import { isGoal } from "@/lib/freeplay/proof";
 import { verify } from "@/lib/freeplay/verify";
 import { AngleAR } from "@/lib/freeplay/ar";
-import { constForm, fstr, parseForm } from "@/lib/freeplay/form";
+import { constForm, feq, formToExpr, fstr, parseForm } from "@/lib/freeplay/form";
 import { applySubst, parseSwaps } from "@/lib/freeplay/symmetry";
 import { rat } from "@/lib/freeplay/rational";
 import { getPuzzle } from "@/lib/freeplay/puzzles";
@@ -184,6 +184,23 @@ describe("angle arithmetic between angles (angle tokens)", () => {
     expect(fstr(parseForm("180 - angle(A,O,C)"))).toBe("180 - \\angle AOC");
     expect(fstr(parseForm("angle(C,O,A)"))).toBe("\\angle AOC"); // arms unordered
     expect(fstr(parseForm("angle(A,O,C)/2 + 30"))).toBe("30 + \\angle AOC/2");
+  });
+
+  it("formToExpr emits parse syntax (angle(A,B,C)) that round-trips through parseForm", () => {
+    // Machine serializer uses angle(...) calls, NOT fstr's \angle LaTeX, so it
+    // re-parses cleanly (the bug: factToDescriptor used to emit \angle).
+    expect(formToExpr(parseForm("180 - angle(A,O,C)"))).toBe("180 - angle(A,O,C)");
+    expect(formToExpr(parseForm("angle(C,O,A)"))).toBe("angle(A,O,C)"); // arms unordered
+    const e = formToExpr(parseForm("angle(A,O,C)/2 + 30"));
+    expect(e).not.toContain("\\angle");
+    expect(formToExpr(parseForm(e))).toBe(e); // idempotent round-trip
+  });
+
+  it("parseForm tolerates LaTeX/Unicode angle notation as a synonym for angle(...)", () => {
+    // Exactly the AI-parser mismatch from the bug report: "180 - \\angle ABC".
+    expect(feq(parseForm("180 - \\angle AOC"), parseForm("180 - angle(A,O,C)"))).toBe(true);
+    expect(feq(parseForm("∠AOC"), parseForm("angle(A,O,C)"))).toBe(true);
+    expect(feq(parseForm("\\angle A,O,C / 2"), parseForm("angle(A,O,C)/2"))).toBe(true);
   });
 
   it("numerically checks an angle-to-angle relation", () => {

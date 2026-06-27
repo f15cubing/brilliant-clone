@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { canonicalKey, rel } from "../../dsl";
+import { aval, canonicalKey, rel } from "../../dsl";
+import { parseForm } from "../../form";
 import { eqratio } from "../../lengths/dsl";
 import {
   descriptorToFact,
@@ -65,6 +66,21 @@ describe("descriptorToFact", () => {
     } catch (e) {
       expect((e as MapError).code).toBe("bad_expr");
     }
+  });
+
+  it("tolerates a LaTeX angle expr the AI mirrors from context (180 - \\angle AOB)", () => {
+    // Regression for the format mismatch: the AI sometimes emits `\angle ...`
+    // (the display syntax) instead of `angle(...)`. descriptorToFact must still
+    // lower it to the SAME fact as the canonical parse syntax would.
+    const latex = descriptorToFact(
+      { kind: "aval", angle: ["A", "O", "B"], expr: "180 - \\angle AOC" },
+      ["A", "O", "B", "C"],
+    );
+    const canonical = descriptorToFact(
+      { kind: "aval", angle: ["A", "O", "B"], expr: "180 - angle(A,O,C)" },
+      ["A", "O", "B", "C"],
+    );
+    expect(canonicalKey(latex)).toBe(canonicalKey(canonical));
   });
 
   it("rejects an unknown relation → unknown_relation", () => {
@@ -191,6 +207,23 @@ describe("matchPremises", () => {
 describe("factToDescriptor", () => {
   it("round-trips a relation fact through descriptorToFact", () => {
     const f = rel("eqangle", ["A", "P", "B", "A", "Q", "B"]);
+    const back = descriptorToFact(factToDescriptor(f), POINTS);
+    expect(canonicalKey(back)).toBe(canonicalKey(f));
+  });
+
+  it("serializes an aval's expr in parse syntax (angle(...)), not \\angle LaTeX", () => {
+    // The context fed to the AI must use the SAME syntax parseForm accepts, so
+    // the model mirrors `angle(A,O,P)` rather than the unparseable `\angle AOP`.
+    const f = aval(["A", "O", "B"], parseForm("180 - angle(A,O,P)"));
+    const d = factToDescriptor(f);
+    expect(d.kind).toBe("aval");
+    if (d.kind !== "aval") throw new Error("expected aval");
+    expect(d.expr).toBe("180 - angle(A,O,P)");
+    expect(d.expr).not.toContain("\\angle");
+  });
+
+  it("round-trips an aval fact through descriptorToFact", () => {
+    const f = aval(["A", "O", "B"], parseForm("180 - angle(A,O,P)"));
     const back = descriptorToFact(factToDescriptor(f), POINTS);
     expect(canonicalKey(back)).toBe(canonicalKey(f));
   });

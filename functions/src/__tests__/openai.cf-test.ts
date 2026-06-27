@@ -69,6 +69,25 @@ describe("buildJsonSchema", () => {
   });
 });
 
+describe("angle expression format (prompt)", () => {
+  it("requires angle(...) parse syntax in `expr` and forbids \\angle LaTeX", async () => {
+    const client = fakeClient({
+      conclusion: { kind: "rel", name: "eqangle", points: ["A", "P", "B", "A", "Q", "B"] },
+      premises: [],
+    });
+    await translateWithLLM(client, req, "m");
+    const call = (client.createStructured as unknown as { mock: { calls: LLMRequest[][] } })
+      .mock.calls[0][0];
+    const prompt = call.messages.map((m) => m.content).join("\n");
+    // Positive: the `angle(P,Q,R)` form is named in both the vocab and a few-shot.
+    expect(prompt).toContain("angle(P,Q,R)");
+    expect(prompt).toContain('"180 - angle(A,O,C)"');
+    // Negative: the model is told NOT to emit the display/LaTeX angle syntax.
+    expect(prompt).toMatch(/NEVER use LaTeX/i);
+    expect(prompt).toContain("\\angle");
+  });
+});
+
 describe("translateWithLLM", () => {
   it("parses + re-validates a good structured response", async () => {
     const client = fakeClient({

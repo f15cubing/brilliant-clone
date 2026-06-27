@@ -49,9 +49,18 @@ export function decodeAngle(key: string): [string, string, string] {
   return [x, b, z];
 }
 
+/** Display label for an angle token: KaTeX, e.g. `\angle ABC` (vertex middle). */
 const angleTokenLatex = (key: string): string => {
   const [x, b, z] = decodeAngle(key);
   return `\\angle ${x}${b}${z}`;
+};
+
+/** Machine label for an angle token: parse syntax, e.g. `angle(A,B,C)`. The
+ * inverse of `parseAngleCall`, so `parseForm(formToExpr(f))` round-trips and,
+ * unlike `\angle ABC`, stays unambiguous for multi-character point labels. */
+const angleTokenCall = (key: string): string => {
+  const [x, b, z] = decodeAngle(key);
+  return `angle(${x},${b},${z})`;
 };
 
 function clean(v: Record<string, Rat>): Record<string, Rat> {
@@ -99,9 +108,8 @@ export function fevalNumeric(a: Form, vals: Record<string, number>): number {
   return s;
 }
 
-function termStr(coeff: Rat, name: string): string {
+function termStr(coeff: Rat, label: string): string {
   // coeff != 0 guaranteed
-  const label = isAngleToken(name) ? angleTokenLatex(name) : name;
   const neg = coeff.n < 0;
   const n = Math.abs(coeff.n);
   const d = coeff.d;
@@ -111,17 +119,35 @@ function termStr(coeff: Rat, name: string): string {
   return (neg ? "-" : "+") + mag;
 }
 
-/** Human/KaTeX-friendly string, e.g. "180 - A/2 - B/2" or "A/2 + B/2". */
-export function fstr(a: Form): string {
+/**
+ * Serialize a form, rendering angle tokens via `angleLabel`. The `fstr`/`formToExpr`
+ * pair share this so the only difference between display and machine output is how
+ * an angle is written (`\angle ABC` vs `angle(A,B,C)`).
+ */
+function serializeForm(a: Form, angleLabel: (key: string) => string): string {
   const parts: string[] = [];
   if (!risZero(a.c)) parts.push((a.c.n < 0 ? "-" : "+") + rstr({ n: Math.abs(a.c.n), d: a.c.d }));
-  for (const k of Object.keys(a.v).sort()) parts.push(termStr(a.v[k], k));
+  for (const k of Object.keys(a.v).sort()) {
+    parts.push(termStr(a.v[k], isAngleToken(k) ? angleLabel(k) : k));
+  }
   if (parts.length === 0) return "0";
   // drop a leading '+'
   const first = parts[0].startsWith("+") ? parts[0].slice(1) : parts[0];
   const rest = parts.slice(1).map((p) => (p.startsWith("-") ? ` - ${p.slice(1)}` : ` + ${p.slice(1)}`));
   return first + rest.join("");
 }
+
+/** Human/KaTeX-friendly string, e.g. "180 - A/2 - B/2" or "180 - \angle AOC". */
+export const fstr = (a: Form): string => serializeForm(a, angleTokenLatex);
+
+/**
+ * Machine-friendly string in the SAME syntax `parseForm` accepts, e.g.
+ * "180 - angle(A,O,C)". Use this (not `fstr`) anywhere a serialized form must be
+ * re-parsed — e.g. the AI translator context (`factToDescriptor`) and the editor
+ * pre-fill — so the round-trip `parseForm(formToExpr(f))` stays faithful instead
+ * of leaking LaTeX (`\angle …`) that `parseForm` cannot read.
+ */
+export const formToExpr = (a: Form): string => serializeForm(a, angleTokenCall);
 
 // ---- parser -------------------------------------------------------------
 
@@ -150,6 +176,27 @@ function vdiv(a: Val, b: Val): Val {
 }
 
 type Tok = { t: "num"; v: number } | { t: "id"; v: string } | { t: "op"; v: string };
+
+/**
+ * Rewrite display angle notation into the canonical `angle(A,B,C)` call so a
+ * producer that speaks LaTeX/Unicode (the AI translator, or `fstr` output that
+ * leaked into an editable field) still parses. Handles `\angle ABC`, `∠ABC`, and
+ * comma-separated `\angle A,B,C`. A bare run of labels (`ABC`) is split into
+ * single characters — the standard single-letter case; multi-letter labels must
+ * be comma-separated to stay unambiguous (which is exactly what `formToExpr`
+ * emits), otherwise the resulting arity error is surfaced by `parseAngleCall`.
+ */
+function normalizeAngleNotation(input: string): string {
+  return input.replace(
+    /(?:\\angle|∠)\s*([A-Za-z0-9]+(?:\s*,\s*[A-Za-z0-9]+)*)/g,
+    (_match, body: string) => {
+      const labels = body.includes(",")
+        ? body.split(",").map((s) => s.trim()).filter(Boolean)
+        : body.split("");
+      return `angle(${labels.join(",")})`;
+    },
+  );
+}
 
 function tokenize(s: string): Tok[] {
   const toks: Tok[] = [];
@@ -186,7 +233,7 @@ function tokenize(s: string): Tok[] {
 
 /** Parse a linear expression (integers, + - * /, parens, variable names). */
 export function parseForm(input: string): Form {
-  const toks = tokenize(input);
+  const toks = tokenize(normalizeAngleNotation(input));
   let pos = 0;
   const peek = (): Tok | undefined => toks[pos];
   const eat = (): Tok => {
