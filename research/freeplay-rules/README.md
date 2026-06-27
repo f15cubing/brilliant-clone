@@ -4,7 +4,8 @@ Isolated R&D for **new deduction rules** for the freeplay geometry DDAR engine
 (`src/lib/freeplay/`). Nothing here is wired into the website — this folder is
 outside `tsconfig.json`'s `include`, so it is never bundled or deployed. Rules
 are prototyped + tested here, then (separately, if desired) promoted into
-`src/lib/freeplay/rules.ts`.
+`src/lib/freeplay/rules/` (angle/incidence) or `src/lib/freeplay/lengths/rules/`
+(length/ratio) — both already received their first wave of promotions.
 
 See [`CONTEXT.md`](./CONTEXT.md) for the full engine brief and conventions.
 
@@ -33,10 +34,16 @@ research/freeplay-rules/
    └─ __tests__/         per-problem replay tests
 ```
 
-**Totals:** 14 promotable rules (+ Reim, a subsumed example) and 13 contest
-play-test problems, all covered by the research Vitest suite. 11 of the 13
-problems verify end-to-end; the remaining 2 (Simson line, plus the external-
-division note) document precisely-characterized open gaps. See the tables below.
+**Totals:** 18 promotable rules (13 angle/incidence + 5 length/ratio) plus Reim
+(a subsumed example), and 20 contest play-test problems, all covered by the
+research Vitest suite. **All 20 problems now verify end-to-end** — the Simson line
+was closed by `coincident_direction_collinear` and IMO 2019 P2 by
+`concyclic_from_directed_angles`, and all 13 angle/incidence rules plus the 5 ratio
+rules have since been **promoted into the shipped engine** (`src/lib/freeplay/rules/`
+and `lengths/rules/`). The engine's hard boundaries — numeric-constant ratios,
+signed-ratio Menelaus/Ceva, pole–polar, radical axis — are documented as precise
+negative results in [`findings/unsolved-rules-plan.md`](./findings/unsolved-rules-plan.md),
+not failing problems. See the tables below.
 
 ## Key finding
 
@@ -47,7 +54,7 @@ Therefore genuinely new rules must produce what AR cannot:
 1. **Lengths / congruence** (`cong`) — there is no length table in AR.
 2. **Ratios / similarity** — not in the base DSL (needs a DSL extension).
 3. **Non-angle projective incidence** — collinearity/concurrence that is not
-   reducible to angle-chasing (Pappus is shipped; Pascal is open).
+   reducible to angle-chasing (Pappus and Pascal are both shipped).
 
 ## Status
 
@@ -71,6 +78,9 @@ Therefore genuinely new rules must produce what AR cannot:
 | SAS similar triangles | `lengths/rules/sas_similarity.ts` | `eqratio` + `eqangle` ×2 | yes (ratio table) | ✅ verified (9 tests) |
 | power of a point (chords/secants) | `lengths/rules/power_of_a_point.ts` | `eqratio` ×2 (PA·PB=PC·PD) | yes (one-step; subsumes the 3-step proof) | ✅ verified (10 tests) |
 | concyclic from equal DIRECTED angles | `rules/concyclic_directed_angles.ts` | `cyclic` | yes (directed converse-inscribed; AR proves the identity but can't emit `cyclic`, and `converse_inscribed` is undirected/same-side only) | ✅ verified (8 tests) — **promoted** |
+| coincident direction ⇒ collinear | `rules/coincident_direction_collinear.ts` | `coll` | yes (packages a proven shared direction back into incidence; AR consumes `coll` but never emits it) | ✅ verified (8 tests) — **promoted** (closes Simson) |
+| Thales / right angle in semicircle | `rules/thales_diameter.ts` | `perp` | yes (diameter ⇒ 90°; AR ignores `cong`/`midp`) | ✅ verified — **promoted** |
+| tangent-secant power | `lengths/rules/tangent_secant_power.ts` | `eqratio` (MA² = MB·MR) | yes (ratio table; tangent/secant power) | ✅ verified — **promoted** |
 
 ### Length/ratio subsystem (`lengths/`)
 
@@ -106,8 +116,15 @@ table cannot reach.
 | Isosceles median bisects apex angle | `problems/shared_side_congruence_problem.ts` | `midpoint_congruence` → `shared_side_congruence` | ✅ goal reached |
 | Angle Bisector Theorem (Euclid VI.3) | `problems/angle_bisector_theorem.ts` | AR → `isosceles` → `thales_basic_proportionality` → `LengthAR` | ✅ goal reached (no new rule) |
 | IMO 2018 P1 (DE ∥ FG) | `problems/imo_2018_p1.ts` | AR + `isosceles` + `concyclic_equal_radii` + Reim | ✅ goal reached end-to-end (Batch 7 closed the gap) |
-| Simson–Wallace line (D,E,F collinear) | `problems/simson_line.ts` | AR + `converse_inscribed`; **blocked at `coll` from `para`** | ⚠️ angle content fully proven; one gap (see below) |
+| Simson–Wallace line (D,E,F collinear) | `problems/simson_line.ts` | AR + `converse_inscribed` + `coincident_direction_collinear` | ✅ goal reached end-to-end (Gap #8 closed) |
 | IMO 2019 P2 (P,P1,Q,Q1 concyclic) | `problems/imo_2019_p2.ts` | Pappus + `concyclic_from_directed_angles` + `concyclic_merge` | ✅ goal reached end-to-end (Batch 8 closed the gap) |
+| Arc-midpoint / trillium lemma (MB = MC) | `problems/arc_midpoint_lemma.ts` | AR + `isosceles` | ✅ goal reached |
+| JBMO Shortlist 2004 G1 (∠MBQ = ∠NBP) | `problems/jbmo_shortlist_2004_g1.ts` | `isosceles` ×2 + AR | ✅ goal reached |
+| JBMO Shortlist 2015 G1 (ABDE cyclic) | `problems/jbmo_shortlist_2015_g1.ts` | AR (tangent-chord) + `converse_inscribed` | ✅ goal reached |
+| Squares on two sides (BG = CE) | `problems/squares_on_two_sides.ts` | AR + `sas_shared_vertex` | ✅ goal reached |
+| IMO Shortlist 2010 G1 (AP = AQ) | `problems/imo_shortlist_2010_g1.ts` | AR ×4 + `converse_inscribed` + `isosceles` | ✅ goal reached |
+| JBMO Shortlist 2010 G3 — power of a point (AD·AB = AE·AC) | `problems/jbmo_shortlist_2010_g3_pop.ts` | `power_of_a_point` (length subsystem) | ✅ goal reached (reduced to its length core) |
+| JBMO Shortlist 2005 G2 — tangent power (MA² = MB·MR) | `problems/jbmo_shortlist_2005_g2_tangent.ts` | `tangent_secant_power` (length subsystem) | ✅ goal reached (reduced to its tangent-power core) |
 
 ### Gaps discovered (feed later batches)
 
@@ -132,22 +149,17 @@ table cannot reach.
 7. ~~**Concyclic from equal radii** (`cong`-star ⇒ `cyclic`)~~ — ✅ done
    (`rules/concyclic_equal_radii.ts`, the circle-producing dual of
    `perp_bisector`). This closed **IMO 2018 P1 end-to-end**.
-8. **Coincident-direction ⇒ collinear** (`para(X,A,X,B) ⇒ coll(X,A,B)`) — NEW,
-   found by the Simson–Wallace play-test. AR *consumes* `coll` (to merge line
-   directions) but `AngleAR.equation()` returns `null` for a `coll` candidate, so
-   AR never *emits* collinearity; the only `coll`-producers are the projective
-   `pappus`/`pascal`, which don't apply here. The Simson feet are proven
-   codirectional (`para(D,E,D,F)`) yet `coll(D,E,F)` can't be packaged. A one-line
-   bridge rule (two segments from a shared point that are parallel ⇒ collinear)
-   would close the Simson line end-to-end. **Top candidate for the next batch.**
-   Distinct from the "non-angle projective incidence" item in *Key finding* above:
-   there the collinearity isn't angle-reducible; here it fully reduces to an angle
-   identity AR already proves — only the `coll` packaging is missing.
-9. **Robustness (production `src/`, not a research gap):** the shipped verifier's
-   `canonicalKey`/`isAmong` path *throws* (not just rejects) when handed an
-   `eqratio`-shaped premise, since that fact type isn't in the shipped DSL. Harmless
-   today (no ratios ship), but worth a guard if `eqratio` is ever promoted. (Found
-   by the SAS-similarity play-test.)
+8. ~~**Coincident-direction ⇒ collinear** (`para(X,A,X,B) ⇒ coll(X,A,B)`)~~ — ✅
+   **done** (`rules/coincident_direction_collinear.ts`, promoted). AR *consumes*
+   `coll` but `AngleAR.equation()` returns `null` for a `coll` candidate, so AR
+   never *emits* collinearity; this one-line bridge packages a proven shared
+   direction (`para(D,E,D,F)`) into `coll(D,E,F)` and **closed the Simson line
+   end-to-end** (see [`findings/simson-line-closure.md`](./findings/simson-line-closure.md)).
+9. ~~**Robustness: `canonicalKey` throws on an `eqratio`-shaped premise**~~ — ✅
+   **resolved.** `eqratio` is now a first-class shipped fact (`EqRatio` in the
+   `LFact` union), and `canonicalKey`/`isAmong`/`factEqual`/`factLabel` all handle it
+   explicitly, so a ratio premise is keyed correctly instead of crashing the `aval`
+   branch. (Closed when the length/ratio subsystem was promoted into `src/`.)
 
 ## Running
 

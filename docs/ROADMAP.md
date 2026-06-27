@@ -26,13 +26,31 @@ accepts a step only if it holds in **all** of them — closing the "true in one
 diagram by accident" gap. This construction model is the foundation for the
 planned **movable freeplay figures** ([`design/MOVABLE_FIGURES.md`](./design/MOVABLE_FIGURES.md)).
 
-**Vitest test suite.** Added Vitest (`npm test`). The Freeplay engine is covered
-by `src/lib/freeplay/__tests__/`, and an isolated rule-discovery lab at
-`research/freeplay-rules/` adds an extensive suite of candidate rules, a parallel
-length/ratio subsystem (`eqratio` + `LengthAR`), and **replayed contest problems**
-(incl. IMO 2018 P1 proven end-to-end, the Angle Bisector Theorem, power-of-a-point,
-and a Simson-line attempt that pinpoints the next engine gap). The lab is kept
-outside the shipped bundle (excluded from `tsconfig` include).
+**Vitest test suite (now in CI).** Added Vitest (`npm test`), wired into CI. It
+covers the Freeplay engine (`src/lib/freeplay/__tests__/`), the **course-app pure
+logic** (grading, geometry math, the `recordAttempt`/`reconcile`/`achievements`
+progress logic), and an isolated rule-discovery lab at `research/freeplay-rules/`
+with an extensive suite of candidate rules, a parallel length/ratio subsystem
+(`eqratio` + `LengthAR`), and **replayed contest problems** (incl. IMO 2018 P1, the
+Angle Bisector Theorem, power-of-a-point, and the **now-closed Simson–Wallace
+line**). The lab is kept outside the shipped bundle (excluded from `tsconfig`
+include).
+
+**Length/ratio subsystem + rule promotion.** Promoted **13 research rules** into the
+shipped angle/incidence engine (`src/lib/freeplay/rules/`, e.g. `pascal`,
+`sas_congruence`, `thales_diameter`, `concyclic_from_directed_angles`,
+`coincident_direction_collinear`) and shipped a **length/ratio layer**
+(`lengths/`: `eqratio` facts, `LengthAR`, and 5 `RATIO_RULES` incl.
+`power_of_a_point` and `sas_similarity`) — **31 rules total**. The catalog grew to
+**14 curated puzzles** (intro/core/challenge, with literal JBMO/IMO-shortlist
+citations), and **IMO 2019 P2 now verifies end-to-end**.
+
+**Natural-language step input + proof archive.** Shipped an NL step path
+(`src/lib/freeplay/nl/` + `functions/`): a step typed in English is translated by a
+deterministic offline mock (default) or an OpenAI-backed Cloud Function (off by
+default; signed-in only, Auth + App Check, key server-side) and re-checked by the
+**same** `verify()`. On a win, the full compiled proof is persisted (Firestore /
+`localStorage`).
 
 Engineering-hygiene baseline established (see commit history):
 
@@ -59,15 +77,13 @@ Engineering-hygiene baseline established (see commit history):
 
 Low effort, high leverage; mostly engineering hygiene and small UX fills.
 
-- [ ] **Widen test coverage to the course-app pure logic + wire `test` into CI.**
-  *What:* Vitest now exists and covers the Freeplay engine, but the
-  deterministic, high-risk course modules are still untested —
-  `grading/algebra.ts` (`latexToMathExpr`, `isAlgebraicallyEquivalent`),
-  `geometry/measure.ts`, `circleAngles.ts`, `parallelAngles.ts`, and the
-  `recordAttempt` reducer in `ProgressContext`. Add tests for those, then add a
-  `test` step to `.github/workflows/ci.yml`. _Why:_ correctness of the whole app
-  hinges on this math; these functions are pure and trivial to test, and CI
-  should fail on regressions (the runner is already in place).
+- [ ] **Add component / integration tests.** *What:* the pure logic is now
+  well-covered and `npm test` runs in CI (see Recently completed), but React
+  components, hooks, and end-to-end flows (`ProblemPlayer`, `FreeplayArena`, the
+  `StepBuilder`, auth/progress wiring) have no automated tests yet — only the
+  Playwright demo-recording specs. Add React Testing Library / Playwright
+  assertions for the critical flows. _Why:_ the highest-risk *math* is tested;
+  the remaining regression risk is in the UI glue.
 
 - [ ] **Surface the data already collected.** *What:* on the lesson-complete or
   Dashboard view, show per-problem `attempts` / time from `problemStats`
@@ -91,28 +107,16 @@ Low effort, high leverage; mostly engineering hygiene and small UX fills.
 Multi-file features that materially improve learning or extensibility, building
 on existing abstractions.
 
-- [ ] **Promote vetted Freeplay rules + add puzzles.** *What:* graduate the
-  rules validated in `research/freeplay-rules/` into `src/lib/freeplay/rules.ts`
-  (congruence/length bridges, similarity + the `eqratio`/`LengthAR` ratio layer,
-  Pascal, power-of-a-point, "equal radii ⇒ concyclic"), and author new Freeplay
-  puzzles that exercise them. _Why:_ the rules are already unit- and
-  play-tested against contest problems; promotion is mostly a copy + a soundness
-  re-review, and each new rule unlocks a class of provable puzzles.
-- [ ] **Close the next DDAR engine gaps.** *What:* the research lab has
-  pinpointed concrete, well-scoped gaps — top of the list is a
-  "coincident-direction ⇒ collinear" bridge (`para(X,A,X,B) ⇒ coll(X,A,B)`),
-  which would close the Simson line end-to-end; then numeric-constant ratios
-  (a `log 2` generator for `LengthAR`) and signed-ratio Menelaus/Ceva. _Why:_
-  each is a small rule with an outsized increase in the set of provable
-  olympiad problems; see `research/freeplay-rules/README.md` for the gap list.
-
-- [ ] **Movable freeplay figures.** *What:* make the freeplay board draggable —
-  render each puzzle's `freePoints` as gliders/free points, recompute the
-  dependent points live via the existing `construct(rng)`, and re-verify the
-  in-progress proof against the dragged position (surfacing "valid across N
-  sampled positions"). _Why:_ the construction model and multi-case verifier are
-  already in place; this is the rendering/UX half. Full staged plan in
-  [`design/MOVABLE_FIGURES.md`](./design/MOVABLE_FIGURES.md).
+- [ ] **Close the remaining DDAR engine gaps.** *What:* the first wave of
+  promotions has landed (13 angle/incidence rules incl. the
+  "coincident-direction ⇒ collinear" Simson bridge, plus the `eqratio`/`LengthAR`
+  ratio layer with power-of-a-point, similarity, and tangent-secant power — see
+  Recently completed). The remaining, research-characterized gaps are: a
+  **shared-harness change** to feed `eqratio` premises into `rule.derive` (unlocks
+  **converse power-of-a-point ⇒ `cyclic`**), **numeric-constant ratios** (a `log 2`
+  generator for `LengthAR`), and a **signed** length table for **Menelaus/Ceva** and
+  external division. _Why:_ each unlocks a class of provable olympiad problems; see
+  `research/freeplay-rules/findings/unsolved-rules-plan.md`.
 
 - [ ] **Movable freeplay figures.** *What:* make the freeplay board draggable on
   the construction model the verifier already uses — render each puzzle's
@@ -204,9 +208,9 @@ Bigger bets that change the product's scope or moat.
 
 A pragmatic order that front-loads safety, then value:
 
-1. **Stabilize:** ~~fix lint → add CI → initial commit~~ ✅ *(done — see Recently
-  completed)*. Remaining: **add Vitest for the pure logic** and wire a `test`
-  step into CI.
+1. **Stabilize:** ~~fix lint → add CI → initial commit → add Vitest for the pure
+  logic + wire `test` into CI~~ ✅ *(done — see Recently completed)*. Remaining:
+  **component / integration tests** for the UI glue.
 2. **Extend cheaply:** surface `problemStats` in the UI → author the two stretch
   lessons (no engine changes).
 3. **Deepen learning:** review/spaced-repetition mode → deliberate

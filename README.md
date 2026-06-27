@@ -4,7 +4,7 @@
 
 A Brilliant-style interactive learning app for introductory geometry (Angle Chasing). Every problem features a draggable geometric construction — drag the triangle and watch the theorem hold. A second **Competitive Freeplay** mode lets you build machine-checked, multi-step proofs validated by a from-scratch DDAR proof-checker.
 
-> **Status:** functional MVP — one full course (5 lessons × 5 problems), three answer types, auth, and progress sync, **plus a Competitive Freeplay proof mode** backed by a TypeScript DDAR engine. Engineering baseline in place (lint + CI + 0 audit vulnerabilities) and a **Vitest suite** covering the Freeplay engine; widening test coverage to the course app and wiring `npm test` into CI is the main remaining gap. See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for an honest breakdown.
+> **Status:** functional MVP — one full course (7 lessons, 39 problems), three answer types, auth, and progress sync, **plus a Competitive Freeplay proof mode** backed by a TypeScript DDAR engine (31 deduction rules incl. a length/ratio layer, 14 curated puzzles, optional natural-language step input, and a per-user proof archive). Engineering baseline in place (lint + CI + 0 audit vulnerabilities) and a **Vitest suite** wired into CI that covers the Freeplay engine, the rule lab, and the course-app pure logic; component/UI tests are the main remaining gap. See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for an honest breakdown.
 
 ## Documentation
 
@@ -12,9 +12,12 @@ A Brilliant-style interactive learning app for introductory geometry (Angle Chas
 - [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — tech stack, architecture, full feature inventory, and current limitations.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — prioritized near-/mid-/long-term expansion opportunities.
 - [`docs/PRD-competitive-freeplay.md`](docs/PRD-competitive-freeplay.md) — the Competitive Freeplay proof mode + DDAR engine design.
+- [`docs/FREEPLAY_EXPLAINER.md`](docs/FREEPLAY_EXPLAINER.md) — a plain-language explainer of the DDAR proof-checker and the natural-language step parser (start here).
+- [`docs/DDAR_ENGINE.md`](docs/DDAR_ENGINE.md) — the authoritative developer reference for the DDAR engine internals.
 - [`research/freeplay-rules/README.md`](research/freeplay-rules/README.md) — the isolated lab for discovering & testing new DDAR deduction rules against contest problems.
 - [`PRD.md`](PRD.md) — original product requirements.
 - [`BRAINLIFT.md`](BRAINLIFT.md) — research on Brilliant.org and the learning science behind the design.
+- [`BRAINLIFT-freeplay.md`](BRAINLIFT-freeplay.md) — the pedagogy thesis behind Freeplay (grading reasons, not answers).
 
 ## Stack
 
@@ -23,8 +26,8 @@ A Brilliant-style interactive learning app for introductory geometry (Angle Chas
 - **MathLive + math.js** — algebraic answer input and equivalence checking
 - **KaTeX** — math rendering
 - **Firebase Auth + Firestore** — accounts and progress persistence
-- **Vitest** — test suite (`npm test`); covers the Freeplay DDAR engine + rule lab
-- **Custom DDAR proof-checker** (`src/lib/freeplay/`) — from-scratch deductive-database + directed-angle algebra for Competitive Freeplay
+- **Vitest** — test suite (`npm test`, in CI); covers the Freeplay DDAR engine, the rule lab, and the course-app pure logic
+- **Custom DDAR proof-checker** (`src/lib/freeplay/`) — from-scratch deductive-database + directed-angle algebra (`AngleAR`) + a length/ratio table (`LengthAR`) for Competitive Freeplay
 
 ## Quick start
 
@@ -93,22 +96,29 @@ npm run deploy   # builds, then deploys hosting via firebase-tools
 
 ## Course content
 
-5 lessons, 5 problems each:
+7 lessons, 39 problems:
 
-1. Angles in a Triangle
-2. Parallel Lines & Transversals
-3. The Inscribed Angle Theorem
-4. Cyclic Quadrilaterals
-5. Incenter & Excenter Lemma
+1. Angles in a Triangle (5)
+2. Parallel Lines & Transversals (5)
+3. The Inscribed Angle Theorem (4)
+4. Cyclic Quadrilaterals (5)
+5. The Incenter–Excenter Lemma (10)
+6. The Orthocenter Exists (6)
+7. Orthocenter = Incenter of the Orthic Triangle (4)
 
 ## Competitive Freeplay (proof mode)
 
-`/freeplay` turns the app into a proof environment. Each puzzle gives a fixed
-figure, a set of premises, and a goal; you build a proof step by step by citing
-facts and applying named theorems. Every step is machine-checked by a
-from-scratch **DDAR** proof-checker (`src/lib/freeplay/`): a step is accepted
-only if it is numerically true in the figure and follows from **exactly** the
-cited premises by a single deduction rule or directed-angle algebra step.
+`/freeplay` turns the app into a proof environment. Each of the **14 curated
+puzzles** (intro → core → challenge, incl. literal contest citations up to
+IMO 2019 P2) gives a fixed figure, a set of premises, and a goal; you build a
+proof step by step by citing facts and applying named theorems. Every step is
+machine-checked by a from-scratch **DDAR** proof-checker (`src/lib/freeplay/`): a
+step is accepted only if it is numerically true across **several independent
+realizations** of the figure and follows from **exactly** the cited premises by a
+single deduction rule or one angle/length algebra step. You can build steps with
+the structured builder or, optionally, by typing them in **natural language** (a
+deterministic offline mock by default; an OpenAI-backed path is available behind a
+flag) — the translation is always re-checked by the same verifier.
 
 New deduction rules are not developed directly in `src/`. They are prototyped,
 unit-tested, and play-tested against real IMO/USAMO problems in the isolated

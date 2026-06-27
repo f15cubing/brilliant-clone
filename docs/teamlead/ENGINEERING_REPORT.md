@@ -1,7 +1,7 @@
 # Engineering Report & Roadmap — Freeplay / DDAR Session
 
 **Branch:** `teamlead/integration` (primary branch never touched)
-**Health at report time:** root **690 tests / 85 files** green · functions **23 tests / 3 files** green · `tsc --noEmit` clean (root + functions) · `npm run lint` **0 errors** (3 pre-existing `react-refresh` warnings).
+**Health (current):** root **785 tests / 89 files** green · functions **27 tests / 3 files** green · `tsc --noEmit` clean (root + functions) · `npm run lint` **0 errors** (3 pre-existing `react-refresh` warnings).
 
 This report covers the work delivered this session, the resulting architecture, the security posture, the mathematical results (including honest negative results), and a prioritized roadmap. Two operational sections you asked for are at the end:
 
@@ -48,7 +48,7 @@ The repository is left substantially better understood, better documented, more 
 ### DDAR proof-checker (`src/lib/freeplay/`)
 The checker accepts a step only if it is **numerically true across several independent realizations** of the figure **and** follows from **exactly** the cited premises by a single deduction rule or one algebra step. Each puzzle ships a parametric `construct(rng)` (free points placed from a seeded RNG, dependent points derived) that re-samples generic, givens-preserving diagrams; `realize.ts` validates each sample and `verify()` requires a step to hold in **every** one — so a step that is only coincidentally true/derivable in the canonical figure is rejected (`not_true`/`unjustified`), and a premise counts as extraneous only if droppable in **all** realizations. (This same construction model is the foundation for the planned movable freeplay figures; see [`docs/design/MOVABLE_FIGURES.md`](../design/MOVABLE_FIGURES.md).) Two reasoning layers:
 
-- **Angle / incidence layer** — `Fact`s (`coll`, `para`, `perp`, `cong`, `cyclic`, `midp`, `eqangle`) + directed-angle algebra (`AngleAR`). Rules live in `src/lib/freeplay/rules/` and are composed via `PROMOTED_RULES`. (14 rule modules, incl. `thales_diameter`, `concyclic_directed_angles`, `pascal`, `sss_congruence`, `perp_bisector`, …)
+- **Angle / incidence layer** — `Fact`s (`coll`, `para`, `perp`, `cong`, `cyclic`, `midp`, `eqangle`) + directed-angle algebra (`AngleAR`). **26 rules** = 13 hand-written `CORE_RULES` (`rules.ts`) + 13 `PROMOTED_RULES` (`rules/`, incl. `thales_diameter`, `concyclic_directed_angles`, `pascal`, `sss_congruence`, `perp_bisector`, …), composed as `RULES = [...CORE_RULES, ...PROMOTED_RULES]`.
 - **Length / ratio layer** — `EqRatio` facts unioned with `Fact` into `LFact`; `LengthAR` reasons over unsigned `log|PQ|` generators. Rules in `src/lib/freeplay/lengths/rules/` are composed via `RATIO_RULES` (`power_of_a_point`, `sas_similarity`, `similar_triangles_aa`, `tangent_secant_power`, `thales_basic_proportionality`).
 
 `verify.ts` composes `ALL_RULES = [...RULES, ...RATIO_RULES]`. Critical soundness invariant honored this session: rules must require their premises **as genuinely cited facts** (via `isAmong`/`isAmongL`), never read a conclusion off coordinates — guarded by anti-trap regression tests (e.g. the `sas_similarity` fix and the `thales_diameter` "drop a premise even though ∠=90° still holds" test).
@@ -200,7 +200,7 @@ Everything below works in **guest mode** (no Firebase needed) unless noted. The 
 
 ### Verify everything is green locally
 ```bash
-npm test                         # root engine suite (690 tests)
-npm --prefix functions test      # function suite (23 tests)
+npm test                         # root engine suite (785 tests)
+npm --prefix functions test      # function suite (27 tests)
 npm run lint                     # 0 errors
 ```

@@ -1,13 +1,16 @@
 # Design Spec v2 — NL Step Input: OpenAI confirmed + `eqratio` extension
 
-_Status: DESIGN — companion to [`NL_TO_DDAR.md`](./NL_TO_DDAR.md) (the v1 approved
-design). This v2 doc (a) confirms the open product decisions left in v1 §10, and
-(b) extends the natural-language contract to cover ratio/similarity sentences now
-that the `eqratio` length subsystem and the StepBuilder 8-point ratio input have
-**shipped** on `teamlead/integration`. No code changes this round — this is a
-plan. Companions: [`../DDAR_ENGINE.md`](../DDAR_ENGINE.md) (engine contract),
-[`../SECURITY_AUDIT.md`](../SECURITY_AUDIT.md) (App Check = finding #9, a
-prerequisite)._
+_Status: **IMPLEMENTED** (this v2 NL ratio extension has shipped). Companion to
+[`NL_TO_DDAR.md`](./NL_TO_DDAR.md) (the v1 design). This v2 doc (a) confirmed the
+open product decisions left in v1 §10, and (b) extended the natural-language
+contract to cover ratio/similarity sentences once the `eqratio` length subsystem and
+the StepBuilder 8-point ratio input shipped. The `eqratio` descriptor now exists end
+to end (`nl/types.ts`, `nl/map.ts`, `nl/mock.ts`, `functions/src/openai.ts` +
+`validate.ts`, with `e2e.ratio.test.ts` coverage). Companions:
+[`../DDAR_ENGINE.md`](../DDAR_ENGINE.md) (engine contract),
+[`../SECURITY_AUDIT.md`](../SECURITY_AUDIT.md) and
+[`../security/NL_OPENAI_REVIEW.md`](../security/NL_OPENAI_REVIEW.md) (App Check =
+finding #9, a go-live prerequisite)._
 
 ---
 

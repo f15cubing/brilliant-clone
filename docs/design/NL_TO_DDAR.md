@@ -1,9 +1,18 @@
 # Design Spec — Natural-Language Step Input for Freeplay
 
-_Status: APPROVED FOR IMPLEMENTATION (pending a few open questions in §10). Produced
-by the NL→DDAR planning agent and reviewed by the Team Lead. Companion:
-[`DDAR_ENGINE.md`](../DDAR_ENGINE.md) (the engine contract) and
-[`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md) (App Check is a prerequisite, finding #9)._
+_Status: **IMPLEMENTED** (this v1 design has shipped — `src/lib/freeplay/nl/` +
+`functions/`, off by default). Open questions in §10 were resolved in the v2 spec,
+which also extends the contract to ratios. Originally produced by the NL→DDAR
+planning agent and reviewed by the Team Lead. Companions:
+[`NL_TO_DDAR_V2_OPENAI.md`](./NL_TO_DDAR_V2_OPENAI.md) (the superseding v2: OpenAI
+confirmed + `eqratio` support), [`DDAR_ENGINE.md`](../DDAR_ENGINE.md) (the engine
+contract), and [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md) / [`security/NL_OPENAI_REVIEW.md`](../security/NL_OPENAI_REVIEW.md)._
+
+> **Update (shipped):** the mock translator, the `map.ts` validator, the
+> `translateStep` Cloud Function (Auth + App Check, OpenAI key server-side), and the
+> StepBuilder NL toggle have all landed. The §11 risk _"NL can only ever produce the
+> 7 `Rel`s + `aval` until the ratio subsystem ships"_ is **resolved** — `eqratio` now
+> ships and the NL path supports ratio descriptors (see the v2 spec).
 
 ## 0. Product decisions (fixed)
 

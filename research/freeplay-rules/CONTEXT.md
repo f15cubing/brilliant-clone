@@ -33,12 +33,14 @@ Source of truth: `src/lib/freeplay/`.
 
 The AR layer + `inscribed_angle` **already proves any directed-angle theorem**
 (we confirmed Reim's theorem is derived with no new rule). So a new rule is only
-genuinely useful if it produces something AR cannot:
+genuinely useful if it produces something the angle layer cannot:
 
-- **Lengths / congruence** (`cong`) — AR has no length table.
-- **Ratios / similarity** — not even in the base DSL.
+- **Lengths / congruence** (`cong`) — `AngleAR` has no length table.
+- **Ratios / similarity** (`eqratio`) — handled by the length subsystem
+  (`lengths/`: `eqratio` + `LengthAR`), which has since shipped here **and** in
+  `src/`. New ratio rules go in `lengths/rules/`.
 - **Non-angle projective incidence** (`coll` from concyclicity, etc.) — e.g.
-  Pappus (already shipped), Pascal.
+  Pappus and Pascal (both shipped).
 
 Before claiming a rule adds value, CHECK that the shipped engine does not already
 prove the target step: run `verifyWith(RULES, ...)` and confirm it is NOT valid.

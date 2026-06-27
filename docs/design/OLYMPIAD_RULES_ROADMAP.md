@@ -1,17 +1,27 @@
 # Design Spec — Olympiad Problems via Promote-Then-Author
 
-_Status: APPROVED FOR IMPLEMENTATION. Produced by the olympiad/rule-promotion planning
-agent, reviewed by the Team Lead. Companion: [`DDAR_ENGINE.md`](../DDAR_ENGINE.md).
-Strategy: promote proven research-lab rules into the shipped engine first, then author
-~6–8 graded olympiad problems — most reusable verbatim from already-vetted
-`research/freeplay-rules/problems/*.ts`._
+_Status: **IMPLEMENTED** (this plan has shipped). Originally produced by the
+olympiad/rule-promotion planning agent and reviewed by the Team Lead. Companion:
+[`DDAR_ENGINE.md`](../DDAR_ENGINE.md). Strategy was: promote proven research-lab
+rules into the shipped engine first, then author ~6–8 graded olympiad problems —
+most reusable verbatim from already-vetted `research/freeplay-rules/problems/*.ts`._
 
-## Orientation
+> **Update (shipped):** the Tier-A rules **and** the Tier-B/C ratio subsystem below
+> have all landed. The shipped engine now has **26 angle/incidence rules** (13
+> `CORE_RULES` in `rules.ts` + 13 `PROMOTED_RULES` in `rules/`) + **5 `RATIO_RULES`**
+> (`lengths/rules/`) = **31 total**, `eqratio` is a first-class fact, and **14
+> puzzles** ship (incl. IMO 2019 P2 end-to-end). The sections below are preserved as
+> the original promotion plan; treat their "current state" claims as the
+> pre-implementation baseline.
 
-Shipped DSL = `coll/para/perp/cong/cyclic/midp/eqangle` + `aval`; **no `eqratio`**,
-no length table. `RULES` holds 13 rules inline in `rules.ts:557-571`. Research rules
-already import only from `@/lib/freeplay/*`, so angle/incidence rules port into `src/`
-with essentially no edits beyond moving + registering them.
+## Orientation (pre-implementation baseline — now superseded)
+
+_At plan time:_ Shipped DSL = `coll/para/perp/cong/cyclic/midp/eqangle` + `aval`;
+**no `eqratio`**, no length table; `RULES` held 13 rules inline in `rules.ts`.
+_Now:_ `eqratio`/`LengthAR` have shipped, the core was refactored to
+`RULES = [...CORE_RULES, ...PROMOTED_RULES]`, and all the rules below are promoted.
+Research rules import only from `@/lib/freeplay/*`, so angle/incidence rules ported
+into `src/` with essentially no edits beyond moving + registering them.
 
 ## Tier A — easy wins (produce `cong`/`eqangle`/`coll`/`cyclic`; NO DSL change)
 

@@ -34,7 +34,7 @@ We **reuse that symbolic engine** (its open-source successors — see [Section 6
 - Dynamic / draggable figures. v1 renders a **fixed** figure (the canonical realization). _Movable figures are now scoped on the construction model the verifier already uses — see [`design/MOVABLE_FIGURES.md`](./design/MOVABLE_FIGURES.md)._ Note: while the *rendered* figure is fixed, **verification is multi-case** — each step is checked against several independent realizations sampled from each puzzle's `construct(rng)` (see §13.1 and [`DDAR_ENGINE.md`](./DDAR_ENGINE.md) §6).
 - Scoring, leaderboards, head-to-head competition. _Deferred to P3._
 - A hint system. _Deferred to P3 (powered by running the full solver)._
-- Natural-language step entry. _Deferred to P4._
+- Natural-language step entry. _Originally deferred to P4 — has **since shipped** (off by default; the translator only proposes a step the same `verify()` checks). See §13.1._
 - Replacing or modifying the existing course mode.
 
 > Naming note: the feature is called "Competitive Freeplay," but the competitive/scoring layer is explicitly a later phase (P3). v1 is single-player, untimed, practice-oriented proving.
@@ -469,7 +469,7 @@ flowchart LR
 - **P1 — Engine integration MVP.** Fixed figure, deduction-only checker. 3–5 curated puzzles. Backend on Cloud Run with `/verify-step`. The assert loop, rule-named feedback, win detection, and human-readable proof output. _Validates the central bet: bounding DDARN to a clean single step._
 - **P2 — Auxiliary constructions + rendering.** Learner adds DSL constructions (`midpoint`, `foot`, `on_line`, `circle`, ...); engine-positioned static rendering of new objects; broader predicate/goal coverage. Possibly partial dynamic rendering.
 - **P3 — Competition + hints.** Time/step scoring, personal bests, async leaderboards (Firestore). Hint system powered by running the **full** solver to find a valid next step.
-- **P4 — Natural-language input.** Optional NL entry translated to a structured assertion via Firebase AI Logic (Gemini), which the learner confirms before checking. (The `firebase-ai-logic-basics` skill / structured output is the implementation path; gated/optional like guest mode.)
+- **P4 — Natural-language input.** Optional NL entry translated to a structured assertion the learner confirms before checking. _As built (ahead of schedule), the provider is **OpenAI** via a Firebase Cloud Function (`functions/translateStep`), not Gemini/Firebase AI Logic — see §13.1 and [`design/NL_TO_DDAR_V2_OPENAI.md`](./design/NL_TO_DDAR_V2_OPENAI.md); gated/optional like guest mode._
 
 ### Success criteria (v1 / P1)
 
@@ -511,46 +511,112 @@ flowchart LR
 
 ---
 
-## 13. Implementation Status (As-Built) — P1 Prototype
+## 13. Implementation Status (As-Built)
 
-> This section records what is **actually built** as of this writing. The prototype **diverges deliberately** from Sections 6–7: instead of a Python DDARN backend on Cloud Run, P1 ships a **hand-written TypeScript rule engine that runs entirely in the browser**. The remote `/verify-step` contract still exists as a fallback path, but **no backend is deployed**, so all checking is local. The "is the backend running?" answer for the prototype is: there is no separate backend — `api.ts` calls the local `verify()` unless `VITE_FREEPLAY_API_URL` is set.
+> This section records what is **actually built** as of this writing, and it has
+> grown well beyond the original P1 prototype. The implementation **diverges
+> deliberately** from Sections 6–7: instead of a Python DDARN backend on Cloud Run,
+> it ships a **hand-written TypeScript rule engine that runs entirely in the
+> browser**, now with a **length/ratio (`eqratio`) reasoning layer**, **31 deduction
+> rules**, **14 curated puzzles** (incl. IMO 2019 P2 end-to-end), **natural-language
+> step input**, and a **per-user proof archive**. The remote `/verify-step` contract
+> still exists as a fallback path, but **no backend is deployed**, so all step
+> checking is local — `api.ts` calls the local `verify()` unless
+> `VITE_FREEPLAY_API_URL` is set. (The one deployed Cloud Function is `translateStep`
+> for natural-language input, which only *proposes* a structured step the local
+> `verify()` then judges — see §13.1.) For the full engine internals see
+> [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).
 
 ### 13.1 What works
 
 - **Forward, single-step, rule-based, multi-case checker** (`verify.ts` + `realize.ts`): a step is accepted iff (1) the asserted fact is numerically true **in several independent generic realizations** of the figure **and** (2) some rule in the library derives it in one step from exactly the cited facts **in every one of them**. Realizations come from each puzzle's `construct(rng)` (free points sampled, dependents derived so the givens always hold). Reasons returned: `not_true` (false in some realization), `unknown_premise`, `unjustified` (derivation fires only in some), `extraneous_premises` (a premise droppable in all). This both matches the PRD's anti-cheese intent (true-but-uncited does not advance) and closes the "true in one diagram by accident" gap.
 - **Extended DSL with angle arithmetic** (`dsl.ts`, `form.ts`, `rational.ts`): facts are a discriminated union `Fact = Rel | Aval`. `Rel` covers `coll, para, perp, cong, cyclic, midp, eqangle`. `Aval` is an **angle-value** fact `∠XYZ = Form`, where `Form` is a linear expression with **exact rational** coefficients over named variables **and/or angle tokens**, with a parser (`parseForm("180 - A/2 - B/2")`, `parseForm("180 - angle(A,O,C)")`) and KaTeX renderer (`fstr`). Angle tokens (`angle(A,B,C)`, vertex B) let a learner do arithmetic **between angles**, not just over the puzzle's global variables.
-- **Rule library** (`rules.ts`, 12 rules): `inscribed_angle`, `collinear_same_ray`, `angle_value_transfer`, `angle_value_equal`, `angle_addition`, `triangle_angle_sum`, `straight_supplement`, `isosceles`, `midsegment`, **`para_equal_angles`**, **`converse_inscribed`**, and **`pappus`**. Each is **geometrically guarded** by coordinate checks (`geom.ts`: collinearity, betweenness, same-ray, same-side, line intersection) so a rule only fires when the configuration licenses it. `pappus` takes two cited `coll` lines, tries every correspondence, matches the three cross-intersection points to named points via coordinates, and emits a `coll` (or, when one cross-pair is parallel — the point at infinity — a `para`), which is exactly the projective step in IMO 2019 P2.
+- **Rule library** (**31 rules**): 13 hand-written `CORE_RULES` in `rules.ts`
+  (`inscribed_angle`, `collinear_same_ray`, `angle_value_transfer`,
+  `angle_value_equal`, `angle_addition`, `triangle_angle_sum`, `straight_supplement`,
+  `isosceles`, `midsegment`, **`para_equal_angles`**, **`converse_inscribed`**,
+  **`concyclic_merge`**, **`pappus`**), 13 `PROMOTED_RULES` promoted from the research
+  lab (`rules/`: `midpoint_congruence`, `cong_transitivity`, `perp_bisector`,
+  `isosceles_converse`, `sas_congruence`, `sas_shared_vertex`, `sss_congruence`,
+  `shared_side_congruence`, `concyclic_equal_radii`, `pascal`,
+  `coincident_direction_collinear`, `concyclic_from_directed_angles`,
+  `thales_diameter`), and 5 length/ratio `RATIO_RULES` (`lengths/rules/`:
+  `similar_triangles_aa`, `thales_basic_proportionality`, `sas_similarity`,
+  `power_of_a_point`, `tangent_secant_power`). The verifier runs
+  `ALL_RULES = [...RULES, ...RATIO_RULES]`. Each is **geometrically guarded** by
+  coordinate checks (`geom.ts`: collinearity, betweenness, same-ray, same-side, line
+  intersection) so a rule only fires when the configuration licenses it. `pappus`
+  takes two cited `coll` lines, tries every correspondence, matches the three
+  cross-intersection points to named points via coordinates, and emits a `coll` (or,
+  when one cross-pair is parallel — the point at infinity — a `para`), which is
+  exactly the projective step in IMO 2019 P2.
   - `para_equal_angles` (lesson 2): from a cited `para(A,B,C,D)` it scans all named points on each parallel line, treats every connector as a transversal, and emits the (numerically-verified) alternate/corresponding `eqangle` facts. This produces *explicit* `eqangle` facts that downstream DD rules and the learner can cite — AR collapses parallel directions internally, but only DD emits citable facts.
   - `converse_inscribed`: emits `cyclic(P,Q,X,Y)` from two angles subtending the **same segment** `PQ`, in either of two forms: (a) a cited `eqangle(P,X,Q, P,Y,Q)` with apexes on the **same side** (equal angles), or (b) a cited `aval` angle-arithmetic relation `∠PXQ = c − ∠PYQ` with apexes on **opposite sides** (supplementary — the cyclic-quadrilateral criterion). Reim's theorem is just two such applications, so no separate Reim rule is needed.
   - `concyclic_merge` (same circle): from two cited `cyclic` facts that share **3 non-collinear points**, every 4-subset of their union is concyclic — three points pin a unique circle. This is the "all five points are on circle `A2B2C`" step: `cyclic(A2,B2,C,Q1)` + `cyclic(A2,B2,C,P1)` ⇒ `cyclic(A2,B2,Q1,P1)` with no angle chase.
 
 - **By-symmetry / analogous arguments** (`symmetry.ts`): a learner can re-use a finished sub-proof "with the letters switched". They pick a proven fact `F` and a point relabeling σ (disjoint swaps, e.g. `A-B, P-Q, A1-B1, P1-Q1, A2-B2`); the engine accepts `σ(F)` iff σ is an **automorphism of the puzzle's givens** (`σ(givens) = givens`, up to each relation's symmetries). This is sound because every rule is relabeling-invariant, so σ applied to `F`'s derivation is itself a valid derivation of `σ(F)` in the same figure; a numeric truth check guards as a backstop. Justification is reported as "by symmetry (analogous argument)". The UI exposes this via a **Derive / By-symmetry** toggle in the step builder. This is exactly the IMO 2019 P2 move "…and analogously `CP1B2A2` is cyclic".
-- **Algebraic Reasoning (AR) layer** (`ar.ts`): a TypeScript port of AlphaGeometry DDAR's `ar.py` — a Gaussian-elimination table over exact rationals. `verify()` accepts a step if either a DD rule matches **or** the fact is a **linear consequence** (angle chase) of the cited facts plus their one-step DD consequences. This makes the checker **complete for linear angle reasoning** *relative to the cited facts*. AR is **cite-driven**: every line gets its OWN direction variable (keyed by its unordered point-pair), and two lines are linked only when a **cited** fact justifies it — `para`/`coll` merge directions, `perp` offsets by 90°, `eqangle`/`aval` relate angle differences. Coordinates fix only the signs/branches (the ε and whole-turn `j`), never collapse variables, so the checker can't read parallelism or collinearity "for free" off the diagram. DD rules still **inject** non-linear geometric facts (e.g. `cyclic ⇒ inscribed angle`) that AR then closes over. Accepted AR steps display as "algebraic angle-chase". _Covers angles in v1; lengths/ratios (a log-distance table) are the natural follow-up._
+- **Algebraic Reasoning (AR) layer** (`ar.ts`): a TypeScript port of AlphaGeometry DDAR's `ar.py` — a Gaussian-elimination table over exact rationals. `verify()` accepts a step if either a DD rule matches **or** the fact is a **linear consequence** (angle chase) of the cited facts plus their one-step DD consequences. This makes the checker **complete for linear angle reasoning** *relative to the cited facts*. AR is **cite-driven**: every line gets its OWN direction variable (keyed by its unordered point-pair), and two lines are linked only when a **cited** fact justifies it — `para`/`coll` merge directions, `perp` offsets by 90°, `eqangle`/`aval` relate angle differences. Coordinates fix only the signs/branches (the ε and whole-turn `j`), never collapse variables, so the checker can't read parallelism or collinearity "for free" off the diagram. DD rules still **inject** non-linear geometric facts (e.g. `cyclic ⇒ inscribed angle`) that AR then closes over. Accepted AR steps display as "algebraic angle-chase". _The length/ratio dual has since shipped: `LengthAR` (`lengths/lengthAR.ts`) is a log-distance Gaussian table over `cong`/`eqratio`/`midp`; accepted length steps display as "algebraic length-chase" (see §13.1 ratio note below)._
 
 - **Variadic collinearity (a whole line in one fact).** `coll` now accepts **3 or more** points, so a line is stated once — `coll(Q,A1,Q1,A2)` instead of separate `coll(Q,A1,A2)` / `coll(Q,A1,Q1)` triples. AR links **all** pairwise directions of the line from that single fact (so angle-chasing along it is immediate), and `verify`/`deriveAll` internally expand each long `coll` into its 3-point sub-collinearities so every existing 3-point rule (straight-angle, equal-angles-on-a-ray, Pappus, …) keeps working. The step builder lets you keep adding points to a `coll`. The IMO 2019 P2 givens are now stated as six whole lines (e.g. `coll(P,B1,P1,B2)`), which also keeps the A↔B symmetry tidy.
 
 - **Necessity / anti-cheat (minimality).** A step is accepted only if **every cited fact is required**: after the cited set derives the candidate, `verify()` re-checks each leave-one-out subset and rejects (`extraneous_premises`) if the candidate still derives without some cited fact. This means "cite everything" can no longer cheat the checker — the learner must cite exactly the facts the step uses. (The `by symmetry` path is exempt, since its justification is the relabeling, not a premise set.) Pappus's "point at infinity" branch now also **requires** the cited `para` that licenses it, rather than reading parallelism off the coordinates.
 
 - **Crash isolation.** The rule engine and AR are **total** (a misbehaving rule or an unencodable fact is skipped, never thrown), and the dev diagnostics panel is wrapped in an `ErrorBoundary`, so an engine hiccup can no longer blank the page / figure.
-- **Puzzles** (`puzzles/`): `inscribedAngle` (1 step), `midsegment` (1 step), `incenterExcenter` (9-step showcase using `Aval`/`Form`), and **`imo2019p2`** (IMO 2019 P2 — a challenge stress-test; coordinates incl. the two angle-condition points `P1`,`Q1` solved numerically in `imo2019p2Config.ts`, with auxiliary `A2`,`B2` pre-drawn for Pappus). All use **generic scalene** coordinates to avoid coincidental truths. Puzzles may set `solutionReachesGoal: false` when only a verified *prefix* of the proof is encoded (IMO 2019 P2 currently verifies the Pappus step `A2B2 ∥ AB`).
-- **UI** (`pages/FreeplayList`, `pages/FreeplayArena`, `components/freeplay/*`): three-panel arena, fixed JSXGraph figure, structured `StepBuilder` for both `Rel` and `Aval` facts, fact list, goal panel, proof summary.
-- **Test + diagnostics:** `npm test` (Vitest) replays every shipped puzzle's full proof through the real verifier, asserts each step's rule name, checks rejection categories, and the form parser (14 tests). A **dev-only `DevPanel`** (`import.meta.env.DEV`) shows, per attempt, whether the fact is numerically true and the verify result, plus a **"Show derivable facts"** button (`deriveAll` in `verify.ts`) listing every statement the engine can currently derive — the operational way to see "what works right now."
+- **Puzzles** (`puzzles/`, **14 curated**, intro → core → challenge): the
+  originals `inscribedAngle`, `midsegment`, and `incenterExcenter` (a 9-step
+  showcase using `Aval`/`Form`); Wave-2 classical lemmas and **literal contest
+  citations** (`arcMidpointLemma`, `kiteEqualAngles`, `jbmoShortlist2004G1`,
+  `jbmo_shortlist_2015_g1`, `squares_on_two_sides`, `shared_side_congruence_problem`,
+  `imo_shortlist_2010_g1`); ratio (`eqratio`) puzzles (`sas_similarity_problem`,
+  `jbmo_shortlist_2005_g2`, `jbmo_shortlist_2010_g3_pop`); and **`imo2019p2`**
+  (IMO 2019 P2). All use **generic scalene** coordinates to avoid coincidental
+  truths. **IMO 2019 P2 now verifies end-to-end** (`solutionReachesGoal: true`),
+  closed by the promoted `concyclic_from_directed_angles` rule; the
+  `solutionReachesGoal: false` escape hatch remains for any puzzle that encodes only
+  a verified *prefix*.
+- **Natural-language step input** (`nl/` + `functions/`): the `StepBuilder` has an
+  optional NL mode where a step typed in English is translated to a structured
+  `(conclusion, premises)` — by a deterministic offline **mock** (`nl/mock.ts`, the
+  default) or an **OpenAI-backed Cloud Function** (`functions/translateStep`, off by
+  default; signed-in only, Auth + App Check, key server-side) — then lowered by the
+  untrusted-input validator (`nl/map.ts`) and routed through the **same** `verify()`.
+  The translator has **no authority**: a hallucinated step is rejected exactly like a
+  hand-built one. Supports `rel`, `aval`, and `eqratio` descriptors.
+- **Proof archive** (`proofRecord.ts`, `useProofRecorder.ts`, `firebase/proofService.ts`):
+  on a win, the full proof is compiled to a JSON-safe `CompiledProof` and persisted —
+  Firestore `users/{uid}/freeplayProofs/` for signed-in users, `localStorage` for
+  guests — and rendered on the win screen.
+- **UI** (`pages/FreeplayList`, `pages/FreeplayArena`, `components/freeplay/*`): three-panel arena, fixed JSXGraph figure, structured `StepBuilder` for `Rel`, `Aval`, **and `eqratio`** facts (plus the NL mode above), fact list, goal panel, proof summary.
+- **Test + diagnostics:** `npm test` (Vitest, in CI) replays every shipped puzzle's full proof through the real verifier, asserts each step's rule name, checks rejection categories, and covers the form parser, the length/ratio rules, and the NL mock translator. A **dev-only `DevPanel`** (`import.meta.env.DEV`) shows, per attempt, whether the fact is numerically true and the verify result, plus a **"Show derivable facts"** button (`deriveAll` in `verify.ts`) listing every statement the engine can currently derive — the operational way to see "what works right now."
 
 ### 13.2 Remaining Issues / Open Work
 
 Ordered roughly by user-visible priority. These are the concrete follow-ups for the next agent.
 
-1. **Completeness via algebra — DONE for angles (`ar.ts`).** The "small rule library ⇒ many true statements rejected" problem is addressed: AR now accepts any fact that is a linear consequence of the cited facts (+ one-step DD). **Remaining:** (a) extend AR to **lengths/ratios** (a `cong`/`eqratio` log-distance table, mirroring DDAR's `RatioTable`/`DistanceTable`); (b) grow the DD rule set that *feeds* AR (exterior angle, parallel ⇒ equal alternate/corresponding angles, tangent-chord, power of a point, SAS/AAS similarity, etc.) so more geometric facts enter the linear system; (c) optionally let the learner cite a **superset** of premises (AR already tolerates this — it just uses what it needs).
+1. **Completeness via algebra — DONE for angles AND lengths.** The "small rule library ⇒ many true statements rejected" problem is addressed on both axes: `AngleAR` (`ar.ts`) accepts any angle fact that is a linear consequence of the cited facts (+ one-step DD), and `LengthAR` (`lengths/lengthAR.ts`) does the same for lengths/ratios over a log-distance table (`cong`/`eqratio`/`midp`). The DD rule set that *feeds* the tables also grew substantially (31 rules, incl. parallel ⇒ equal angles, power-of-a-point, SAS/AAS similarity, tangent-secant power). **Remaining:** (a) **numeric-constant** ratios (`AB = 2·MA`, needs a `log 2` generator); (b) a **signed** length table for Menelaus/Ceva and external division (`LengthAR` is unsigned); (c) feeding `eqratio` premises into `rule.derive` to unlock converse power-of-a-point ⇒ `cyclic`. Learners may already cite a **superset** of premises (the AR layers use only what they need).
 2. **Angle-to-angle arithmetic — DONE (`angle(...)` tokens).** A learner can now write an angle value as a linear expression that references *other angles*, e.g. `∠AOB = 180 - angle(A,O,C)`. Implemented end-to-end: `parseForm` accepts `angle(A,B,C)` (vertex B) producing an angle-token form variable; `factHolds` resolves tokens to measured degrees; AR expands each token into its directed-line measure so the relation is fully reasoned; `fstr` renders tokens as `\angle ABC`; `StepBuilder` documents the syntax. **Remaining UX polish:** a structured "insert angle" button (click 3 points) instead of typing, and surfacing which angle a token refers to on hover. Note: trivially-true-by-construction arithmetic (e.g. a supplement across collinear points) is accepted with minimal/no citation because direction identity comes from coordinates — see item 5.
 3. **Architecture decision — RESOLVED (TS engine + AR).** We chose to keep and grow the **TypeScript** engine (AR in `ar.ts`) rather than stand up a Python DDAR backend now (see chat decision). Sections 6–7 (Python DDAR on Cloud Run) are therefore **aspirational/deferred**, not the current architecture. The remote `/verify-step` path remains as an optional future hook. If a Python DDAR backend is ever revisited, define **serialization** between the TS `Fact` model and JGEX (the current remote payload sends raw `Fact` JSON a Python engine wouldn't parse).
 4. **Undirected ray angles (DD) vs directed line angles (AR).** AR works in **directed** line-angles mod 180° (robust, DDAR-style); the DD rules and the numeric truth gate still use **undirected** ray angles with same-side/betweenness guards. The two are reconciled because `verify()` applies the undirected numeric gate *before* AR, and AR picks equation signs from coordinates. Still, the DD rules themselves remain configuration-sensitive; consider migrating them to directed angles too for fewer guard failures.
 5. **Generic-coordinates soundness assumption.** AR no longer reads parallelism/collinearity off the coordinates (those must be cited), but it still uses the numeric realization to fix angle signs/branches and `factHolds` uses it for the truth gate. This is sound only for **generic** (non-degenerate) realizations — keep puzzle coordinates well-conditioned and scalene. Document for puzzle authors.
 6. **Implicit, puzzle-specific variable semantics.** `Form` variables (`A, B, C`) are bound per-puzzle via `Puzzle.variables`; meaning is implicit. Document and/or surface in the UI.
-7. **Content + deferred phases.** Only 3 puzzles; no persistence, scoring, hints, NL input, or auxiliary constructions (deferred per Sections 1/10).
-8. **No win-state proof traceback.** `ProofSummary` reconstructs the proof from recorded steps + the rule name `verify` returned (AR steps show "algebraic angle-chase"). DDAR's `ar.py` has a linprog-based `why` traceback we did **not** port; if we want to *show the algebra* behind an AR step, port that next.
+7. **Content + deferred phases.** Now **14 puzzles**, **proof-archive persistence**
+   (Firestore / `localStorage`), and **natural-language input** have all shipped.
+   Still deferred per Sections 1/10: **scoring/competition**, a **hint system**
+   (full solver), and **auxiliary constructions** (adding points/lines mid-proof).
+8. **No AR algebra traceback (the win-state proof itself now persists).** On a win the proof is compiled and archived (`proofRecord.ts` / `useProofRecorder.ts`), and `ProofSummary` renders it from the recorded steps + the rule name `verify` returned (AR steps show "algebraic angle-chase" / "algebraic length-chase"). What is still **not** ported is DDAR's `ar.py` linprog-based `why` traceback — i.e. *showing the algebra* behind an individual AR step. Port that next if we want to explain AR steps line-by-line.
 9. **`deriveAll` (dev panel) is DD-only.** The "Show derivable facts" list enumerates one-step DD consequences; AR-derivable facts are an infinite linear space and aren't enumerated. Fine for now; could surface a curated subset.
-10. **Pascal not yet implemented (DSL gap).** Pappus is in (`rules.ts`). Pascal needs **six points on a conic**, but `cyclic` is fixed at 4 points, so a hexagon-on-a-circle can't be expressed. To add Pascal: extend the DSL with an n-point `concyclic`/conic notion (or let Pascal consume several 4-point `cyclic` facts sharing a circle), then mirror the `pappus` rule (match opposite-side intersections to named points, emit the collinearity). Tracked together with item 1's length/ratio work.
-11. **Finishing the IMO 2019 P2 chain.** The verified prefix stops at `A2B2 ∥ AB`. Completing it to the `cyclic(P,P1,Q,Q1)` goal needs three broadly-useful DD rules that feed AR: **parallel ⇒ equal corresponding/alternate angles** (`para ⇒ eqangle`), **converse of the inscribed angle** (equal angles subtending a segment ⇒ `cyclic`), and ideally **Reim's theorem**. The full reference solution is stored in `imo2019p2.ts` (and the puzzle blurb) for the future hint system. These rules also benefit every other puzzle.
+10. **Pascal — DONE.** Pascal is now shipped (`rules/pascal.ts`, promoted). It
+   sidesteps the "`cyclic` is only 4 points" limit exactly as item 10 once
+   proposed: the common circle is reconstructed from several cited 4-point `cyclic`
+   facts sharing a non-collinear triple (like `concyclic_merge`), and once ≥6 points
+   are provably concyclic it mirrors `pappus` — matching opposite-side intersections
+   to cited `coll` points and emitting `coll(X,Y,Z)` (or a `para` at infinity).
+11. **IMO 2019 P2 — DONE.** The chain is closed end-to-end (`solutionReachesGoal:
+   true`). The previously-missing converse step is the promoted
+   `concyclic_from_directed_angles` rule (the directed converse of the inscribed
+   angle: equal directed angles subtending a segment ⇒ `cyclic`); `para ⇒ eqangle`
+   is handled by `para_equal_angles` + AR, and Reim's theorem is subsumed by AR. The
+   full reference solution lives in `imo2019p2.ts`.
 
 ### 13.3 How to verify the engine quickly
 

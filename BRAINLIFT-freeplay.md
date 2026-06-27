@@ -20,10 +20,10 @@
 | Source | Path |
 |--------|------|
 | Freeplay PRD + as-built engine (§13 Implementation Status) | [`docs/PRD-competitive-freeplay.md`](./docs/PRD-competitive-freeplay.md) |
-| Shipped verifier (DD + AR + minimality + by-symmetry) | [`src/lib/freeplay/verify.ts`](./src/lib/freeplay/verify.ts) |
-| Rule library (12 shipped rules) | [`src/lib/freeplay/rules.ts`](./src/lib/freeplay/rules.ts) |
-| Algebraic-reasoning angle table | [`src/lib/freeplay/ar.ts`](./src/lib/freeplay/ar.ts) |
-| Rule-discovery research harness (13 promotable rules, 12 contest problems) | [`research/freeplay-rules/README.md`](./research/freeplay-rules/README.md) |
+| Shipped verifier (DD + AR + length/ratio + minimality + by-symmetry) | [`src/lib/freeplay/verify.ts`](./src/lib/freeplay/verify.ts) |
+| Rule library (31 shipped rules: 13 core + 13 promoted + 5 ratio) | [`rules.ts`](./src/lib/freeplay/rules.ts) + [`rules/`](./src/lib/freeplay/rules/) + [`lengths/rules/`](./src/lib/freeplay/lengths/rules/) |
+| Algebraic-reasoning tables (angles + lengths) | [`src/lib/freeplay/ar.ts`](./src/lib/freeplay/ar.ts) + [`lengths/lengthAR.ts`](./src/lib/freeplay/lengths/lengthAR.ts) |
+| Rule-discovery research harness (18 promotable rules + 20 contest problems) | [`research/freeplay-rules/README.md`](./research/freeplay-rules/README.md) |
 | Sibling BrainLift on Brilliant.org | [`BRAINLIFT.md`](./BRAINLIFT.md) |
 
 ### Learning science (the techniques we are betting on)
@@ -63,7 +63,7 @@
 10. A **"by symmetry / analogous argument"** move lets a learner re-use a finished sub-proof under a point relabeling, accepted iff the relabeling is an automorphism of the puzzle's givens. *(PRD §13.1, `symmetry.ts`)*
 11. Figures use **generic scalene coordinates** and the engine validates the conclusion across the realization; parallelism/collinearity must be **cited**, never read "for free" off the diagram. *(PRD §13.1, item 5)*
 12. Hints and the full auto-solver are **deliberately deferred** (P3); v1 gives no next-step assistance. *(PRD §1 Non-Goals, §10)*
-13. The research harness has battle-tested rules and **real contest problems** (USAMO/ISL/IMO 2019 P2, Pappus, power-of-a-point, angle-bisector theorem, IMO 2018 P1), 10 of 12 verifying end-to-end. *(`research/freeplay-rules/README.md`)*
+13. The research harness has battle-tested rules and **real contest/classical problems** (ISL & JBMO shortlist, IMO 2018 P1, IMO 2019 P2, Pascal, power-of-a-point, the angle-bisector theorem, the Simson–Wallace line), **all 20 verifying end-to-end**; the boundaries the engine can't reach (signed-ratio Menelaus/Ceva, pole–polar, radical axis) are documented as precise negative results, not failing problems. *(`research/freeplay-rules/README.md`)*
 
 ### B. Learning-science facts (the techniques being applied)
 
@@ -202,7 +202,7 @@ The center of mass sits at **DOK 3–4** — precisely the band `BRAINLIFT.md` s
 
 ### SPOV 8 — The honest competitor isn't Brilliant; it's a blank sheet of paper — and Freeplay should beat paper on exactly one axis: instant, certain, reason-level feedback.
 **Because:** For real proof training, `BRAINLIFT.md` (SPOV-6/8) concedes the field to textbooks, AoPS, and coaches — i.e., paper. Paper's weakness is the feedback loop: a student writes a proof and waits days, or never finds out, whether a step is *unsupported* vs *false*. Freeplay's one unbeatable advantage is collapsing that loop to milliseconds at single-step granularity (Bloom's mastery mechanism), with the three-way reason verdict paper can never give.  
-**Counterpoint:** Paper imposes no rule palette and no engine-coverage ceiling — a student can invent any argument, including ones our 12 rules + AR can't yet check (e.g., the open Pascal/length gaps in the research harness).  
+**Counterpoint:** Paper imposes no rule palette and no engine-coverage ceiling — a student can invent any argument, including ones our 31 rules + AR/LengthAR can't yet check (e.g., the open signed-ratio Menelaus/Ceva and pole–polar gaps documented in the research harness).  
 **So what:** Don't position against Brilliant's intuition product; position as *the proof-feedback loop that paper cannot provide.* Engine coverage (the research harness's job) is the roadmap that widens what that loop can adjudicate.
 
 ---
