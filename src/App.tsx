@@ -11,6 +11,7 @@ import { LessonPlayer } from "@/pages/LessonPlayer";
 import { FreeplayList } from "@/pages/FreeplayList";
 import { FreeplayArena } from "@/pages/FreeplayArena";
 import { ProofArchive } from "@/pages/ProofArchive";
+import { SketchPage } from "@/pages/SketchPage";
 
 export function App() {
   return (
@@ -33,6 +34,8 @@ export function App() {
               <Route path="/freeplay" element={<FreeplayList />} />
               <Route path="/freeplay/:puzzleId" element={<FreeplayArena />} />
               <Route path="/proofs" element={<ProofArchive />} />
+              <Route path="/sketch" element={<SketchPage />} />
+              <Route path="/sketch/:id" element={<SketchPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

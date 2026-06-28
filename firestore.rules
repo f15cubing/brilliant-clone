@@ -34,6 +34,19 @@ service cloud.firestore {
         && request.resource.data.stepCount is int;
     }
 
+    // Sketch sandbox: saved constructions at users/{uid}/sketches/{sketchId},
+    // overwritten in place on save and deleted from the "My Sketches" list.
+    // Owner-only (private) with minimal shape validation on write. (Also covered
+    // by the per-user wildcard above; this block documents intent and validates
+    // the stored shape.)
+    match /users/{userId}/sketches/{sketchId} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.title is string
+        && request.resource.data.stepsJson is string;
+    }
+
     // NL translateStep rate-limit counters are managed exclusively by the
     // Cloud Function via the Admin SDK (which bypasses these rules). Deny ALL
     // client access so a learner can't read or tamper with their own quota.
