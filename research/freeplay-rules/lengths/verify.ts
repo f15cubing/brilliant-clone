@@ -16,7 +16,7 @@
  */
 import { AngleAR } from "@/lib/freeplay/ar";
 import type { Coords, VarBindings } from "@/lib/freeplay/check";
-import { rel, type Fact } from "@/lib/freeplay/dsl";
+import { rel, type EqRatio, type Fact } from "@/lib/freeplay/dsl";
 import type { RuleCtx } from "@/lib/freeplay/rules";
 import { RULES } from "@/lib/freeplay/rules";
 import { RESEARCH_RULES } from "../rules";
@@ -80,14 +80,21 @@ function deriveOnce(
   ctx: RuleCtx,
 ): string | null {
   const ordinary = cited.filter((f): f is Fact => f.kind !== "eqratio");
+  // Additive: thread the cited `eqratio`s to `rule.derive` via `ctx.citedRatios`
+  // (mirroring the shipped `src/lib/freeplay/verify.ts`), so a length rule that
+  // needs a cited proportion as a genuine premise — e.g. converse power of a
+  // point — can read it off `ctx` end-to-end in the lab. Existing length rules
+  // ignore the field, so this is purely additive.
+  const citedRatios = cited.filter((f): f is EqRatio => f.kind === "eqratio");
   const facts = expandColls(ordinary);
+  const ruleCtx: RuleCtx = { ...ctx, citedRatios };
 
   const ddDerived: Fact[] = []; // ordinary one-step consequences
   const lDerived: LFact[] = []; // one-step ratio consequences (eqratio)
   for (const rule of rules) {
     let produced: LFact[];
     try {
-      produced = rule.derive(facts, ctx);
+      produced = rule.derive(facts, ruleCtx);
     } catch {
       continue;
     }

@@ -17,6 +17,14 @@ import { imo_shortlist_2010_g1 } from "./imo_shortlist_2010_g1";
 import { sas_similarity_problem } from "./sas_similarity_problem";
 import { jbmo_shortlist_2005_g2 } from "./jbmo_shortlist_2005_g2";
 import { jbmo_shortlist_2010_g3_pop } from "./jbmo_shortlist_2010_g3_pop";
+// Wave 3 — IMO 2024 Shortlist G1–G5 (faithful encodings). G2 is a complete
+// machine-verified proof; G1, G3, G4, G5 ship the longest engine-verifiable
+// chain with `solutionReachesGoal: false` and a documented engine gap.
+import { imo_shortlist_2024_g1 } from "./imo_shortlist_2024_g1";
+import { imo_shortlist_2024_g2 } from "./imo_shortlist_2024_g2";
+import { imo_shortlist_2024_g3 } from "./imo_shortlist_2024_g3";
+import { imo_shortlist_2024_g4 } from "./imo_shortlist_2024_g4";
+import { imo_shortlist_2024_g5 } from "./imo_shortlist_2024_g5";
 
 /** Ordered registry of curated freeplay puzzles (intro → core → challenge). */
 export const FREEPLAY_PUZZLES: Puzzle[] = [
@@ -37,6 +45,12 @@ export const FREEPLAY_PUZZLES: Puzzle[] = [
   imo_shortlist_2010_g1,
   jbmo_shortlist_2010_g3_pop,
   imo2019p2,
+  // challenge — IMO 2024 Shortlist
+  imo_shortlist_2024_g1,
+  imo_shortlist_2024_g2,
+  imo_shortlist_2024_g3,
+  imo_shortlist_2024_g4,
+  imo_shortlist_2024_g5,
 ];
 
 export function getPuzzle(id: string): Puzzle | undefined {

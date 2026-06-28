@@ -27,6 +27,10 @@ import { pascal } from "./pascal";
 import { coincident_direction_collinear } from "./coincident_direction_collinear";
 import { concyclic_from_directed_angles } from "./concyclic_directed_angles";
 import { thales_diameter } from "./thales_diameter";
+// IMO 2024 Shortlist gap-closers (Wave 3).
+import { spiral_similarity_center } from "./spiral_similarity_center";
+import { two_circle_radical_axis } from "./two_circle_radical_axis";
+import { three_circle_radical_center } from "./three_circle_radical_center";
 
 export const PROMOTED_RULES: Rule[] = [
   midpoint_congruence,
@@ -42,4 +46,7 @@ export const PROMOTED_RULES: Rule[] = [
   coincident_direction_collinear,
   concyclic_from_directed_angles,
   thales_diameter,
+  spiral_similarity_center, // closes IMO SL 2024 G1
+  two_circle_radical_axis, // closes IMO SL 2024 G4
+  three_circle_radical_center, // mechanizes IMO SL 2024 G3 radical-centre step
 ];

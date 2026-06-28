@@ -13,6 +13,7 @@ import { thales_basic_proportionality } from "./thales_basic_proportionality";
 import { sas_similarity } from "./sas_similarity";
 import { power_of_a_point } from "./power_of_a_point";
 import { tangent_secant_power } from "./tangent_secant_power";
+import { converse_power_of_a_point } from "./converse_power_of_a_point";
 
 export const RATIO_RULES: LRule[] = [
   similar_triangles_aa,
@@ -23,4 +24,5 @@ export const RATIO_RULES: LRule[] = [
   sas_similarity,
   power_of_a_point,
   tangent_secant_power,
+  converse_power_of_a_point, // closes IMO SL 2024 G5 gap #1 (P on circle AYZ)
 ];
