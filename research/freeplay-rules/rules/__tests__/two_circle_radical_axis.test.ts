@@ -147,7 +147,7 @@ describe("two-circle radical axis (research rule)", () => {
   });
 
   it("SOUNDNESS A: an X' on Γ₁ with PC ≠ PX' makes cyclic(P,C,X',Q') false ⇒ not emitted", () => {
-    const { P, A, B, C, Y } = coords as Record<string, V>;
+    const { A, B, C, Y } = coords as Record<string, V>;
     const OC = circumcenter(A, B, C)!;
     const Xbad = rotate(C, OC, 37); // still on circle (A,B,C), but PC ≠ PXbad
     const Qbad = lineIntersect(A, Xbad, B, Y)!;
@@ -177,7 +177,7 @@ describe("two-circle radical axis (research rule)", () => {
     for (const f of out) expect(factHolds(f, bad), canonicalKey(f)).toBe(true);
   });
 
-  it("GAP: the shipped engine alone cannot derive cyclic(P,C,X,Q)", () => {
+  it("PROMOTED: the shipped engine now derives cyclic(P,C,X,Q)", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -185,7 +185,9 @@ describe("two-circle radical axis (research rule)", () => {
       candidateFact: goalCyc,
       citedPremises: premises,
     });
-    expect(r.valid).toBe(false);
+    // two_circle_radical_axis is promoted into the shipped engine, so RULES
+    // proves this directly now (promotion regression guard).
+    expect(r.valid).toBe(true);
   });
 
   describe("CLOSURE: reaches the contest goal para(P,Q,A,B) across realizations", () => {
@@ -199,7 +201,7 @@ describe("two-circle radical axis (research rule)", () => {
       expect(realizations.length).toBeGreaterThan(1);
     });
 
-    it("step A — cyclic(P,C,X,Q) verifies via the rule in EVERY realization (and NOT without it)", () => {
+    it("step A — cyclic(P,C,X,Q) verifies via the rule in EVERY realization (now in the shipped engine)", () => {
       for (const r of realizations) {
         const withRule = verifyWith(rulesWith, {
           coords: r.coords,
@@ -210,14 +212,15 @@ describe("two-circle radical axis (research rule)", () => {
         });
         expect(withRule).toEqual({ valid: true, rule: "two-circle radical axis" });
 
-        const withoutRule = verifyWith(RULES, {
+        // Promoted: the shipped RULES derive it directly too.
+        const shipped = verifyWith(RULES, {
           coords: r.coords,
           bindings: r.bindings ?? {},
           establishedFacts: premises,
           candidateFact: goalCyc,
           citedPremises: premises,
         });
-        expect(withoutRule.valid).toBe(false);
+        expect(shipped.valid).toBe(true);
       }
     });
 

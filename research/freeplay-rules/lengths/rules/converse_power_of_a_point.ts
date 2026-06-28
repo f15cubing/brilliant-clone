@@ -60,9 +60,9 @@
  * Under (1)+(2)+(3) concyclicity is a THEOREM; (4) only rejects degenerate
  * samples. The rule never reads the load-bearing ratio off the figure.
  */
-import type { Fact, PointId, Rel } from "@/lib/freeplay/dsl";
+import type { Fact, Rel } from "@/lib/freeplay/dsl";
 import { rel } from "@/lib/freeplay/dsl";
-import { isBetween, isCollinear, sameRayFrom, type V } from "@/lib/freeplay/geom";
+import { isBetween, isCollinear, sameRayFrom } from "@/lib/freeplay/geom";
 import { canonicalKeyL, eqratio, factHoldsL, isAmongL, type LFact, type LRule } from "../dsl";
 
 const collsOf = (cited: Fact[]): Rel[] =>

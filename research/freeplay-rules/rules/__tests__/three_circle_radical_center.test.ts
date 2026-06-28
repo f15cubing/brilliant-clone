@@ -135,7 +135,7 @@ describe("three-circle radical centre (research rule)", () => {
     expect(hasFact(out, goal)).toBe(false);
   });
 
-  it("GAP: the shipped engine alone cannot derive coll(L,Q,Z) even with all three circles cited", () => {
+  it("PROMOTED: the shipped engine now derives coll(L,Q,Z) when all three circles are cited", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -143,7 +143,9 @@ describe("three-circle radical centre (research rule)", () => {
       candidateFact: goal,
       citedPremises: premises,
     });
-    expect(r.valid).toBe(false);
+    // three_circle_radical_center is promoted into the shipped engine, so RULES
+    // proves the radical-centre step directly now (promotion regression guard).
+    expect(r.valid).toBe(true);
   });
 
   describe("SECONDARY GAP: the prerequisite cyclic(K,L,P,Q) is NOT shipped-derivable", () => {
@@ -218,7 +220,7 @@ describe("three-circle radical centre (research rule)", () => {
       }
     });
 
-    it("coll(L,Q,Z) verifies via the rule in EVERY realization (and NOT without it)", () => {
+    it("coll(L,Q,Z) verifies via the rule in EVERY realization (now in the shipped engine)", () => {
       for (const r of realizations) {
         const withRule = verifyWith(rulesWith, {
           coords: r.coords,
@@ -229,14 +231,15 @@ describe("three-circle radical centre (research rule)", () => {
         });
         expect(withRule).toEqual({ valid: true, rule: "three-circle radical centre" });
 
-        const withoutRule = verifyWith(RULES, {
+        // Promoted: the shipped RULES derive it directly too.
+        const shipped = verifyWith(RULES, {
           coords: r.coords,
           bindings: r.bindings ?? {},
           establishedFacts: premises,
           candidateFact: goal,
           citedPremises: premises,
         });
-        expect(withoutRule.valid).toBe(false);
+        expect(shipped.valid).toBe(true);
       }
     });
   });

@@ -142,7 +142,7 @@ describe("spiral-similarity centre (Miquel point) equidistance (research rule)",
     expect(r.valid).toBe(false);
   });
 
-  it("GAP: the shipped engine (RULES) cannot derive cong(T,E,T,F) from these premises", () => {
+  it("PROMOTED: the shipped engine (RULES) now derives cong(T,E,T,F) from these premises", () => {
     const r = verifyWith(RULES, {
       coords,
       bindings: {},
@@ -150,9 +150,10 @@ describe("spiral-similarity centre (Miquel point) equidistance (research rule)",
       candidateFact: goal,
       citedPremises: prem,
     });
-    // No shipped rule maps 2 coll + 2 cyclic + 1 cong to a cong, and AR cannot
-    // emit cong. If this ever becomes valid the rule is redundant.
-    expect(r.valid).toBe(false);
+    // spiral_similarity_center has been promoted into the shipped engine
+    // (src/lib/freeplay/rules/), so RULES proves this directly now. Regression
+    // guard that the promotion stayed wired.
+    expect(r.valid).toBe(true);
   });
 
   it("CLOSURE: on the real puzzle, the rule reaches the goal across all realizations (engine alone cannot)", () => {
@@ -190,15 +191,16 @@ describe("spiral-similarity centre (Miquel point) equidistance (research rule)",
         rule: "spiral-similarity centre (Miquel point) equidistance",
       });
 
-      // Without it, the shipped engine still cannot take the step (the gap).
-      const withoutRule = verifyWith(RULES, {
+      // The rule is promoted, so the shipped engine (RULES) takes the step
+      // directly too.
+      const shipped = verifyWith(RULES, {
         coords: c,
         bindings: b,
         establishedFacts: established,
         candidateFact: target,
         citedPremises: established,
       });
-      expect(withoutRule.valid).toBe(false);
+      expect(shipped.valid).toBe(true);
     }
   });
 });
