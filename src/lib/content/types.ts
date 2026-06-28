@@ -66,6 +66,81 @@ export interface Problem {
   xp: number;
 }
 
+/** Forced dwell on feedback before the learner may advance (milliseconds). */
+export interface DwellConfig {
+  wrongMs: number; // dwell after a wrong/teaching selection
+  correctMs: number; // dwell after the correct selection (consolidation)
+}
+
+export const DEFAULT_DWELL: DwellConfig = { wrongMs: 3000, correctMs: 1500 };
+
+/**
+ * One option of a direct-instruction multiple-choice stage. Every option
+ * teaches: the correct option confirms the principle; wrong options name and
+ * correct a specific misconception.
+ */
+export interface InstructionMCOption {
+  id: string;
+  label: string; // KaTeX / markdown
+  correct: boolean;
+  teaching: string; // shown immediately on selecting this option
+  misconception?: string; // recorded as the mistake id (analytics)
+  boardOverlayConfig?: JSXGraphDef; // optional overlay illustrating the teaching
+}
+
+/** Unskippable post-correct consolidation shown before the learner advances. */
+export interface ConsolidationGate {
+  principle: string; // the one thing to remember (KaTeX / markdown)
+  selfExplainPrompt?: string; // if set, advancing requires acknowledging it
+}
+
+export interface InstructionMCProblem {
+  id: string;
+  prompt: string;
+  exploreHint?: string;
+  boardConfig: JSXGraphDef;
+  options: InstructionMCOption[];
+  consolidation: ConsolidationGate;
+  dwell?: DwellConfig; // per-stage override of the forced dwell
+  xp: number;
+}
+
+/** One line of a fill-justification proof-comprehension task. */
+export interface ComprehensionLine {
+  statement: string; // the claim of this proof step (KaTeX / markdown)
+  reasons: InstructionMCOption[]; // candidate justifications; exactly one correct
+}
+
+export interface ComprehensionTask {
+  id: string;
+  prompt: string;
+  boardConfig?: JSXGraphDef;
+  lines: ComprehensionLine[];
+  validatedText: string; // shown once every line is correctly justified
+  dwell?: DwellConfig;
+  xp: number;
+}
+
+/** Bridge from the lesson into the matching Freeplay puzzle(s). */
+export interface HandoffStage {
+  title: string;
+  body: string; // KaTeX / markdown
+  freeplayPuzzleIds: string[];
+  ctaLabel?: string;
+}
+
+/**
+ * An ordered unit of a lesson. `problem` wraps an existing {@link Problem}
+ * rendered by the UNCHANGED ProblemPlayer (legacy + un-migrated content);
+ * the other kinds are new direct-instruction / bridge stages.
+ */
+export type LessonStage =
+  | { kind: "concept"; title?: string; body: string }
+  | { kind: "instruction-mc"; problem: InstructionMCProblem }
+  | { kind: "problem"; problem: Problem }
+  | { kind: "comprehension"; task: ComprehensionTask }
+  | { kind: "handoff"; handoff: HandoffStage };
+
 export interface Lesson {
   id: string;
   title: string;
@@ -73,6 +148,11 @@ export interface Lesson {
   /** Short teaching intro shown before the first problem (KaTeX supported). */
   concept: string;
   problems: Problem[];
+  /**
+   * Optional explicit stage sequence. When present the lesson renders as these
+   * stages; when absent a legacy `[concept, ...problems]` sequence is derived.
+   */
+  stages?: LessonStage[];
   /** Bonus XP for finishing the whole lesson. */
   completionXp: number;
 }
