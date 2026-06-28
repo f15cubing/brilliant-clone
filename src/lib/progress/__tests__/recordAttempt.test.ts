@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { COURSE } from "@/lib/content/course";
+import { COURSE, getLesson } from "@/lib/content/course";
+import { lessonSolvableIds } from "@/lib/content/lessonStages";
 import { applyAttempt, type AttemptInput } from "@/lib/progress/recordAttempt";
 import { emptySnapshot, type ProgressSnapshot } from "@/lib/progress/types";
 
@@ -136,5 +137,12 @@ describe("applyAttempt — XP and completion", () => {
     const frozen = JSON.stringify(prev);
     applyAttempt(prev, attempt({ problemXp: 10 }), NOW);
     expect(JSON.stringify(prev)).toBe(frozen);
+  });
+});
+
+describe("solvable-id generalization (legacy parity)", () => {
+  it("solvable ids equal problem ids for a legacy lesson", () => {
+    const legacy = getLesson("parallel-lines") ?? COURSE.lessons[1];
+    expect(lessonSolvableIds(legacy)).toEqual(legacy.problems.map((p) => p.id));
   });
 });

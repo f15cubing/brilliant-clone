@@ -9,7 +9,8 @@ export interface LessonProgress {
   problemStats: Record<string, ProblemStat>;
   xpEarned: number;
   completedAt?: number; // epoch ms
-  lastProblemId?: string; // last problem the user was viewing in this lesson
+  lastProblemId?: string; // legacy: last problem viewed (kept for back-compat)
+  lastStageIndex?: number; // last stage index viewed (staged-lesson resume)
 }
 
 export interface CourseProgress {

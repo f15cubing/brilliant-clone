@@ -1,4 +1,5 @@
 import type { Course, Lesson, Problem } from "@/lib/content/types";
+import { lessonSolvableIds } from "@/lib/content/lessonStages";
 import { triangleAngleSum } from "@/lib/content/lessons/triangleAngleSum";
 import { inscribedAngle } from "@/lib/content/lessons/inscribedAngle";
 import { cyclicQuadrilaterals } from "@/lib/content/lessons/cyclicQuadrilaterals";
@@ -38,7 +39,7 @@ export function getProblem(
 }
 
 export function totalProblems(): number {
-  return COURSE.lessons.reduce((n, l) => n + l.problems.length, 0);
+  return COURSE.lessons.reduce((n, l) => n + lessonSolvableIds(l).length, 0);
 }
 
 export function lessonIndex(lessonId: string): number {

@@ -1,4 +1,5 @@
 import { COURSE, totalProblems } from "@/lib/content/course";
+import { lessonSolvableIds } from "@/lib/content/lessonStages";
 import type { CourseProgress, LessonProgress, ProgressSnapshot } from "@/lib/progress/types";
 
 export interface ReconcileResult {
@@ -30,7 +31,7 @@ export interface ReconcileResult {
 export function reconcileSnapshot(snapshot: ProgressSnapshot): ReconcileResult {
   const validProblemIds = new Map<string, Set<string>>();
   for (const lesson of COURSE.lessons) {
-    validProblemIds.set(lesson.id, new Set(lesson.problems.map((p) => p.id)));
+    validProblemIds.set(lesson.id, new Set(lessonSolvableIds(lesson)));
   }
 
   let changed = false;
@@ -113,6 +114,9 @@ function reconcileLesson(
     xpEarned: stored.xpEarned,
     ...(completedAt != null ? { completedAt } : {}),
     ...(lastProblemId != null ? { lastProblemId } : {}),
+    ...(stored.lastStageIndex != null
+      ? { lastStageIndex: stored.lastStageIndex }
+      : {}),
   };
 
   return { lesson, changed };

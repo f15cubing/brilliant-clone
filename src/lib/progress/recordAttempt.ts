@@ -1,4 +1,5 @@
 import { COURSE } from "@/lib/content/course";
+import { lessonSolvableIds } from "@/lib/content/lessonStages";
 import { earnedAchievements } from "@/lib/progress/achievements";
 import { rebuildCourseProgress } from "@/lib/progress/reconcile";
 import { type LessonProgress, type ProgressSnapshot } from "@/lib/progress/types";
@@ -65,11 +66,13 @@ export function applyAttempt(
   }
 
   const lessonDef = COURSE.lessons.find((l) => l.id === input.lessonId);
+  const solvableIds = lessonDef ? lessonSolvableIds(lessonDef) : [];
   let lessonCompleted = false;
   if (
     lessonDef &&
     !lp.completedAt &&
-    lessonDef.problems.every((p) => lp.completedProblemIds.includes(p.id))
+    solvableIds.length > 0 &&
+    solvableIds.every((id) => lp.completedProblemIds.includes(id))
   ) {
     lp.completedAt = now;
     lp.xpEarned += lessonDef.completionXp;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { COURSE, totalProblems } from "@/lib/content/course";
+import { lessonSolvableIds } from "@/lib/content/lessonStages";
 import { ACHIEVEMENTS, earnedAchievements } from "@/lib/progress/achievements";
 import {
   emptySnapshot,
@@ -104,7 +105,7 @@ describe("earnedAchievements", () => {
     const lessons: Record<string, LessonProgress> = {};
     for (const l of COURSE.lessons) {
       lessons[l.id] = lessonWith({
-        completedProblemIds: l.problems.map((p) => p.id),
+        completedProblemIds: lessonSolvableIds(l),
         completedAt: 1,
       });
     }
