@@ -3,9 +3,20 @@ import { factLabel } from "@/lib/freeplay/dsl";
 import type { FactEntry } from "@/lib/freeplay/proof";
 
 /** The running list of established facts (given hypotheses + derived steps). */
-export function FactList({ facts }: { facts: FactEntry[] }) {
+export function FactList({
+  facts,
+  className,
+}: {
+  facts: FactEntry[];
+  className?: string;
+}) {
   return (
-    <section className="flex flex-col gap-3 rounded-sm border border-rule bg-panel-soft p-4">
+    <section
+      className={
+        className ??
+        "flex flex-col gap-3 rounded-sm border border-rule bg-panel-soft p-4"
+      }
+    >
       <h2 className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-ultramarine">
         Established facts
       </h2>
@@ -23,6 +34,10 @@ export function FactList({ facts }: { facts: FactEntry[] }) {
               {f.source === "given" ? (
                 <span className="font-mono text-[0.62rem] uppercase tracking-wide text-ink-faint">
                   given
+                </span>
+              ) : f.source === "construction" ? (
+                <span className="font-mono text-[0.62rem] uppercase tracking-wide text-[#7a3ea8]">
+                  construction
                 </span>
               ) : (
                 <span className="font-mono text-[0.62rem] uppercase tracking-wide text-correct">

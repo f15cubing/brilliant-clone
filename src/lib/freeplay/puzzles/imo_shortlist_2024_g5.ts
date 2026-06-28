@@ -122,6 +122,11 @@ function construct(rng: () => number): Realization {
   return { coords: build(A, B, C) };
 }
 
+/** Movable form: rebuild the whole G5 configuration from the dragged triangle. */
+function constructFrom(free: Coords): Realization {
+  return { coords: build(free.A, free.B, free.C) };
+}
+
 // ---- givens (all true BY CONSTRUCTION) --------------------------------------
 
 // I is the incenter: AI, BI, CI bisect the angles at A, B, C.
@@ -187,6 +192,7 @@ export const imo_shortlist_2024_g5: Puzzle = {
   difficulty: "challenge",
   coords,
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
   figure: [
     circumGamma,

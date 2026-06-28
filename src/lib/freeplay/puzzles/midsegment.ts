@@ -1,7 +1,13 @@
 import { COLORS, polygon, segment } from "@/lib/content/boards";
+import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
 import { midpoint, type V } from "@/lib/freeplay/geom";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
+
+/** Derive the figure from the free vertices A, B, C: M, N are the midpoints. */
+function deriveFrom(A: V, B: V, C: V): Realization {
+  return { coords: { A, B, C, M: midpoint(A, B), N: midpoint(A, C) } };
+}
 
 /**
  * Generic realization: a random scalene triangle ABC with M, N the exact
@@ -12,7 +18,12 @@ function construct(rng: () => number): Realization {
   const A: V = [rnd(-1, 1), rnd(4, 6)];
   const B: V = [rnd(-5, -3), rnd(-3, -1)];
   const C: V = [rnd(3, 6), rnd(-2, 0)];
-  return { coords: { A, B, C, M: midpoint(A, B), N: midpoint(A, C) } };
+  return deriveFrom(A, B, C);
+}
+
+/** Movable form: recompute the midpoints from the dragged vertices. */
+function constructFrom(free: Coords): Realization {
+  return deriveFrom(free.A, free.B, free.C);
 }
 
 /**
@@ -33,6 +44,7 @@ export const midsegment: Puzzle = {
     N: [2.5, 2],
   },
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
   figure: [
     polygon(["A", "B", "C"]),

@@ -1,7 +1,7 @@
 import { COLORS, circle, polygon, segment } from "@/lib/content/boards";
 import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
-import { pointOnCircleAtAngle, unit, type V } from "@/lib/freeplay/geom";
+import { circumcenter, dist, pointOnCircleAtAngle, unit, type V } from "@/lib/freeplay/geom";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 const deg = (d: number): V => [Math.cos((d * Math.PI) / 180), Math.sin((d * Math.PI) / 180)];
@@ -54,6 +54,31 @@ function construct(rng: () => number): Realization {
   return { coords: { O: Oc, A: Ap, B: Bp, C: Cp, T: Tp, D: Dp, E: Ep } };
 }
 
+/**
+ * Movable form: from the dragged triangle ABC recompute the circumcentre O, the
+ * tangent point T at C (CT ⟂ OC), and D, E where a line p ∥ t (at a deterministic
+ * outward offset from C) meets lines CB and CA. Every given (equal radii, the
+ * tangent ⟂ OC, D/E on the side lines, and DE ∥ CT) holds by construction.
+ */
+function deriveFrom(A: V, B: V, C: V): Realization {
+  const O = circumcenter(A, B, C);
+  if (!O) throw new Error("degenerate triangle (A, B, C collinear)");
+  const R = dist(O, A);
+  const ocDir = unit(sub(C, O)) ?? [1, 0]; // radius direction at C
+  const tanDir: V = [-ocDir[1], ocDir[0]]; // tangent at C ⟂ OC
+  const T = add(C, mul(tanDir, 1.4 * R)); // a point on the tangent t
+  // Line p ∥ t, offset outward from C along the radius direction (deterministic).
+  const P0 = add(C, mul(ocDir, 0.9 * R));
+  const P1 = add(P0, tanDir);
+  const D = meet(P0, P1, B, C); // p ∩ line CB
+  const E = meet(P0, P1, A, C); // p ∩ line CA
+  return { coords: { O, A, B, C, T, D, E } };
+}
+
+function constructFrom(free: Coords): Realization {
+  return deriveFrom(free.A, free.B, free.C);
+}
+
 const feeder = rel("eqangle", ["B", "A", "E", "B", "D", "E"]); // ∠BAE = ∠BDE
 const goal = rel("cyclic", ["A", "B", "D", "E"]); // A, B, D, E concyclic
 
@@ -78,6 +103,7 @@ export const jbmo_shortlist_2015_g1: Puzzle = {
   difficulty: "core",
   coords,
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
   figure: [
     circle("circumcircle", "O", "A"),

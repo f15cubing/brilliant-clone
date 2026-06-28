@@ -2,14 +2,27 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Spinner } from "@/components/Spinner";
+import { ConstructionToolbar } from "@/components/freeplay/ConstructionToolbar";
 import { FactList } from "@/components/freeplay/FactList";
-import { FixedFigure } from "@/components/freeplay/FixedFigure";
+import { MovableFigure } from "@/components/freeplay/MovableFigure";
+import type { GeometryBoardHandle } from "@/components/geometry/GeometryBoard";
 import { GoalPanel } from "@/components/freeplay/GoalPanel";
 import { ProofSummary } from "@/components/freeplay/ProofSummary";
 import { StepBuilder } from "@/components/freeplay/StepBuilder";
 import { DevPanel, type LastAttempt } from "@/components/freeplay/DevPanel";
 import { verifyStep } from "@/lib/freeplay/api";
-import type { LFact } from "@/lib/freeplay/dsl";
+import { isAmong, type LFact } from "@/lib/freeplay/dsl";
+import {
+  type AuxKind,
+  type AuxStep,
+  AUX_ARITY,
+  allAuxFacts,
+  auxFacts,
+  compileAux,
+  extendCoords,
+  extendRealizations,
+  makeAuxStep,
+} from "@/lib/freeplay/auxConstructions";
 import { factHoldsL } from "@/lib/freeplay/lengths/dsl";
 import {
   alreadyKnown,
@@ -96,6 +109,19 @@ function Arena({
   );
   const [busy, setBusy] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<LastAttempt | null>(null);
+  // Overlay visibility: the facts list and the step builder float over the
+  // near-full-screen figure and can each be hidden to maximize the canvas.
+  const [showFacts, setShowFacts] = useState(true);
+  const [showBuilder, setShowBuilder] = useState(true);
+
+  // Auxiliary constructions the learner adds on-canvas (midpoint, foot, …). Each
+  // introduces a new point + its defining fact (citable as a premise). They live
+  // outside the proof reducer; the arena merges them into the facts/points it
+  // shows and into what the verifier checks against.
+  const boardRef = useRef<GeometryBoardHandle>(null);
+  const [auxSteps, setAuxSteps] = useState<AuxStep[]>([]);
+  const [tool, setTool] = useState<AuxKind | null>(null);
+  const [operands, setOperands] = useState<string[]>([]);
 
   // R2-D2 (proof archive): record the completed proof exactly once per solve.
   // `attemptRef` bumps on Reset so re-solving stores a fresh history record.
@@ -131,7 +157,6 @@ function Arena({
     else clearDraft();
   }, [state.facts, state.status, persistDraft, clearDraft]);
 
-  const pointIds = Object.keys(puzzle.coords);
   const bindings = puzzle.variables ?? {};
 
   // Multi-case verification: sample several independent generic realizations of
@@ -140,33 +165,105 @@ function Arena({
   // coincidentally true/derivable in the one canonical figure is rejected.
   const realizations = useMemo(() => sampleRealizations(puzzle), [puzzle]);
 
+  // The defining facts of the current constructions (citable premises), plus the
+  // merged facts/points the UI shows and the verifier sees.
+  const auxFactList = useMemo(() => allAuxFacts(auxSteps), [auxSteps]);
+  const auxEntries: FactEntry[] = useMemo(
+    () =>
+      auxSteps.flatMap((s, si) =>
+        auxFacts(s).map((fact, fi) => ({
+          // Negative ids keep aux facts clear of the reducer's sequential ids.
+          id: -1 - (si * 8 + fi),
+          fact,
+          source: "construction" as const,
+        })),
+      ),
+    [auxSteps],
+  );
+  const displayFacts = useMemo(
+    () => [...state.facts, ...auxEntries],
+    [state.facts, auxEntries],
+  );
+  const allPointIds = useMemo(
+    () => [...Object.keys(puzzle.coords), ...auxSteps.map((s) => s.id)],
+    [puzzle, auxSteps],
+  );
+
+  // The board's pointer-down handler reads the latest tool/operands via refs, so
+  // it never needs re-registering.
+  const toolRef = useRef(tool);
+  const operandsRef = useRef(operands);
+  const auxStepsRef = useRef(auxSteps);
+  toolRef.current = tool;
+  operandsRef.current = operands;
+  auxStepsRef.current = auxSteps;
+
+  // Register the construction click handler once the board exists. A click in
+  // construction mode appends an operand; the last operand completes the step.
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    return board.onBoardDown(({ hitId }) => {
+      const t = toolRef.current;
+      if (!t || !hitId) return; // no active tool, or an empty-space click
+      const ops = [...operandsRef.current, hitId];
+      if (ops.length < AUX_ARITY[t]) {
+        setOperands(ops);
+        return;
+      }
+      const used = new Set([
+        ...Object.keys(puzzle.coords),
+        ...auxStepsRef.current.map((s) => s.id),
+      ]);
+      setAuxSteps((prev) => [...prev, makeAuxStep(t, ops, used)]);
+      setOperands([]);
+    });
+  }, [puzzle]);
+
+  // Lock point dragging while a tool is active so clicks select, not drag.
+  useEffect(() => {
+    boardRef.current?.setPointsFixed(tool !== null);
+  }, [tool]);
+
+  // Render the constructions as a board overlay; rebuilding the overlay layer on
+  // change preserves the puzzle figure's live drag state.
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    board.clearOverlays();
+    if (auxSteps.length > 0) board.applyOverlay({ elements: compileAux(auxSteps) });
+  }, [auxSteps]);
+
   const handleAssert = async (
     fact: LFact,
     premises: LFact[],
     opts?: { subst?: Subst },
   ) => {
-    if (alreadyKnown(state, fact)) {
+    if (alreadyKnown(state, fact) || isAmong(fact, auxFactList)) {
       dispatch({ type: "already_known" });
       return;
     }
+    // Fold the learner's constructions into every realization the verifier sees,
+    // and grant their defining facts as citable premises.
+    const liveCoords = extendCoords(puzzle.coords, auxSteps);
     setBusy(true);
     try {
       const result = await verifyStep(
         {
-          coords: puzzle.coords,
+          coords: liveCoords,
           bindings,
-          establishedFacts: establishedFacts(state),
+          establishedFacts: [...establishedFacts(state), ...auxFactList],
           candidateFact: fact,
           citedPremises: premises,
           givens: puzzle.given,
           analogy: opts?.subst ? { subst: opts.subst } : undefined,
-          realizations,
+          realizations: extendRealizations(realizations, auxSteps),
         },
         puzzle.id,
       );
       setLastAttempt({
         fact,
-        holds: factHoldsL(fact, puzzle.coords, bindings),
+        holds: factHoldsL(fact, liveCoords, bindings),
         result,
       });
       if (result.valid) {
@@ -190,72 +287,137 @@ function Arena({
     }
   };
 
+  // Shared translucent "card" styling for the panels floating over the figure.
+  const overlayCard =
+    "flex flex-col gap-3 rounded-sm border border-rule bg-paper/90 p-4 shadow-lg backdrop-blur";
+  const overlayBtn =
+    "rounded-sm border border-rule bg-paper/90 px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink-soft shadow-sm backdrop-blur transition hover:border-ink-faint hover:text-ink";
+
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link
-            to="/freeplay"
-            className="font-mono text-xs uppercase tracking-[0.18em] text-vermilion hover:underline"
-          >
-            ← Freeplay
-          </Link>
-          <h1 className="mt-2 font-display text-3xl tracking-tight text-ink">
-            {puzzle.title}
-          </h1>
-          <p className="mt-1 max-w-2xl font-serif text-ink-soft">{puzzle.blurb}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            // R2-D2 (proof archive): new attempt key so a re-solve re-saves.
-            attemptRef.current += 1;
-            dispatch({ type: "reset" });
-          }}
-          className="rounded-sm border border-rule px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink-soft transition hover:border-ink-faint hover:text-ink"
-        >
-          Reset
-        </button>
-      </header>
+    // `absolute inset-0` fills the full-bleed <main> (a flex-1 item with a real
+    // rendered height); a percentage `h-full` here collapses to 0 because the
+    // flex height is not a definite containing-block height. No background, so
+    // the page's paper + drafting grid show through for a cohesive feel.
+    <div className="absolute inset-0 overflow-hidden">
+      {/* The figure fills the whole arena. Free points are draggable when the
+          puzzle ships a `constructFrom`; otherwise it is a static fixed board. */}
+      <MovableFigure ref={boardRef} puzzle={puzzle} className="absolute inset-0" />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-4">
-          <FactList facts={state.facts} />
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <FixedFigure puzzle={puzzle} />
-          {state.feedback && <FeedbackBanner feedback={state.feedback} />}
-          {solved ? (
-            <ProofSummary facts={state.facts} save={proofSave} />
-          ) : (
-            <StepBuilder
-              pointIds={pointIds}
-              facts={state.facts}
-              givens={puzzle.given}
-              busy={busy}
-              disabled={solved}
-              onAssert={handleAssert}
-              puzzleId={puzzle.id}
-              variableNames={Object.keys(bindings)}
-            />
-          )}
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <GoalPanel puzzle={puzzle} solved={solved} />
-          {import.meta.env.DEV && (
-            <ErrorBoundary>
-              <DevPanel
-                coords={puzzle.coords}
-                bindings={bindings}
-                facts={establishedFacts(state)}
-                last={lastAttempt}
+      {/* Floating overlay. The layer itself ignores pointer events so empty
+          space drags/pans the figure; each card re-enables them. */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col">
+        <div className="flex items-start justify-between gap-3 p-3 sm:p-4">
+          {/* Top-left: back link, title, goal. */}
+          <div className="pointer-events-auto flex w-[min(90vw,21rem)] flex-col gap-2">
+            <Link
+              to="/freeplay"
+              className="font-mono text-xs uppercase tracking-[0.18em] text-vermilion hover:underline"
+            >
+              ← Freeplay
+            </Link>
+            <h1 className="font-display text-2xl leading-tight tracking-tight text-ink">
+              {puzzle.title}
+            </h1>
+            <GoalPanel puzzle={puzzle} solved={solved} className={overlayCard} />
+            {!solved && (
+              <ConstructionToolbar
+                activeTool={tool}
+                onSelect={setTool}
+                operands={operands}
+                auxCount={auxSteps.length}
+                onUndo={() => {
+                  setAuxSteps((prev) => prev.slice(0, -1));
+                  setOperands([]);
+                }}
+                className={overlayCard}
               />
-            </ErrorBoundary>
-          )}
+            )}
+          </div>
+
+          {/* Top-right: controls and the collapsible facts list. */}
+          <div className="pointer-events-auto flex w-[min(90vw,21rem)] flex-col items-end gap-2">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowFacts((s) => !s)}
+                className={overlayBtn}
+              >
+                {showFacts ? "Hide facts" : `Facts (${displayFacts.length})`}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // R2-D2 (proof archive): new attempt key so a re-solve re-saves.
+                  attemptRef.current += 1;
+                  dispatch({ type: "reset" });
+                  setAuxSteps([]);
+                  setTool(null);
+                  setOperands([]);
+                }}
+                className={overlayBtn}
+              >
+                Reset
+              </button>
+            </div>
+            {showFacts && (
+              <FactList
+                facts={displayFacts}
+                className={`${overlayCard} max-h-[42vh] w-full overflow-y-auto`}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Spacer pushes the builder to the bottom of the viewport. */}
+        <div className="min-h-0 flex-1" />
+
+        {/* Bottom-centre: feedback and the collapsible step builder / summary. */}
+        <div className="pointer-events-auto mx-auto w-full max-w-3xl px-3 pb-3 sm:px-4 sm:pb-4">
+          <div className="flex flex-col gap-3">
+            {state.feedback && <FeedbackBanner feedback={state.feedback} />}
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowBuilder((s) => !s)}
+                className={`${overlayBtn} py-1 text-[0.62rem]`}
+              >
+                {showBuilder ? "▾ Hide panel" : "▴ Build a step"}
+              </button>
+            </div>
+            {showBuilder && (
+              <div className="max-h-[58vh] overflow-y-auto rounded-sm bg-paper/90 shadow-lg backdrop-blur">
+                {solved ? (
+                  <ProofSummary facts={state.facts} save={proofSave} />
+                ) : (
+                  <StepBuilder
+                    pointIds={allPointIds}
+                    facts={displayFacts}
+                    givens={puzzle.given}
+                    busy={busy}
+                    disabled={solved}
+                    onAssert={handleAssert}
+                    puzzleId={puzzle.id}
+                    variableNames={Object.keys(bindings)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {import.meta.env.DEV && (
+        <div className="pointer-events-auto absolute bottom-2 left-2 z-10 max-h-[40vh] w-72 overflow-y-auto">
+          <ErrorBoundary>
+            <DevPanel
+              coords={puzzle.coords}
+              bindings={bindings}
+              facts={establishedFacts(state)}
+              last={lastAttempt}
+            />
+          </ErrorBoundary>
+        </div>
+      )}
     </div>
   );
 }

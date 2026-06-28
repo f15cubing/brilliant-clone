@@ -1,9 +1,10 @@
 import { COLORS, polygon, segment } from "@/lib/content/boards";
 import type { BoardElementDef } from "@/lib/geometry/board-types";
+import type { Coords } from "@/lib/freeplay/check";
 import { aval, rel } from "@/lib/freeplay/dsl";
 import { parseForm } from "@/lib/freeplay/form";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
-import { buildIncenterConfig } from "./incenterExcenterConfig";
+import { buildIncenterConfig, incenterConfigFrom } from "./incenterExcenterConfig";
 
 const { coords } = buildIncenterConfig();
 const F = (s: string) => parseForm(s);
@@ -16,6 +17,11 @@ const F = (s: string) => parseForm(s);
  */
 function construct(rng: () => number): Realization {
   return { coords: buildIncenterConfig(rng).coords };
+}
+
+/** Movable form: recompute the incenter I and the arc point L from the triangle. */
+function constructFrom(free: Coords): Realization {
+  return { coords: incenterConfigFrom(free.A, free.B, free.C).coords };
 }
 
 const circumcircle: BoardElementDef = {
@@ -42,6 +48,7 @@ export const incenterExcenter: Puzzle = {
   difficulty: "challenge",
   coords,
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
   variables: {
     A: ["B", "A", "C"],

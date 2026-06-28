@@ -1,8 +1,28 @@
-import type { BoardElementDef } from "@/lib/geometry/board-types";
+import type { BoardConstraint, BoardElementDef } from "@/lib/geometry/board-types";
 import type { Coords, VarBindings } from "./check";
 import type { LFact, PointId, RuleId } from "./dsl";
 
 export type Difficulty = "intro" | "core" | "challenge";
+
+/**
+ * Optional constraint description for the MOVABLE figure when some free points
+ * are not free in the plane but ride a locus (a circle/line) — e.g. four points
+ * on a circle, or a glider on a tangent line. The locus is built as a background
+ * `host` element (from plane handle points + constants) and the relevant free
+ * points become JSXGraph gliders on it. Dependent points are still recomputed by
+ * `constructFrom`, which receives every free point's live position (plane and
+ * glider alike).
+ */
+export interface MovableSpec {
+  /**
+   * Host locus elements (e.g. `circle(O, r)`) the gliders ride on, plus any
+   * helper construction points. Built after the plane free points and before the
+   * gliders, so they may reference plane free points by id.
+   */
+  hosts?: BoardElementDef[];
+  /** Maps a free-point id to the host element id it glides on (+ optional drag clamp). */
+  gliders?: Record<PointId, { on: string; constrain?: BoardConstraint }>;
+}
 
 /**
  * A concrete realization of a puzzle's figure: one set of point coordinates plus
@@ -50,11 +70,28 @@ export interface Puzzle {
    */
   construct?: (rng: () => number) => Realization;
   /**
+   * Explicit-parameter form of `construct`: given the live positions of the
+   * puzzle's `freePoints`, derive a full realization (dependent points recomputed
+   * so every `given` still holds BY CONSTRUCTION). This powers the MOVABLE figure
+   * — dragging a free point reruns this and redraws (see
+   * `docs/design/MOVABLE_FIGURES.md`). Converted puzzles refactor `construct(rng)`
+   * to sample the free points then delegate to the same core as `constructFrom`;
+   * puzzles without it gracefully fall back to the static fixed board. The
+   * verifier never uses it (it relies on `coords` + sampled realizations), so
+   * dragging is purely exploratory and can never affect proof checking.
+   */
+  constructFrom?: (free: Coords) => Realization;
+  /**
    * The free (draggable) point ids of the construction; every other point is
    * dependent (recomputed from the free ones). For the movable-drawing UI; the
    * verifier does not require it.
    */
   freePoints?: PointId[];
+  /**
+   * Optional locus constraints for the movable figure (gliders on a circle/line).
+   * When absent, every free point is draggable in the plane. See `MovableSpec`.
+   */
+  movable?: MovableSpec;
 
   given: LFact[];
   goal: LFact;

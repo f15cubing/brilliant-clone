@@ -1,4 +1,4 @@
-import { circle, COLORS, fixedPoint, polygon, segment } from "@/lib/content/boards";
+import { circle, COLORS, polygon, segment } from "@/lib/content/boards";
 import type { Coords } from "@/lib/freeplay/check";
 import { aval, rel } from "@/lib/freeplay/dsl";
 import { parseForm } from "@/lib/freeplay/form";
@@ -14,6 +14,7 @@ import {
   sub,
   type V,
 } from "@/lib/freeplay/geom";
+import type { BoardElementDef, BoardRefs } from "@/lib/geometry/board-types";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 /**
@@ -91,9 +92,27 @@ const B0: V = [0, 0];
 const C0: V = [6, 0];
 const coords = build(A0, B0, C0);
 
-// Decorative (canonical-only) helpers: circumcentre and the BC touch point of ω.
-const O0 = circumcenter(A0, B0, C0)!;
-const T0 = foot(coords.I, B0, C0); // incircle touch point on BC
+/** A circle through three points, drawn with its auto-centre hidden. */
+function circumcircleThrough(
+  id: string,
+  ids: [string, string, string],
+  attrs: Record<string, unknown>,
+): BoardElementDef {
+  return {
+    id,
+    type: "circumcircle",
+    parents: ids.map((p) => ({ ref: p })),
+    attributes: { point: { visible: false }, ...attrs },
+  };
+}
+
+/** Live incircle touch point on BC (foot of the incentre I onto line BC). */
+const touchOnBC = (axis: 0 | 1) => (r: BoardRefs) =>
+  foot(
+    [r.I.X(), r.I.Y()] as V,
+    [r.B.X(), r.B.Y()] as V,
+    [r.C.X(), r.C.Y()] as V,
+  )[axis];
 
 /**
  * Generic realization: a scalene ACUTE triangle with AB < AC < BC. With B at the
@@ -121,6 +140,11 @@ function construct(rng: () => number): Realization {
     throw new Error("X or Y not interior to BC");
   }
   return { coords: cc };
+}
+
+/** Movable form: rebuild the incentre/tangent/midpoint configuration from ABC. */
+function constructFrom(free: Coords): Realization {
+  return { coords: build(free.A, free.B, free.C) };
 }
 
 // ---- givens / goal ----------------------------------------------------------
@@ -163,12 +187,21 @@ export const imo_shortlist_2024_g2: Puzzle = {
   difficulty: "challenge",
   coords,
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
   figure: [
     // Circumcircle of ABC (carries P) and the incircle ω.
-    fixedPoint("O", O0[0], O0[1], { name: "O", size: 2, withLabel: true }),
-    circle("circum", "O", "A", { strokeColor: COLORS.BRAND, strokeWidth: 1.5 }),
-    fixedPoint("Tbc", T0[0], T0[1], { name: "", size: 0.1, visible: false }),
+    circumcircleThrough("circum", ["A", "B", "C"], {
+      strokeColor: COLORS.BRAND,
+      strokeWidth: 1.5,
+    }),
+    // The incircle ω, centred at I through its (recomputed) BC touch point.
+    {
+      id: "Tbc",
+      type: "point",
+      parents: [{ fn: touchOnBC(0) }, { fn: touchOnBC(1) }],
+      attributes: { name: "", size: 0.1, visible: false, fixed: true },
+    },
     circle("incircle", "I", "Tbc", { strokeColor: COLORS.WRONG, strokeWidth: 1.5 }),
     polygon(["A", "B", "C"]),
     // Bisector AI extended to P and A2.

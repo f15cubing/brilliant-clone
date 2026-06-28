@@ -2,9 +2,22 @@ import { MathText } from "@/components/MathText";
 import { factLabel } from "@/lib/freeplay/dsl";
 import type { Puzzle } from "@/lib/freeplay/types";
 
-export function GoalPanel({ puzzle, solved }: { puzzle: Puzzle; solved: boolean }) {
+export function GoalPanel({
+  puzzle,
+  solved,
+  className,
+}: {
+  puzzle: Puzzle;
+  solved: boolean;
+  className?: string;
+}) {
   return (
-    <section className="flex flex-col gap-3 rounded-sm border border-rule bg-panel-soft p-4">
+    <section
+      className={
+        className ??
+        "flex flex-col gap-3 rounded-sm border border-rule bg-panel-soft p-4"
+      }
+    >
       <h2 className="font-mono text-[0.68rem] uppercase tracking-[0.18em] text-vermilion">
         Goal
       </h2>

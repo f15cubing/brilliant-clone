@@ -13,27 +13,13 @@ export interface IncenterConfig {
 }
 
 /**
- * Build the incenter–excenter configuration from a triangle ABC. When `rng` is
- * supplied, A, B, C are sampled as an acute, scalene triangle on a random circle
- * (well-separated arcs keep all angles < 90°); otherwise the fixed canonical
- * triangle is used. Throws on a degenerate sample so the multi-case sampler can
- * resample.
+ * Derive the incenter–excenter configuration from an explicit triangle ABC:
+ *   I = incenter, L = second meeting of ray AI with the circumcircle.
+ * Throws on a degenerate (collinear) triangle. This is the construction core
+ * shared by `buildIncenterConfig` (sampling/canonical) and the puzzle's movable
+ * `constructFrom` (the dragged triangle).
  */
-export function buildIncenterConfig(rng?: () => number): IncenterConfig {
-  let A: V = [0.6, 5.2];
-  let B: V = [-4.3, -1.4];
-  let C: V = [5.1, -2.1];
-
-  if (rng) {
-    const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
-    const Oc: V = [rnd(-1, 1), rnd(-1, 1)];
-    const r = rnd(3.5, 5);
-    // Three well-spread angles ⇒ acute, scalene triangle (center inside).
-    A = pointOnCircleAtAngle(Oc, r, rnd(75, 105));
-    B = pointOnCircleAtAngle(Oc, r, rnd(195, 225));
-    C = pointOnCircleAtAngle(Oc, r, rnd(315, 345));
-  }
-
+export function incenterConfigFrom(A: V, B: V, C: V): IncenterConfig {
   // side lengths opposite each vertex
   const a = dist(B, C);
   const b = dist(C, A);
@@ -58,4 +44,29 @@ export function buildIncenterConfig(rng?: () => number): IncenterConfig {
   if (Math.abs(dist(L, O) - R) > 1e-6) throw new Error("L not on circumcircle");
 
   return { coords: { A, B, C, I, L } };
+}
+
+/**
+ * Build the incenter–excenter configuration from a triangle ABC. When `rng` is
+ * supplied, A, B, C are sampled as an acute, scalene triangle on a random circle
+ * (well-separated arcs keep all angles < 90°); otherwise the fixed canonical
+ * triangle is used. Throws on a degenerate sample so the multi-case sampler can
+ * resample.
+ */
+export function buildIncenterConfig(rng?: () => number): IncenterConfig {
+  let A: V = [0.6, 5.2];
+  let B: V = [-4.3, -1.4];
+  let C: V = [5.1, -2.1];
+
+  if (rng) {
+    const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
+    const Oc: V = [rnd(-1, 1), rnd(-1, 1)];
+    const r = rnd(3.5, 5);
+    // Three well-spread angles ⇒ acute, scalene triangle (center inside).
+    A = pointOnCircleAtAngle(Oc, r, rnd(75, 105));
+    B = pointOnCircleAtAngle(Oc, r, rnd(195, 225));
+    C = pointOnCircleAtAngle(Oc, r, rnd(315, 345));
+  }
+
+  return incenterConfigFrom(A, B, C);
 }

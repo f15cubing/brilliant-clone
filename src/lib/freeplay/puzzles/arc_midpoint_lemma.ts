@@ -1,6 +1,18 @@
 import { COLORS, circle, polygon, segment } from "@/lib/content/boards";
+import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
-import { pointOnCircleAtAngle, type V } from "@/lib/freeplay/geom";
+import {
+  add,
+  circumcenter,
+  dist,
+  midpoint,
+  pointOnCircleAtAngle,
+  sameSideOfLine,
+  scale,
+  sub,
+  unit,
+  type V,
+} from "@/lib/freeplay/geom";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 // Circumcircle is centered at the origin; scale the unit circle up for a legible
@@ -44,6 +56,23 @@ function construct(rng: () => number): Realization {
 }
 
 /**
+ * Movable form: from the dragged triangle ABC recompute the circumcentre O and
+ * M = the midpoint of arc BC NOT containing A (the intersection of the
+ * perpendicular bisector of BC with the circumcircle, on the opposite side of
+ * line BC from A). So AM stays the bisector of ∠BAC and A,B,C,M stay concyclic.
+ */
+function constructFrom(free: Coords): Realization {
+  const { A, B, C } = free;
+  const O = circumcenter(A, B, C);
+  if (!O) throw new Error("degenerate triangle (A, B, C collinear)");
+  const R = dist(O, A);
+  const dir = unit(sub(midpoint(B, C), O)) ?? [0, 1];
+  let M = add(O, scale(dir, R));
+  if (sameSideOfLine(B, C, A, M)) M = add(O, scale(dir, -R));
+  return { coords: { A, B, C, M, O } };
+}
+
+/**
  * Arc-midpoint ("trillium") lemma (intro).
  *
  * The bisector of ∠BAC meets the circumcircle of ABC again at M, the midpoint of
@@ -59,6 +88,7 @@ export const arcMidpointLemma: Puzzle = {
   difficulty: "intro",
   coords: { A, B, C, M, O },
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
   figure: [
     circle("circumcircle", "O", "A"),

@@ -56,4 +56,11 @@ export interface JSXGraphDef {
   boundingBox?: [number, number, number, number];
   keepAspectRatio?: boolean;
   elements: BoardElementDef[];
+  /**
+   * Enable free navigation: drag empty space to pan, scroll wheel to zoom, and
+   * show the on-board zoom/reset controls. Used by the full-screen freeplay
+   * board. Off by default so the inline course boards keep their Shift-gated
+   * pan/zoom and never hijack page scroll.
+   */
+  freeNavigation?: boolean;
 }

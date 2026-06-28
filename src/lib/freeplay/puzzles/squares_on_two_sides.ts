@@ -40,6 +40,11 @@ function construct(rng: () => number): Realization {
   return { coords: squaresFrom(a, b, c) };
 }
 
+/** Movable form: re-erect both squares from the dragged triangle vertices. */
+function constructFrom(free: Coords): Realization {
+  return { coords: squaresFrom(free.A, free.B, free.C) };
+}
+
 const eqBAG_EAC = rel("eqangle", ["B", "A", "G", "E", "A", "C"]); // ∠BAG = ∠EAC
 const goal = rel("cong", ["B", "G", "C", "E"]); // BG = CE
 
@@ -62,6 +67,7 @@ export const squares_on_two_sides: Puzzle = {
   difficulty: "core",
   coords,
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
   figure: [
     polygon(["A", "B", "C"]),

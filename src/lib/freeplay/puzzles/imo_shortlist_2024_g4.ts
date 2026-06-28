@@ -1,6 +1,8 @@
-import { circle, COLORS, fixedPoint, polygon, segment } from "@/lib/content/boards";
+import { COLORS, polygon, segment } from "@/lib/content/boards";
+import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
 import { circumcenter, dist, lineIntersect, type V } from "@/lib/freeplay/geom";
+import type { BoardElementDef } from "@/lib/geometry/board-types";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 /**
@@ -101,13 +103,23 @@ function buildG4(P: V, D: V, C: V, t: number): Record<string, V> {
 
 // ---- fixed canonical figure (realization 0) --------------------------------
 
-const coords = buildG4([0, 0], [-3, -6], [6, -5], 0.45);
+/** The placement ratio A on PD / B on PC for the movable form (canonical t). */
+const T_RATIO = 0.45;
+const coords = buildG4([0, 0], [-3, -6], [6, -5], T_RATIO);
 
-// Circle centres, for drawing the three circles of the configuration (figure
-// only; not logical points, so they don't affect the multi-case sampler).
-const ocABCX = circumcenter(coords.A, coords.B, coords.C)!; // circle (A,B,C,X)
-const odABDY = circumcenter(coords.A, coords.B, coords.D)!; // circle (A,B,D,Y)
-const oxPCXQ = circumcenter(coords.P, coords.C, coords.X)!; // circle (P,C,X) — carries Q
+/** A circle through three points, drawn with its auto-centre hidden. */
+function circumcircleThrough(
+  id: string,
+  ids: [string, string, string],
+  attrs: Record<string, unknown>,
+): BoardElementDef {
+  return {
+    id,
+    type: "circumcircle",
+    parents: ids.map((p) => ({ ref: p })),
+    attributes: { point: { visible: false }, ...attrs },
+  };
+}
 
 // ---- generic realization ----------------------------------------------------
 
@@ -120,6 +132,16 @@ function construct(rng: () => number): Realization {
   const C: V = [P[0] + rnd(3, 6), P[1] - rnd(4, 7)];
   const t = rnd(0.35, 0.55); // A on PD, B on PC at this ratio ⇒ AB = t·CD < CD
   return { coords: buildG4(P, D, C, t) };
+}
+
+/**
+ * Movable form: drag the apex P and the long-base endpoints D, C; A and B stay
+ * on rays PD, PC at the fixed ratio T_RATIO (so AB ∥ CD and AB < CD), and every
+ * dependent point (X, Y, Q) is rebuilt. A degenerate drag throws and is snapped
+ * back by the figure's validity guard.
+ */
+function constructFrom(free: Coords): Realization {
+  return { coords: buildG4(free.P, free.D, free.C, T_RATIO) };
 }
 
 // ---- givens (all true BY CONSTRUCTION — none injects a conclusion) -----------
@@ -153,6 +175,7 @@ export const imo_shortlist_2024_g4: Puzzle = {
   difficulty: "challenge",
   coords,
   construct,
+  constructFrom,
   freePoints: ["P", "D", "C"],
   figure: [
     polygon(["A", "B", "C", "D"]),
@@ -160,13 +183,14 @@ export const imo_shortlist_2024_g4: Puzzle = {
     segment("D", "P", { strokeColor: COLORS.WRONG, strokeWidth: 1, dash: 2 }),
     segment("C", "P", { strokeColor: COLORS.WRONG, strokeWidth: 1, dash: 2 }),
     // Circumcircles of ABC (through X) and ABD (through Y).
-    fixedPoint("OC", ocABCX[0], ocABCX[1], { name: "", size: 1 }),
-    fixedPoint("OD", odABDY[0], odABDY[1], { name: "", size: 1 }),
-    circle("cABCX", "OC", "A", { strokeColor: COLORS.BRAND, strokeWidth: 1 }),
-    circle("cABDY", "OD", "A", { strokeColor: COLORS.BRAND, strokeWidth: 1 }),
+    circumcircleThrough("cABCX", ["A", "B", "C"], { strokeColor: COLORS.BRAND, strokeWidth: 1 }),
+    circumcircleThrough("cABDY", ["A", "B", "D"], { strokeColor: COLORS.BRAND, strokeWidth: 1 }),
     // Circle (P,C,X): it carries Q (the radical-axis fact the engine cannot prove).
-    fixedPoint("OX", oxPCXQ[0], oxPCXQ[1], { name: "", size: 1 }),
-    circle("cPCX", "OX", "P", { strokeColor: COLORS.ACCENT, strokeWidth: 1, dash: 1 }),
+    circumcircleThrough("cPCX", ["P", "C", "X"], {
+      strokeColor: COLORS.ACCENT,
+      strokeWidth: 1,
+      dash: 1,
+    }),
     // Lines AX and BY meeting at Q.
     segment("A", "X"),
     segment("B", "Y"),

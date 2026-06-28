@@ -1,6 +1,14 @@
-import { circle, COLORS, fixedPoint, polygon, segment } from "@/lib/content/boards";
+import { COLORS, polygon, segment } from "@/lib/content/boards";
+import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
-import { lineCircleIntersect, pointOnCircleAtAngle, type V } from "@/lib/freeplay/geom";
+import {
+  circumcenter,
+  dist,
+  lineCircleIntersect,
+  pointOnCircleAtAngle,
+  type V,
+} from "@/lib/freeplay/geom";
+import type { BoardElementDef } from "@/lib/geometry/board-types";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 /**
@@ -86,6 +94,40 @@ function construct(rng: () => number): Realization {
   return { coords: { A: Av, B: Bv, C: Cv, D: Dv, E: Ev, F: Fv, P: Pv, Q: Qv } };
 }
 
+/**
+ * Movable form: from the dragged triangle ABC recompute the orthic feet D, E, F,
+ * the second meeting P of line EF with the circumcircle, and Q = BP ∩ DF. Drags
+ * that make EF miss the circumcircle throw and are snapped back by the guard.
+ */
+function constructFrom(free: Coords): Realization {
+  const { A: Av, B: Bv, C: Cv } = free;
+  const O = circumcenter(Av, Bv, Cv);
+  if (!O) throw new Error("degenerate triangle (A, B, C collinear)");
+  const R = dist(O, Av);
+  const Dv = foot(Av, Bv, Cv);
+  const Ev = foot(Bv, Cv, Av);
+  const Fv = foot(Cv, Av, Bv);
+  const hits = lineCircleIntersect(Ev, Fv, O, R);
+  if (hits.length < 2) throw new Error("EF misses the circumcircle");
+  const Pv = hits[1];
+  const Qv = meet(Bv, Pv, Dv, Fv);
+  return { coords: { A: Av, B: Bv, C: Cv, D: Dv, E: Ev, F: Fv, P: Pv, Q: Qv } };
+}
+
+/** A circle through three points, drawn with its auto-centre hidden. */
+function circumcircleThrough(
+  id: string,
+  ids: [string, string, string],
+  attrs: Record<string, unknown>,
+): BoardElementDef {
+  return {
+    id,
+    type: "circumcircle",
+    parents: ids.map((p) => ({ ref: p })),
+    attributes: { point: { visible: false }, ...attrs },
+  };
+}
+
 // ---- givens / goal ----------------------------------------------------------
 
 const cycABCP = rel("cyclic", ["A", "B", "C", "P"]); // circumcircle carries P
@@ -122,11 +164,14 @@ export const imo_shortlist_2010_g1: Puzzle = {
   difficulty: "challenge",
   coords,
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
   figure: [
     // Circumcircle of ABC (carries P).
-    fixedPoint("O", 0, 0, { name: "O", size: 2, withLabel: true }),
-    circle("circum", "O", "A", { strokeColor: COLORS.BRAND, strokeWidth: 1.5 }),
+    circumcircleThrough("circum", ["A", "B", "C"], {
+      strokeColor: COLORS.BRAND,
+      strokeWidth: 1.5,
+    }),
     polygon(["A", "B", "C"]),
     // The three altitudes onto the orthic triangle DEF.
     segment("A", "D", { strokeColor: COLORS.WRONG, strokeWidth: 1, dash: 2 }),

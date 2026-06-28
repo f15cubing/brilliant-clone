@@ -1,4 +1,5 @@
-import { circle, COLORS, fixedPoint, polygon, segment } from "@/lib/content/boards";
+import { COLORS, keepConvexOrder, polygon, segment } from "@/lib/content/boards";
+import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
 import {
   add,
@@ -63,16 +64,12 @@ const sideOf = (a: V, b: V, p: V): number => Math.sign(cross(sub(b, a), sub(p, a
  * BD, each on the side of line AD opposite C; T is the arc-BAC midpoint (on the
  * perpendicular bisector of BC, same side of BC as A); P = BE ∩ CF.
  */
-function buildFigure(
-  O: V,
-  R: number,
-  ang: { A: number; B: number; C: number; D: number },
-): Record<string, V> {
-  const A = pointOnCircleAtAngle(O, R, ang.A);
-  const B = pointOnCircleAtAngle(O, R, ang.B);
-  const C = pointOnCircleAtAngle(O, R, ang.C);
-  const D = pointOnCircleAtAngle(O, R, ang.D);
-
+/**
+ * Derive E, F, T, P from a cyclic quadrilateral ABCD on the circle (centre O,
+ * radius R). Shared by the angle-based `buildFigure` (sampling) and the movable
+ * `constructFrom` (ABCD as gliders on the host circle).
+ */
+function deriveFrom(O: V, R: number, A: V, B: V, C: V, D: V): Record<string, V> {
   const AC = dist(A, C);
   const BD = dist(B, D);
   const sideC = sideOf(A, D, C);
@@ -100,10 +97,37 @@ function buildFigure(
   return { A, B, C, D, E, F, T, P };
 }
 
+function buildFigure(
+  O: V,
+  R: number,
+  ang: { A: number; B: number; C: number; D: number },
+): Record<string, V> {
+  const A = pointOnCircleAtAngle(O, R, ang.A);
+  const B = pointOnCircleAtAngle(O, R, ang.B);
+  const C = pointOnCircleAtAngle(O, R, ang.C);
+  const D = pointOnCircleAtAngle(O, R, ang.D);
+  return deriveFrom(O, R, A, B, C, D);
+}
+
 // ---- realization 0: an explicit faithful instance -------------------------
 const O0: V = [0, 0];
 const R0 = 1;
-const coords = buildFigure(O0, R0, { A: 0, B: 90, C: 110, D: 210 });
+const coords = { O: O0, ...buildFigure(O0, R0, { A: 0, B: 90, C: 110, D: 210 }) };
+
+/**
+ * Movable form: O is the draggable circle centre (radius fixed at R0) and ABCD
+ * glide on the circle; E, F, T, P are rebuilt from them, so the cyclic
+ * quadrilateral and all derived incidences hold by construction as the centre
+ * and vertices are dragged.
+ */
+function constructFrom(free: Coords): Realization {
+  return {
+    coords: { O: free.O, ...deriveFrom(free.O, R0, free.A, free.B, free.C, free.D) },
+  };
+}
+
+/** Keep A, B, C, D in cyclic order so the quadrilateral never self-intersects. */
+const inOrder = keepConvexOrder("O", ["A", "B", "C", "D"]);
 
 /**
  * Generic realization: a random circle (centre O, radius R), the whole figure
@@ -168,11 +192,27 @@ export const imo_shortlist_2024_g1: Puzzle = {
   difficulty: "challenge",
   coords,
   construct,
-  freePoints: ["A", "B", "C", "D"],
+  constructFrom,
+  freePoints: ["O", "A", "B", "C", "D"],
+  // O is the draggable circumcircle centre (radius fixed); A, B, C, D glide on it
+  // (staying concyclic), and E, F, T, P are rebuilt from them.
+  movable: {
+    hosts: [
+      {
+        id: "circum",
+        type: "circle",
+        parents: [{ ref: "O" }, R0],
+        attributes: { strokeColor: COLORS.BRAND, strokeWidth: 1.5 },
+      },
+    ],
+    gliders: {
+      A: { on: "circum", constrain: inOrder },
+      B: { on: "circum", constrain: inOrder },
+      C: { on: "circum", constrain: inOrder },
+      D: { on: "circum", constrain: inOrder },
+    },
+  },
   figure: [
-    // Circumcircle of ABCD (carries T); O is the centre (realization 0).
-    fixedPoint("O", 0, 0, { name: "O", size: 2, withLabel: true }),
-    circle("circum", "O", "A", { strokeColor: COLORS.BRAND, strokeWidth: 1.5 }),
     polygon(["A", "B", "C", "D"]),
     // The two parallels: DE ∥ AB and AF ∥ CD.
     segment("D", "E", { strokeColor: COLORS.WRONG, strokeWidth: 1, dash: 2 }),

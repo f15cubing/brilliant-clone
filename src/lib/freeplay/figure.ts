@@ -33,6 +33,7 @@ export function buildFigureDef(puzzle: Puzzle): JSXGraphDef {
   return {
     boundingBox: [cx - half, cy + half, cx + half, cy - half],
     keepAspectRatio: true,
+    freeNavigation: true,
     elements: [...points, ...puzzle.figure],
   };
 }

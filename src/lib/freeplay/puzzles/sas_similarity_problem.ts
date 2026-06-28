@@ -1,8 +1,12 @@
-import { angleMark, circle, COLORS, fixedPoint, segment } from "@/lib/content/boards";
+import { angleMark, COLORS, segment } from "@/lib/content/boards";
+import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
-import { lineCircleIntersect, type V } from "@/lib/freeplay/geom";
+import { dist, lineCircleIntersect, type V } from "@/lib/freeplay/geom";
 import { eqratio } from "@/lib/freeplay/lengths/dsl";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
+
+/** Radius of the (movable) circle the four chord endpoints ride on. */
+const CIRCLE_R = 5;
 
 /**
  * The two intersections (near, then far) of the secant from the external point
@@ -54,13 +58,42 @@ function construct(rng: () => number): Realization {
  * secant lines y=-2x+10 (through C, B) and y=-3x-5 (through E, D) meet at the
  * external point A(-15, 40).
  */
+const CENTER: [number, number] = [0, 0];
 const A: [number, number] = [-15, 40];
 const B: [number, number] = [5, 0];
 const C: [number, number] = [3, 4];
 const D: [number, number] = [0, -5];
 const E: [number, number] = [-3, 4];
 
-const coords = { A, B, C, D, E };
+const coords = { O: CENTER, A, B, C, D, E };
+
+/** The intersection of line A-`through` with circle (O,R) that is NOT `through`. */
+function secondHit(A: V, through: V, O: V, R: number): V {
+  const hits = lineCircleIntersect(A, through, O, R);
+  if (hits.length < 2) throw new Error("secant misses the circle");
+  return dist(hits[0], through) > 1e-6 ? hits[0] : hits[1];
+}
+
+/**
+ * Movable form: O is the draggable circle centre (radius fixed at CIRCLE_R) and A
+ * the draggable external point; B, D glide on the circle (the far ends of the two
+ * secants). The near intersections C, E are the second meets of lines AB, AD with
+ * the circle, so the power of A (AB·AC = AD·AE) and the shared apex angle ∠BAD
+ * hold by construction.
+ */
+function constructFrom(free: Coords): Realization {
+  const { O: o, A: a, B: b, D: d } = free;
+  return {
+    coords: {
+      O: o,
+      A: a,
+      B: b,
+      C: secondHit(a, b, o, CIRCLE_R),
+      D: d,
+      E: secondHit(a, d, o, CIRCLE_R),
+    },
+  };
+}
 
 // Power-of-a-point hypothesis as the SAS two-sides proportion AB/AD = AE/AC.
 const powerRatio = eqratio("A", "B", "A", "D", "A", "E", "A", "C");
@@ -83,12 +116,7 @@ export const sas_similarity_problem: Puzzle = {
     "not AA.",
   difficulty: "core",
   coords,
-  construct,
-  freePoints: ["A", "B", "D"],
   figure: [
-    // The circle (B, C, D, E lie on x²+y²=25) drawn through B about its center.
-    fixedPoint("O", 0, 0, { name: "O", size: 2, withLabel: true }),
-    circle("circ", "O", "B", { strokeColor: COLORS.BRAND, strokeWidth: 1.5 }),
     // The two secants from the external point A.
     segment("A", "B"), // secant 1: A–C–B
     segment("A", "D"), // secant 2: A–E–D
@@ -98,6 +126,22 @@ export const sas_similarity_problem: Puzzle = {
     segment("B", "E", { strokeColor: COLORS.OK, strokeWidth: 3 }),
     segment("C", "D", { strokeColor: COLORS.ACCENT, strokeWidth: 3 }),
   ],
+  construct,
+  constructFrom,
+  freePoints: ["O", "A", "B", "D"],
+  // O is the draggable circle centre (radius fixed); A is the draggable external
+  // point and B, D glide on the circle (the secant far-ends). C, E are derived.
+  movable: {
+    hosts: [
+      {
+        id: "circ",
+        type: "circle",
+        parents: [{ ref: "O" }, CIRCLE_R],
+        attributes: { strokeColor: COLORS.BRAND, strokeWidth: 1.5 },
+      },
+    ],
+    gliders: { B: { on: "circ" }, D: { on: "circ" } },
+  },
   given: [powerRatio, sharedAngle],
   goal,
   solution: [

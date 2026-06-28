@@ -8,7 +8,9 @@ import type { Puzzle } from "./types";
 export interface FactEntry {
   id: number;
   fact: LFact;
-  source: "given" | "derived";
+  // "construction" = a fact guaranteed by a learner-added auxiliary construction
+  // (citable like a given; lives outside the proof reducer's own state).
+  source: "given" | "derived" | "construction";
   /** Engine-reported rule name (derived steps only). */
   rule?: RuleId;
   // R2-D2 (proof archive): cited premises for this derived step, captured so a

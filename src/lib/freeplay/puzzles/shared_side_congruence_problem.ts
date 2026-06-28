@@ -2,6 +2,7 @@ import { COLORS, angleMark, polygon, segment } from "@/lib/content/boards";
 import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
 import { add, midpoint, scale, sub, unit, type V } from "@/lib/freeplay/geom";
+import type { BoardRefs } from "@/lib/geometry/board-types";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 const coords: Coords = {
@@ -30,6 +31,27 @@ function construct(rng: () => number): Realization {
 }
 
 /**
+ * Movable form: B, C are free in the plane; the apex A glides on the
+ * perpendicular bisector of BC (the hidden `movable` host line), so AB = AC stays
+ * exact. M is the midpoint of BC.
+ */
+function constructFrom(free: Coords): Realization {
+  const { A, B, C } = free;
+  return { coords: { A, B, C, M: midpoint(B, C) } };
+}
+
+const Bv = (r: BoardRefs): V => [r.B.X(), r.B.Y()];
+const Cv = (r: BoardRefs): V => [r.C.X(), r.C.Y()];
+/** The midpoint of BC, then a point one normal-step away — together they span the perpendicular bisector. */
+const pbMid = (axis: 0 | 1) => (r: BoardRefs) => midpoint(Bv(r), Cv(r))[axis];
+const pbDir = (axis: 0 | 1) => (r: BoardRefs) => {
+  const m = midpoint(Bv(r), Cv(r));
+  const d = unit(sub(Cv(r), Bv(r))) ?? [1, 0];
+  const perp: V = [-d[1], d[0]];
+  return m[axis] + perp[axis] * 5;
+};
+
+/**
  * Isosceles median bisects the apex angle (core).
  *
  * In triangle ABC with AB = AC, M is the midpoint of BC. Triangles ABM and ACM
@@ -49,7 +71,33 @@ export const shared_side_congruence_problem: Puzzle = {
   difficulty: "core",
   coords,
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
+  // B, C are draggable; A glides on the (hidden) perpendicular bisector of BC, so
+  // the isosceles hypothesis AB = AC is preserved automatically.
+  movable: {
+    hosts: [
+      {
+        id: "pbMid",
+        type: "point",
+        parents: [{ fn: pbMid(0) }, { fn: pbMid(1) }],
+        attributes: { visible: false, fixed: true, size: 0.1, name: "" },
+      },
+      {
+        id: "pbDir",
+        type: "point",
+        parents: [{ fn: pbDir(0) }, { fn: pbDir(1) }],
+        attributes: { visible: false, fixed: true, size: 0.1, name: "" },
+      },
+      {
+        id: "pbis",
+        type: "line",
+        parents: [{ ref: "pbMid" }, { ref: "pbDir" }],
+        attributes: { visible: false },
+      },
+    ],
+    gliders: { A: { on: "pbis" } },
+  },
   figure: [
     polygon(["A", "B", "C"]),
     segment("A", "M", { strokeColor: COLORS.BRAND, strokeWidth: 2 }), // the median AM

@@ -1,4 +1,4 @@
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useProgress } from "@/lib/progress/ProgressContext";
 import { ByrneLogo, IconXP } from "@/components/ByrneMark";
@@ -8,6 +8,13 @@ export function Layout() {
     useAuth();
   const { snapshot, flushProgress } = useProgress();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // The freeplay proof environment (`/freeplay/:puzzleId`, not the `/freeplay`
+  // catalog) runs full-bleed: the figure fills the viewport with the goal,
+  // facts, and builder floating over it. Every other route keeps the centred,
+  // width-constrained column.
+  const fullBleed = /^\/freeplay\/.+/.test(pathname);
 
   const handleSignOut = async () => {
     await flushProgress();
@@ -16,7 +23,7 @@ export function Layout() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-rule bg-paper/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
           <Link to="/" className="flex items-center gap-3">
@@ -76,7 +83,13 @@ export function Layout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-10">
+      <main
+        className={
+          fullBleed
+            ? "relative flex-1 overflow-hidden"
+            : "mx-auto w-full max-w-5xl px-4 py-10"
+        }
+      >
         <Outlet />
       </main>
     </div>

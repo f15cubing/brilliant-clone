@@ -1,21 +1,34 @@
 import { COLORS, angleMark, polygon, segment } from "@/lib/content/boards";
+import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
 import { reflectOverLine, type V } from "@/lib/freeplay/geom";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
 /**
+ * Derive the kite from the axis vertices A, C and the wing B: D is the
+ * reflection of B across the axis line AC, which makes AB = AD and CB = CD
+ * exactly (A and C lie on the mirror), so the kite givens hold by construction.
+ */
+function deriveFrom(A: V, B: V, C: V): Realization {
+  return { coords: { A, B, C, D: reflectOverLine(B, A, C) } };
+}
+
+/**
  * Generic realization: pick the axis vertices A, C and one wing B freely, then
- * take D as the reflection of B across the axis line AC. Reflection makes
- * AB = AD and CB = CD exactly (A and C lie on the mirror), so the kite givens
- * hold by construction. Free: A, B, C (D is dependent).
+ * take D as the reflection of B across the axis line AC. Free: A, B, C (D is
+ * dependent).
  */
 function construct(rng: () => number): Realization {
   const rnd = (lo: number, hi: number) => lo + (hi - lo) * rng();
   const A: V = [rnd(-1, 1), rnd(3, 5)];
   const C: V = [rnd(-1, 1), rnd(-4, -2)];
   const B: V = [rnd(1.5, 3.5), rnd(-1, 2)];
-  const D = reflectOverLine(B, A, C);
-  return { coords: { A, B, C, D } };
+  return deriveFrom(A, B, C);
+}
+
+/** Movable form: reflect the dragged wing B across the dragged axis AC. */
+function constructFrom(free: Coords): Realization {
+  return deriveFrom(free.A, free.B, free.C);
 }
 
 /**
@@ -41,6 +54,7 @@ export const kiteEqualAngles: Puzzle = {
     D: [-2, 1],
   },
   construct,
+  constructFrom,
   freePoints: ["A", "B", "C"],
   figure: [
     polygon(["A", "B", "C", "D"]),

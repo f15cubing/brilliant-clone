@@ -1,6 +1,7 @@
-import { angleMark, circle, COLORS, fixedPoint, polygon, segment } from "@/lib/content/boards";
+import { angleMark, COLORS, polygon, segment } from "@/lib/content/boards";
+import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
-import { lineCircleIntersect, type V } from "@/lib/freeplay/geom";
+import { dist, lineCircleIntersect, type V } from "@/lib/freeplay/geom";
 import { eqratio } from "@/lib/freeplay/lengths/dsl";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
 
@@ -32,11 +33,39 @@ function lineCircle(P: V, dir: V): [V, V] {
   return [add(P, mul(dir, (-b - sq) / (2 * a))), add(P, mul(dir, (-b + sq) / (2 * a)))];
 }
 
+const CENTER: V = [0, 0];
 const A: V = [0, 3.6];
 const [D, B] = lineCircle(A, [-1, -3.6]); // secant 1: D near, B far
 const [E, C] = lineCircle(A, [1.5, -2.8]); // secant 2: E near, C far
 
-const coords = { A, B, C, D, E };
+const coords = { O: CENTER, A, B, C, D, E };
+
+/** The intersection of line `from`-`through` with circle (center,r) that is NOT `through`. */
+function secondHit(from: V, through: V, center: V, r: number): V {
+  const hits = lineCircleIntersect(from, through, center, r);
+  if (hits.length < 2) throw new Error("secant misses the circle");
+  return dist(hits[0], through) > 1e-6 ? hits[0] : hits[1];
+}
+
+/**
+ * Movable form: O is the draggable centre of ω₁ (radius fixed at R) and A the
+ * draggable external point; the secant far-ends B, C glide on ω₁. The near
+ * intersections D, E are the second meets of lines AB, AC with ω₁, so B,C,D,E
+ * stay concyclic and the secants A–D–B, A–E–C hold by construction.
+ */
+function constructFrom(free: Coords): Realization {
+  const { O: o, A: a, B: b, C: c } = free;
+  return {
+    coords: {
+      O: o,
+      A: a,
+      B: b,
+      C: c,
+      D: secondHit(a, b, o, R),
+      E: secondHit(a, c, o, R),
+    },
+  };
+}
 
 /**
  * The two intersections (near, then far) of the secant from the external point
@@ -89,11 +118,22 @@ export const jbmo_shortlist_2010_g3_pop: Puzzle = {
   difficulty: "challenge",
   coords,
   construct,
-  freePoints: ["A", "D", "E"],
+  constructFrom,
+  freePoints: ["O", "A", "B", "C"],
+  // O is the draggable centre of ω₁ (radius fixed); A is the draggable external
+  // point and the secant far-ends B, C glide on it. D, E are the derived meets.
+  movable: {
+    hosts: [
+      {
+        id: "omega1",
+        type: "circle",
+        parents: [{ ref: "O" }, R],
+        attributes: { strokeColor: COLORS.BRAND, strokeWidth: 1.5 },
+      },
+    ],
+    gliders: { B: { on: "omega1" }, C: { on: "omega1" } },
+  },
   figure: [
-    // The circle ω₁ (B, C, D, E concyclic) drawn through B about its center O.
-    fixedPoint("O", 0, 0, { name: "O", size: 2, withLabel: true }),
-    circle("omega1", "O", "B", { strokeColor: COLORS.BRAND, strokeWidth: 1.5 }),
     // Triangle ABC; its sides AB, AC are the two secants from A.
     polygon(["A", "B", "C"]),
     // The shared apex angle at A.

@@ -1,4 +1,5 @@
-import { circle, COLORS, segment } from "@/lib/content/boards";
+import { COLORS, keepConvexOrder, segment } from "@/lib/content/boards";
+import type { Coords } from "@/lib/freeplay/check";
 import { rel } from "@/lib/freeplay/dsl";
 import { pointOnCircleAtAngle, type V } from "@/lib/freeplay/geom";
 import type { Puzzle, Realization } from "@/lib/freeplay/types";
@@ -30,6 +31,21 @@ function construct(rng: () => number): Realization {
 }
 
 /**
+ * Movable form: O is the draggable centre and A, B, P, Q glide on the circle of
+ * radius 3 about it (see `movable` below), so the four points stay concyclic by
+ * construction — there is nothing to derive, the live positions are echoed back.
+ */
+function constructFrom(free: Coords): Realization {
+  return { coords: { O: free.O, A: free.A, B: free.B, P: free.P, Q: free.Q } };
+}
+
+/**
+ * Keep the points in cyclic order P, Q (upper arc) then A, B (lower arc) so the
+ * two inscribed angles stay on the same side of chord AB while dragging.
+ */
+const onArc = keepConvexOrder("O", ["P", "Q", "A", "B"]);
+
+/**
  * Intro (1 step): two inscribed angles subtending the same chord AB from the
  * same arc are equal.
  */
@@ -47,14 +63,32 @@ export const inscribedAngle: Puzzle = {
     Q: on(140),
   },
   figure: [
-    circle("circ", "O", "A", { strokeColor: COLORS.WRONG, dash: 2, strokeWidth: 1.5 }),
     segment("P", "A", { strokeColor: COLORS.BRAND }),
     segment("P", "B", { strokeColor: COLORS.BRAND }),
     segment("Q", "A", { strokeColor: COLORS.ACCENT }),
     segment("Q", "B", { strokeColor: COLORS.ACCENT }),
   ],
   construct,
-  freePoints: ["A", "B", "P", "Q"],
+  constructFrom,
+  freePoints: ["O", "A", "B", "P", "Q"],
+  // The circle is a background host (radius 3 about the draggable centre O); the
+  // four points are gliders on it, so dragging keeps them concyclic.
+  movable: {
+    hosts: [
+      {
+        id: "circ",
+        type: "circle",
+        parents: [{ ref: "O" }, 3],
+        attributes: { strokeColor: COLORS.WRONG, dash: 2, strokeWidth: 1.5 },
+      },
+    ],
+    gliders: {
+      A: { on: "circ", constrain: onArc },
+      B: { on: "circ", constrain: onArc },
+      P: { on: "circ", constrain: onArc },
+      Q: { on: "circ", constrain: onArc },
+    },
+  },
   given: [rel("cyclic", ["A", "B", "P", "Q"])],
   goal: rel("eqangle", ["A", "P", "B", "A", "Q", "B"]),
   solution: [
