@@ -1,67 +1,60 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ProblemPlayer } from "@/components/solvables/ProblemPlayer";
+import { InstructionMC } from "@/components/solvables/InstructionMC";
+import { ComprehensionPlayer } from "@/components/solvables/ComprehensionPlayer";
+import { HandoffCard } from "@/components/solvables/HandoffCard";
 import { MathText } from "@/components/MathText";
 import { Spinner } from "@/components/Spinner";
 import { CompletionFigure, ConstructionProgress } from "@/components/ByrneMark";
-import {
-  COURSE,
-  getLesson,
-  nextLessonId,
-} from "@/lib/content/course";
+import { COURSE, getLesson, nextLessonId } from "@/lib/content/course";
+import { lessonStages, stageSolvableId } from "@/lib/content/lessonStages";
 import { useProgress } from "@/lib/progress/ProgressContext";
 import { useAuth } from "@/lib/auth/AuthContext";
 
 export function LessonPlayer() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const { testMode } = useAuth();
-  const {
-    ready,
-    isProblemSolved,
-    recordAttempt,
-    updateLessonPosition,
-    getLessonProgress,
-  } = useProgress();
+  const { ready, recordAttempt, updateLessonStage, getLessonProgress } =
+    useProgress();
 
   const lesson = lessonId ? getLesson(lessonId) : undefined;
   const lessonIdx = COURSE.lessons.findIndex((l) => l.id === lessonId);
+  const stages = useMemo(() => (lesson ? lessonStages(lesson) : []), [lesson]);
 
-  // Resume where the learner left off: prefer the last problem they were
-  // viewing, then fall back to the first unsolved problem.
-  const resumedFromBookmark = useRef(false);
-  const initialIndex = useMemo(() => {
-    if (!lesson) return 0;
-    // In test mode, always start from the top so lessons can be reviewed fresh.
+  // Resume: prefer the explicit stage bookmark, then map a legacy problem
+  // bookmark to its stage, then the first unsolved solvable stage, else start.
+  const initialStageIndex = useMemo(() => {
+    if (!lesson || stages.length === 0) return 0;
     if (testMode) return 0;
     const lp = getLessonProgress(lesson.id);
-    if (lp?.lastProblemId) {
-      const bookmarked = lesson.problems.findIndex(
-        (p) => p.id === lp.lastProblemId,
+    const last = stages.length - 1;
+    if (!lp) return 0;
+    if (lp.lastStageIndex != null)
+      return Math.min(Math.max(lp.lastStageIndex, 0), last);
+    if (lp.lastProblemId) {
+      const idx = stages.findIndex(
+        (s) => stageSolvableId(s) === lp.lastProblemId,
       );
-      if (bookmarked >= 0) {
-        resumedFromBookmark.current = true;
-        return bookmarked;
-      }
+      if (idx >= 0) return idx;
     }
-    const firstOpen = lesson.problems.findIndex(
-      (p) => !lp?.completedProblemIds.includes(p.id),
-    );
+    if (lp.completedProblemIds.length === 0) return 0;
+    const firstOpen = stages.findIndex((s) => {
+      const id = stageSolvableId(s);
+      return id != null && !lp.completedProblemIds.includes(id);
+    });
     return firstOpen >= 0 ? firstOpen : 0;
-  }, [lesson, getLessonProgress, testMode]);
+  }, [lesson, stages, getLessonProgress, testMode]);
 
-  const [problemIndex, setProblemIndex] = useState(initialIndex);
-  const [showConcept, setShowConcept] = useState(
-    initialIndex === 0 && !resumedFromBookmark.current,
-  );
+  const [stageIndex, setStageIndex] = useState(initialStageIndex);
   const [lessonDone, setLessonDone] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    setProblemIndex(initialIndex);
-    setShowConcept(initialIndex === 0 && !resumedFromBookmark.current);
+    setStageIndex(initialStageIndex);
     setLessonDone(false);
     setToast(null);
-  }, [lessonId, initialIndex]);
+  }, [lessonId, initialStageIndex]);
 
   if (!ready) {
     return (
@@ -87,29 +80,58 @@ export function LessonPlayer() {
     );
   }
 
-  const problem = lesson.problems[problemIndex];
-  const isLast = problemIndex === lesson.problems.length - 1;
+  const stage = stages[stageIndex];
+  const isLastStage = stageIndex === stages.length - 1;
+  const nextId = nextLessonId(lesson.id);
 
-  const handleContinue = () => {
-    if (isLast) {
+  const solved = (id: string | null): boolean =>
+    !testMode &&
+    id != null &&
+    Boolean(getLessonProgress(lesson.id)?.completedProblemIds.includes(id));
+
+  const advance = () => {
+    const next = stageIndex + 1;
+    if (next >= stages.length) {
       setLessonDone(true);
       return;
     }
-    const nextProblem = lesson.problems[problemIndex + 1];
-    if (nextProblem) updateLessonPosition(lesson.id, nextProblem.id);
-    setProblemIndex((i) => i + 1);
-    setShowConcept(false);
+    updateLessonStage(lesson.id, next);
+    setStageIndex(next);
   };
 
-  const handleBack = () => {
-    if (problemIndex === 0) return;
-    const prevProblem = lesson.problems[problemIndex - 1];
-    if (prevProblem) updateLessonPosition(lesson.id, prevProblem.id);
-    setProblemIndex((i) => Math.max(0, i - 1));
-    setShowConcept(false);
+  const goBack = () => {
+    const prev = stageIndex - 1;
+    if (prev < 0) return;
+    updateLessonStage(lesson.id, prev);
+    setStageIndex(prev);
   };
 
-  const nextId = nextLessonId(lesson.id);
+  const recordStageAttempt = async (
+    stageId: string,
+    xp: number,
+    correct: boolean,
+    mistakeId: string | undefined,
+    elapsedMs: number,
+    revealed = false,
+  ) => {
+    const result = await recordAttempt({
+      lessonId: lesson.id,
+      problemId: stageId,
+      problemXp: revealed ? 0 : xp,
+      correct,
+      mistakeId,
+      elapsedMs,
+    });
+    if (result.addedXp > 0) {
+      setToast(`+${result.addedXp} XP`);
+      setTimeout(() => setToast(null), 2000);
+    }
+    if (result.newAchievementIds.length > 0) {
+      setToast("Achievement unlocked!");
+      setTimeout(() => setToast(null), 3000);
+    }
+    return result;
+  };
 
   if (lessonDone) {
     return (
@@ -164,64 +186,100 @@ export function LessonPlayer() {
           ← Course
         </Link>
         <p className="mt-3 font-mono text-xs uppercase tracking-[0.2em] text-vermilion">
-          Proposition {lessonIdx + 1} · Problem {problemIndex + 1} of{" "}
-          {lesson.problems.length}
+          Proposition {lessonIdx + 1} · Step {stageIndex + 1} of {stages.length}
         </p>
         <h1 className="mt-1 font-display text-3xl tracking-tight text-ink">
           {lesson.title}
         </h1>
         <ConstructionProgress
-          pct={((problemIndex + 1) / lesson.problems.length) * 100}
+          pct={((stageIndex + 1) / stages.length) * 100}
           className="mt-4 max-w-md"
         />
       </header>
 
-      {showConcept && problemIndex === 0 && (
+      {stage.kind === "concept" && (
         <div className="border-l-2 border-ultramarine bg-panel-soft p-6">
           <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-ink-soft">
-            The idea
+            {stage.title ?? "The idea"}
           </h2>
           <p className="mt-3 font-serif text-lg leading-relaxed text-ink">
-            <MathText>{lesson.concept}</MathText>
+            <MathText>{stage.body}</MathText>
           </p>
           <button
-            onClick={() => setShowConcept(false)}
+            onClick={advance}
             className="mt-5 rounded-sm bg-vermilion px-5 py-2 font-semibold text-paper transition hover:bg-vermilion-soft"
           >
-            Start problems
+            Start
           </button>
         </div>
       )}
 
-      {!showConcept && (
+      {stage.kind === "problem" && (
         <ProblemPlayer
-          key={`${problem.id}-${testMode}`}
-          problem={problem}
-          alreadySolved={!testMode && isProblemSolved(lesson.id, problem.id)}
-          isLast={isLast}
-          canGoBack={problemIndex > 0}
-          onBack={handleBack}
-          onAttempt={async (correct, mistakeId, elapsedMs, revealed) => {
-            const result = await recordAttempt({
-              lessonId: lesson.id,
-              problemId: problem.id,
-              problemXp: revealed ? 0 : problem.xp,
+          key={`${stage.problem.id}-${testMode}`}
+          problem={stage.problem}
+          alreadySolved={solved(stage.problem.id)}
+          isLast={isLastStage}
+          canGoBack={stageIndex > 0}
+          onBack={goBack}
+          onAttempt={(correct, mistakeId, elapsedMs, revealed) =>
+            recordStageAttempt(
+              stage.problem.id,
+              stage.problem.xp,
               correct,
               mistakeId,
               elapsedMs,
-            });
-            if (result.addedXp > 0) {
-              setToast(`+${result.addedXp} XP`);
-              setTimeout(() => setToast(null), 2000);
-            }
-            if (result.newAchievementIds.length > 0) {
-              setToast(`Achievement unlocked!`);
-              setTimeout(() => setToast(null), 3000);
-            }
-            return result;
-          }}
-          onContinue={handleContinue}
+              revealed,
+            )
+          }
+          onContinue={advance}
         />
+      )}
+
+      {stage.kind === "instruction-mc" && (
+        <InstructionMC
+          key={`${stage.problem.id}-${testMode}`}
+          problem={stage.problem}
+          alreadySolved={solved(stage.problem.id)}
+          isLast={isLastStage}
+          canGoBack={stageIndex > 0}
+          onBack={goBack}
+          onAttempt={(correct, mistakeId, elapsedMs) =>
+            recordStageAttempt(
+              stage.problem.id,
+              stage.problem.xp,
+              correct,
+              mistakeId,
+              elapsedMs,
+            )
+          }
+          onContinue={advance}
+        />
+      )}
+
+      {stage.kind === "comprehension" && (
+        <ComprehensionPlayer
+          key={`${stage.task.id}-${testMode}`}
+          task={stage.task}
+          alreadySolved={solved(stage.task.id)}
+          isLast={isLastStage}
+          canGoBack={stageIndex > 0}
+          onBack={goBack}
+          onAttempt={(correct, mistakeId, elapsedMs) =>
+            recordStageAttempt(
+              stage.task.id,
+              stage.task.xp,
+              correct,
+              mistakeId,
+              elapsedMs,
+            )
+          }
+          onContinue={advance}
+        />
+      )}
+
+      {stage.kind === "handoff" && (
+        <HandoffCard handoff={stage.handoff} nextLessonId={nextId} />
       )}
 
       {toast && (

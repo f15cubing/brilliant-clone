@@ -41,6 +41,7 @@ interface ProgressContextValue {
   snapshot: ProgressSnapshot;
   recordAttempt: (input: AttemptInput) => Promise<AttemptResult>;
   updateLessonPosition: (lessonId: string, problemId: string) => void;
+  updateLessonStage: (lessonId: string, stageIndex: number) => void;
   flushProgress: () => Promise<void>;
   isProblemSolved: (lessonId: string, problemId: string) => boolean;
   getLessonProgress: (lessonId: string) => LessonProgress | undefined;
@@ -243,6 +244,43 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     [doPersist, testMode],
   );
 
+  const updateLessonStage = useCallback(
+    (lessonId: string, stageIndex: number) => {
+      if (testMode) return;
+      const prev = snapshotRef.current;
+      const existing = prev.lessons[lessonId];
+      if (
+        existing?.lastStageIndex === stageIndex &&
+        prev.course[COURSE.id]?.lastLessonId === lessonId
+      ) {
+        return;
+      }
+
+      const lp: LessonProgress = {
+        ...(existing ?? emptyLesson()),
+        lastStageIndex: stageIndex,
+      };
+      const next: ProgressSnapshot = {
+        ...prev,
+        lessons: { ...prev.lessons, [lessonId]: lp },
+        course: {
+          ...prev.course,
+          [COURSE.id]: {
+            completionPct: prev.course[COURSE.id]?.completionPct ?? 0,
+            completedLessonIds:
+              prev.course[COURSE.id]?.completedLessonIds ?? [],
+            lastLessonId: lessonId,
+          },
+        },
+      };
+
+      setSnapshot(next);
+      snapshotRef.current = next;
+      void doPersist(next, lessonId, []);
+    },
+    [doPersist, testMode],
+  );
+
   const flushProgress = useCallback(async () => {
     await pendingPersistRef.current;
   }, []);
@@ -274,6 +312,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
         snapshot,
         recordAttempt,
         updateLessonPosition,
+        updateLessonStage,
         flushProgress,
         isProblemSolved,
         getLessonProgress,
