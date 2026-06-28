@@ -5,7 +5,7 @@ import { applyAttempt } from "@/lib/progress/recordAttempt";
 import { reconcileSnapshot } from "@/lib/progress/reconcile";
 import { emptySnapshot, type ProgressSnapshot } from "@/lib/progress/types";
 
-const SOLVABLE = ["ia-half", "ia-express", "ia-same-arc", "ia-semicircle", "ia-comprehension"];
+const SOLVABLE = ["ia-half", "ia-half-proof", "ia-express", "ia-same-arc", "ia-semicircle", "ia-comprehension"];
 
 describe("inscribed-angle staged lesson progress", () => {
   it("exposes exactly the solvable stage ids", () => {
@@ -26,7 +26,7 @@ describe("inscribed-angle staged lesson progress", () => {
       completions.push(result.lessonCompleted);
     });
     // Not complete until the final solvable stage.
-    expect(completions).toEqual([false, false, false, false, true]);
+    expect(completions).toEqual([false, false, false, false, false, true]);
     expect(snap.lessons["inscribed-angle"].completedAt).toBe(1_000_000);
     // Completion XP (35) is included on top of the per-stage XP.
     expect(snap.totalXp).toBe(10 * SOLVABLE.length + 35);

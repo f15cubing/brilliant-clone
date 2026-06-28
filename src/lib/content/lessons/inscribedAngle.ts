@@ -164,6 +164,74 @@ export const inscribedAngle: Lesson = {
         },
       },
     },
+    {
+      kind: "comprehension",
+      task: {
+        id: "ia-half-proof",
+        prompt:
+          "But *why* is it exactly half? Add one construction line — the diameter from $P$ through the center $O$ to the far point $D$ — then justify each step.",
+        xp: 10,
+        boardConfig: {
+          boundingBox: BOX,
+          elements: [
+            center(),
+            { id: "P", type: "point", parents: [0, 3.6], attributes: { name: "P", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.ACCENT, strokeWidth: 2 } },
+            { id: "D", type: "point", parents: [0, -3.6], attributes: { name: "D", fixed: true, size: 3, fillColor: "#fff", strokeColor: "#9c8c70", strokeWidth: 2 } },
+            { id: "A", type: "point", parents: [-3.117, -1.8], attributes: { name: "A", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2 } },
+            { id: "B", type: "point", parents: [3.117, -1.8], attributes: { name: "B", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2 } },
+            circle("c", "O", "P"),
+            segment("P", "D", { strokeColor: "#9c8c70", strokeWidth: 2, dash: 2 }),
+            segment("O", "A", { strokeColor: COLORS.BRAND, strokeWidth: 2 }),
+            segment("O", "B", { strokeColor: COLORS.BRAND, strokeWidth: 2 }),
+            segment("P", "A", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),
+            segment("P", "B", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),
+            angleMark("A", "P", "B", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.9 }),
+            angleMark("A", "O", "B", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.9 }),
+            readout(-5.7, 5.4, (r) => `inscribed ∠APB = ${angleDeg(r.A, r.P, r.B).toFixed(1)}°`),
+            readout(-5.7, 4.7, (r) => `central ∠AOB = ${angleDeg(r.A, r.O, r.B).toFixed(1)}°`),
+          ],
+        },
+        lines: [
+          {
+            statement: "$OA = OB = OP$.",
+            reasons: [
+              { id: "radii", label: "All radii of a circle are equal", correct: true, teaching: "$OA$, $OB$, and $OP$ all run from the center $O$ to the circle, so they are radii of the same circle and have equal length." },
+              { id: "given", label: "Given", correct: false, misconception: "not-given", teaching: "It isn't simply handed to us — the equality holds *because* $OA$, $OB$, $OP$ are radii of the same circle." },
+              { id: "isos", label: "Base angles of an isosceles triangle", correct: false, misconception: "consequence-not-reason", teaching: "That's what the equal radii will let us conclude on the next line; here we only need that the radii themselves are equal." },
+            ],
+          },
+          {
+            statement:
+              "So $\\triangle OAP$ and $\\triangle OBP$ are isosceles, giving $\\angle OPA = \\angle OAP$ and $\\angle OPB = \\angle OBP$.",
+            reasons: [
+              { id: "base-angles", label: "Base angles of an isosceles triangle are equal", correct: true, teaching: "Each triangle has two equal radii as its legs, so the two angles opposite those legs (its base angles) are equal." },
+              { id: "vertical", label: "Vertical angles", correct: false, misconception: "no-crossing", teaching: "There is no pair of crossing lines forming vertical angles here — the equal angles come from the isosceles triangles." },
+              { id: "ext", label: "Exterior angle theorem", correct: false, misconception: "next-step", teaching: "The exterior-angle step is coming next; first we use the isosceles triangles to get the equal base angles." },
+            ],
+          },
+          {
+            statement:
+              "The exterior angle at $O$ of each triangle gives $\\angle AOD = 2\\angle OPA$ and $\\angle BOD = 2\\angle OPB$.",
+            reasons: [
+              { id: "ext-angle", label: "Exterior angle = sum of the two remote interior angles", correct: true, teaching: "$\\angle AOD$ is exterior to $\\triangle OAP$ at $O$, so it equals $\\angle OAP + \\angle OPA$; since those base angles are equal, that is $2\\angle OPA$." },
+              { id: "straight", label: "Angles on a straight line sum to $180^\\circ$", correct: false, misconception: "wrong-rule", teaching: "$P$, $O$, $D$ are collinear, but the *doubling* comes from the exterior-angle rule, not from the straight-line sum." },
+              { id: "base2", label: "Base angles of an isosceles triangle", correct: false, misconception: "prev-step", teaching: "That was the previous line; here we combine those equal base angles using the exterior angle at $O$." },
+            ],
+          },
+          {
+            statement:
+              "$\\therefore\\ \\angle AOB = \\angle AOD + \\angle BOD = 2(\\angle OPA + \\angle OPB) = 2\\angle APB$, so $\\angle APB = \\tfrac12\\angle AOB$.",
+            reasons: [
+              { id: "add", label: "Angle addition (the parts make the whole)", correct: true, teaching: "$\\angle AOB$ is split by $OD$ into $\\angle AOD$ and $\\angle BOD$, and $\\angle APB$ is split by $PD$ into $\\angle OPA$ and $\\angle OPB$ — adding the two doubled pieces gives exactly $2\\angle APB$." },
+              { id: "iat", label: "Inscribed Angle Theorem", correct: false, misconception: "circular", teaching: "That would be circular: the Inscribed Angle Theorem is precisely what this proof is establishing, so we can't cite it as the reason." },
+              { id: "alt", label: "Alternate angles", correct: false, misconception: "needs-parallels", teaching: "Alternate angles need parallel lines; the result here comes from adding the angle pieces at $O$ and at $P$." },
+            ],
+          },
+        ],
+        validatedText:
+          "That's the whole proof: drop the diameter through $P$, use the two isosceles triangles and the exterior-angle rule, and the inscribed angle works out to exactly half the central angle — for every position of $P$.",
+      },
+    },
     { kind: "problem", problem: expressProblem },
     {
       kind: "instruction-mc",

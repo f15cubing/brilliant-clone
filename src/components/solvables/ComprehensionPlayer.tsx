@@ -135,15 +135,40 @@ export function ComprehensionPlayer({
                       );
                     })}
                   </div>
-                  {selReason && (
-                    <p
-                      className={[
-                        "mt-2 text-sm leading-relaxed",
-                        lineCorrect ? "text-correct" : "text-vermilion",
-                      ].join(" ")}
-                    >
-                      <MathText>{selReason.teaching}</MathText>
-                    </p>
+                  {lineCorrect ? (
+                    <ul className="mt-3 flex flex-col gap-1.5">
+                      {line.reasons.map((r) => (
+                        <li
+                          key={r.id}
+                          className="flex gap-2 text-sm leading-relaxed"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={
+                              r.correct
+                                ? "font-semibold text-correct"
+                                : "text-ink-faint"
+                            }
+                          >
+                            {r.correct ? "✓" : "✕"}
+                          </span>
+                          <span
+                            className={r.correct ? "text-ink" : "text-ink-soft"}
+                          >
+                            <span className="font-semibold">
+                              <MathText>{r.label}</MathText>
+                            </span>{" "}
+                            — <MathText>{r.teaching}</MathText>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    selReason && (
+                      <p className="mt-2 text-sm leading-relaxed text-vermilion">
+                        <MathText>{selReason.teaching}</MathText>
+                      </p>
+                    )
                   )}
                 </div>
               </div>
