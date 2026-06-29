@@ -6,12 +6,11 @@ import { Spinner } from "@/components/Spinner";
 import {
   ConstructionProgress,
   IconCheck,
-  IconLock,
   PropMark,
 } from "@/components/ByrneMark";
 
 export function CourseMap() {
-  const { snapshot, ready, getLessonProgress } = useProgress();
+  const { ready, getLessonProgress } = useProgress();
 
   if (!ready) {
     return (
@@ -42,10 +41,6 @@ export function CourseMap() {
           const total = lesson.problems.length;
           const pct = total ? Math.round((done / total) * 100) : 0;
           const complete = Boolean(lp?.completedAt);
-          const prevComplete =
-            idx === 0 ||
-            Boolean(snapshot.lessons[COURSE.lessons[idx - 1].id]?.completedAt);
-          const locked = !prevComplete && idx > 0;
 
           return (
             <li key={lesson.id} className="relative">
@@ -54,18 +49,11 @@ export function CourseMap() {
                 <span className="absolute bottom-0 left-[2.05rem] top-[3.6rem] w-px bg-rule" />
               )}
               <Link
-                to={locked ? "#" : `/lesson/${lesson.id}`}
-                onClick={(e) => locked && e.preventDefault()}
-                aria-disabled={locked}
-                className={[
-                  "group flex gap-4 border-b border-rule py-5 transition",
-                  locked
-                    ? "cursor-not-allowed opacity-50"
-                    : "hover:bg-panel-soft",
-                ].join(" ")}
+                to={`/lesson/${lesson.id}`}
+                className="group flex gap-4 border-b border-rule py-5 transition hover:bg-panel-soft"
               >
                 <div className="relative z-10 pl-1">
-                  <PropMark n={idx + 1} index={idx} muted={locked} />
+                  <PropMark n={idx + 1} index={idx} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -75,11 +63,6 @@ export function CourseMap() {
                     {complete && (
                       <span className="inline-flex items-center gap-1 font-mono text-[0.68rem] uppercase tracking-wide text-correct">
                         <IconCheck size={12} /> Proved
-                      </span>
-                    )}
-                    {locked && (
-                      <span className="inline-flex items-center gap-1 font-mono text-[0.68rem] uppercase tracking-wide text-ink-faint">
-                        <IconLock size={12} /> Finish the previous
                       </span>
                     )}
                   </div>
