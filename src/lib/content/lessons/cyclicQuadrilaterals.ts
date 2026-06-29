@@ -181,6 +181,29 @@ export const cyclicQuadrilaterals: Lesson = {
         prompt:
           "Here is *why* opposite angles are supplementary. $\\angle A$ and $\\angle C$ are inscribed angles standing on the two arcs cut off by diagonal $BD$. Pick the justification for each line.",
         xp: 9,
+        boardConfig: {
+          boundingBox: BOX,
+          elements: [
+            center(),
+            { id: "c", type: "circle", parents: [{ ref: "O" }, 3.7], attributes: { strokeColor: "#d8cdb8", strokeWidth: 1.5 } },
+            { id: "A", type: "point", parents: [-3.2, 1.85], attributes: { name: "A", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [-14, 4], fontSize: 16 } } },
+            { id: "B", type: "point", parents: [1.85, 3.2], attributes: { name: "B", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [6, 8], fontSize: 16 } } },
+            { id: "C", type: "point", parents: [2.83, -2.37], attributes: { name: "C", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [8, -4], fontSize: 16 } } },
+            { id: "D", type: "point", parents: [-3.2, -1.85], attributes: { name: "D", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [-14, -4], fontSize: 16 } } },
+            polygon(["A", "B", "C", "D"]),
+            // The two arcs cut off by diagonal BD, colour-matched to the angle
+            // each one subtends: arc BCD (∠A) and arc BAD (∠C).
+            { type: "arc", parents: [{ ref: "O" }, { ref: "D" }, { ref: "B" }], attributes: { strokeColor: COLORS.ACCENT, strokeWidth: 4, highlight: false } },
+            { type: "arc", parents: [{ ref: "O" }, { ref: "B" }, { ref: "D" }], attributes: { strokeColor: COLORS.BRAND, strokeWidth: 4, highlight: false } },
+            segment("B", "D", { strokeColor: "#1b1714", strokeWidth: 2, dash: 2 }),
+            { type: "segment", parents: [{ ref: "O" }, { ref: "B" }], attributes: { strokeColor: "#c7bca6", strokeWidth: 1.5, dash: 1 } },
+            { type: "segment", parents: [{ ref: "O" }, { ref: "D" }], attributes: { strokeColor: "#c7bca6", strokeWidth: 1.5, dash: 1 } },
+            angleMark("D", "A", "B", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.7 }),
+            angleMark("B", "C", "D", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.7 }),
+            { type: "text", parents: [4.0, -3.1, "arc BCD"], attributes: { fontSize: 13, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.ACCENT};`, fixed: true, highlight: false } },
+            { type: "text", parents: [-4.1, 2.9, "arc BAD"], attributes: { fontSize: 13, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.BRAND};`, fixed: true, highlight: false } },
+          ],
+        },
         lines: [
           {
             statement:

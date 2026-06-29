@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { MathText } from "@/components/MathText";
+import { GeometryBoard } from "@/components/geometry/GeometryBoard";
 import { FeedbackBanner } from "@/components/solvables/FeedbackBanner";
 import { dwellDurationFor, useDwellLock } from "@/lib/solvables/dwell";
 import {
@@ -49,6 +50,15 @@ export function ComprehensionPlayer({
     alreadySolved ? solvedSelections : {},
   );
 
+  // Non-interactive construction drawing for the proof, when the task ships one.
+  const figureDef = useMemo(
+    () =>
+      task.boardConfig
+        ? { ...task.boardConfig, staticFigure: true as const }
+        : null,
+    [task.boardConfig],
+  );
+
   const validated = isComprehensionValidated(task, selections);
 
   const pick = (lineIndex: number, reason: InstructionMCOption) => {
@@ -89,6 +99,15 @@ export function ComprehensionPlayer({
       <div className="font-serif text-xl leading-relaxed text-ink">
         <MathText>{task.prompt}</MathText>
       </div>
+
+      {figureDef && (
+        <figure className="mx-auto w-full max-w-sm">
+          <GeometryBoard def={figureDef} />
+          <figcaption className="mt-2 text-center font-mono text-xs uppercase tracking-[0.16em] text-ink-faint">
+            The construction — read the proof against it
+          </figcaption>
+        </figure>
+      )}
 
       <ol className="flex flex-col gap-4">
         {task.lines.map((line, i) => {

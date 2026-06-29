@@ -46,11 +46,15 @@ export const GeometryBoard = forwardRef<GeometryBoardHandle, GeometryBoardProps>
       [applyOverlay, clearOverlays, getRefs, onBoardDown, setPointsFixed],
     );
 
+    // A static figure never pans/zooms, so it must not swallow touch scrolling
+    // (`touch-none`); the page should scroll normally when dragged over it.
+    const isStatic = def.staticFigure ?? false;
     return (
       <div
         ref={containerRef as React.RefObject<HTMLDivElement>}
         className={
-          "jxgbox touch-none " +
+          "jxgbox " +
+          (isStatic ? "" : "touch-none ") +
           // Fill mode (the freeplay arena) is transparent so the page's paper +
           // drafting grid show through; the boxed course board keeps a white card.
           (fill ? "h-full w-full " : "aspect-square w-full bg-white shadow-inner ") +

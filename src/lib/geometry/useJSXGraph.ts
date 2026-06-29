@@ -103,6 +103,7 @@ export function useJSXGraph(def: JSXGraphDef): UseJSXGraphResult {
     // zoom, on-board zoom/reset controls). Inline course boards keep Shift-gated
     // pan/zoom so scrolling the page over a board never hijacks the wheel.
     const nav = def.freeNavigation ?? false;
+    const isStatic = def.staticFigure ?? false;
     const board: JXGBoard = JXG.JSXGraph.initBoard(container, {
       boundingbox: def.boundingBox ?? DEFAULT_BOUNDING_BOX,
       keepaspectratio: def.keepAspectRatio ?? true,
@@ -111,9 +112,9 @@ export function useJSXGraph(def: JSXGraphDef): UseJSXGraphResult {
       showCopyright: false,
       showNavigation: nav,
       showInfobox: false,
-      pan: { enabled: true, needShift: !nav, needTwoFingers: !nav },
+      pan: { enabled: !isStatic, needShift: !nav, needTwoFingers: !nav },
       zoom: {
-        enabled: true,
+        enabled: !isStatic,
         wheel: nav,
         needShift: !nav,
         pinchHorizontal: false,
@@ -123,7 +124,18 @@ export function useJSXGraph(def: JSXGraphDef): UseJSXGraphResult {
     boardRef.current = board;
 
     board.suspendUpdate();
-    buildElements(board, def.elements, refs);
+    const built = buildElements(board, def.elements, refs);
+    // A static figure is a drawing, not a manipulable: pin every element so it
+    // can't be dragged and silence hover highlighting across the figure.
+    if (isStatic) {
+      for (const el of built) {
+        try {
+          el.setAttribute({ fixed: true, highlight: false });
+        } catch {
+          /* not all element types accept these attrs */
+        }
+      }
+    }
     board.unsuspendUpdate();
 
     // Keep the JSXGraph viewport in sync with the container's pixel size so the

@@ -355,6 +355,25 @@ export const inscribedAngle: Lesson = {
         prompt:
           "Here is the proof that two angles on the same arc are equal — the exact fact you'll prove in Freeplay. Pick the justification for each line.",
         xp: 8,
+        boardConfig: {
+          boundingBox: BOX,
+          elements: [
+            center(),
+            { id: "c", type: "circle", parents: [{ ref: "O" }, 3.6], attributes: { strokeColor: "#d8cdb8", strokeWidth: 1.5 } },
+            { id: "A", type: "point", parents: [-3.0, -1.99], attributes: { name: "A", fixed: true, size: 4, fillColor: "#fff", strokeColor: "#1b1714", strokeWidth: 2, label: { offset: [-14, -4], fontSize: 16 } } },
+            { id: "B", type: "point", parents: [3.0, -1.99], attributes: { name: "B", fixed: true, size: 4, fillColor: "#fff", strokeColor: "#1b1714", strokeWidth: 2, label: { offset: [8, -4], fontSize: 16 } } },
+            { id: "P", type: "point", parents: [-1.6, 3.225], attributes: { name: "P", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.ACCENT, strokeWidth: 2, label: { offset: [-14, 4], fontSize: 16 } } },
+            { id: "Q", type: "point", parents: [1.9, 3.058], attributes: { name: "Q", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [8, 4], fontSize: 16 } } },
+            // Shared chord AB, then the two apexes on the same arc.
+            segment("A", "B", { strokeColor: "#9c8c70", strokeWidth: 2 }),
+            segment("P", "A", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),
+            segment("P", "B", { strokeColor: COLORS.ACCENT, strokeWidth: 2 }),
+            segment("Q", "A", { strokeColor: COLORS.BRAND, strokeWidth: 2 }),
+            segment("Q", "B", { strokeColor: COLORS.BRAND, strokeWidth: 2 }),
+            angleMark("A", "P", "B", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.8 }),
+            angleMark("A", "Q", "B", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.8 }),
+          ],
+        },
         lines: [
           {
             statement: "$A, B, P, Q$ lie on one circle (they are **concyclic**).",

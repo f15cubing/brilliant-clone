@@ -1,6 +1,6 @@
 import type { Lesson, Problem } from "@/lib/content/types";
 import { parallelAngleDeg } from "@/lib/geometry/parallelAngles";
-import { COLORS, parallelAngleMark, readout } from "@/lib/content/boards";
+import { angleMark, COLORS, parallelAngleMark, readout } from "@/lib/content/boards";
 import type { BoardElementDef } from "@/lib/geometry/board-types";
 
 const BOX: [number, number, number, number] = [-6, 6, 6, -6];
@@ -239,6 +239,33 @@ export const parallelLines: Lesson = {
         prompt:
           "Why *are* alternate interior angles equal? Here is the short proof — it leans only on corresponding and vertical angles. Pick the justification for each line.",
         xp: 8,
+        boardConfig: {
+          boundingBox: [-5, 5, 5, -5],
+          elements: [
+            // Two parallel lines.
+            { id: "TL", type: "point", parents: [-5, 2], attributes: { visible: false, fixed: true } },
+            { id: "TR", type: "point", parents: [5, 2], attributes: { visible: false, fixed: true } },
+            { id: "BL", type: "point", parents: [-5, -2], attributes: { visible: false, fixed: true } },
+            { id: "BR", type: "point", parents: [5, -2], attributes: { visible: false, fixed: true } },
+            { type: "line", parents: [{ ref: "TL" }, { ref: "TR" }], attributes: { strokeColor: "#475569", strokeWidth: 2.5 } },
+            { type: "line", parents: [{ ref: "BL" }, { ref: "BR" }], attributes: { strokeColor: "#475569", strokeWidth: 2.5 } },
+            // Transversal through P (top) and Q (bottom).
+            { id: "Ttop", type: "point", parents: [-1.6, 4], attributes: { visible: false, fixed: true } },
+            { id: "Tbot", type: "point", parents: [1.6, -4], attributes: { visible: false, fixed: true } },
+            { type: "line", parents: [{ ref: "Ttop" }, { ref: "Tbot" }], attributes: { strokeColor: COLORS.BRAND, strokeWidth: 2.5 } },
+            { id: "P", type: "point", parents: [-0.8, 2], attributes: { name: "P", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [-16, 4], fontSize: 16 } } },
+            { id: "Q", type: "point", parents: [0.8, -2], attributes: { name: "Q", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [10, -2], fontSize: 16 } } },
+            // Angle 1 (corresponding, at P) and angle 3 (alternate, at Q) share a
+            // colour — they are the equal pair the proof concludes with. Angle 2
+            // (corresponding at Q) is the bridge.
+            angleMark("TR", "P", "Q", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.7 }),
+            angleMark("BR", "Q", "Tbot", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.7 }),
+            angleMark("BL", "Q", "P", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.7 }),
+            { type: "text", parents: [0.15, 1.4, "1"], attributes: { fontSize: 15, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.ACCENT};`, fixed: true, highlight: false } },
+            { type: "text", parents: [1.7, -2.7, "2"], attributes: { fontSize: 15, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.BRAND};`, fixed: true, highlight: false } },
+            { type: "text", parents: [-0.15, -1.35, "3"], attributes: { fontSize: 15, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.ACCENT};`, fixed: true, highlight: false } },
+          ],
+        },
         lines: [
           {
             statement:

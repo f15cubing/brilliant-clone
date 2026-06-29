@@ -238,6 +238,32 @@ export const triangleAngleSum: Lesson = {
         prompt:
           "But *why* is it always $180^\\circ$? Draw a line through the apex $C$ **parallel to the base $AB$**, then justify each step.",
         xp: 10,
+        boardConfig: {
+          boundingBox: [-5, 5, 5, -5],
+          elements: [
+            { id: "A", type: "point", parents: [-3.5, -2], attributes: { name: "A", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [-14, -6], fontSize: 16 } } },
+            { id: "B", type: "point", parents: [3.5, -2], attributes: { name: "B", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [8, -6], fontSize: 16 } } },
+            { id: "C", type: "point", parents: [0.4, 2.6], attributes: { name: "C", fixed: true, size: 4, fillColor: "#fff", strokeColor: COLORS.BRAND, strokeWidth: 2, label: { offset: [-4, 12], fontSize: 16 } } },
+            polygon(["A", "B", "C"]),
+            // Auxiliary line through C, parallel to base AB.
+            { id: "PL", type: "point", parents: [-4.2, 2.6], attributes: { visible: false, fixed: true } },
+            { id: "PR", type: "point", parents: [4.2, 2.6], attributes: { visible: false, fixed: true } },
+            { type: "line", parents: [{ ref: "PL" }, { ref: "PR" }], attributes: { strokeColor: "#9c8c70", strokeWidth: 2, dash: 2 } },
+            // Base angles, and the same two angles transported to the apex C as
+            // alternate angles (matching colours show the equalities).
+            angleMark("B", "A", "C", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.8 }),
+            angleMark("A", "B", "C", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.8 }),
+            angleMark("A", "C", "PL", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.62 }),
+            angleMark("PR", "C", "B", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.62 }),
+            angleMark("A", "C", "B", { fillColor: COLORS.OK, strokeColor: COLORS.OK, radius: 0.62 }),
+            { type: "text", parents: [-2.45, -1.5, "A"], attributes: { fontSize: 14, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.ACCENT};`, fixed: true, highlight: false } },
+            { type: "text", parents: [2.5, -1.5, "B"], attributes: { fontSize: 14, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.BRAND};`, fixed: true, highlight: false } },
+            { type: "text", parents: [-0.55, 1.95, "A"], attributes: { fontSize: 14, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.ACCENT};`, fixed: true, highlight: false } },
+            { type: "text", parents: [1.25, 1.9, "B"], attributes: { fontSize: 14, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.BRAND};`, fixed: true, highlight: false } },
+            { type: "text", parents: [0.4, 1.55, "C"], attributes: { fontSize: 14, anchorX: "middle", anchorY: "middle", cssStyle: `font-weight:700;color:${COLORS.OK};`, fixed: true, highlight: false } },
+            readout(-4.7, -4.4, () => "line through C ∥ AB", { fontSize: 13, cssStyle: "color:#9c8c70;" }),
+          ],
+        },
         lines: [
           {
             statement:

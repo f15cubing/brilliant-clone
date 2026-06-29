@@ -63,4 +63,10 @@ export interface JSXGraphDef {
    * pan/zoom and never hijack page scroll.
    */
   freeNavigation?: boolean;
+  /**
+   * Render the figure as a static, non-interactive drawing: every point is
+   * fixed (no dragging), pan/zoom are disabled, and hover highlighting is off.
+   * Used by proof-comprehension steps that just need to *show* a construction.
+   */
+  staticFigure?: boolean;
 }
