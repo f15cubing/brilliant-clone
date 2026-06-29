@@ -368,14 +368,19 @@ function Arena({
           </div>
         </div>
 
-        {/* Spacer pushes the builder to the bottom of the viewport. */}
-        <div className="min-h-0 flex-1" />
-
-        {/* Bottom-centre: feedback and the collapsible step builder / summary. */}
-        <div className="pointer-events-auto mx-auto w-full max-w-3xl px-3 pb-3 sm:px-4 sm:pb-4">
-          <div className="flex flex-col gap-3">
-            {state.feedback && <FeedbackBanner feedback={state.feedback} />}
-            <div className="flex justify-center">
+        {/* Bottom-centre: feedback and the collapsible step builder / summary.
+            This region grows to fill the height left beneath the top row and
+            bottom-anchors its content, so the builder is bounded by the space
+            that is actually available (never clipped off the bottom of the
+            viewport) and scrolls internally when it doesn't fit. */}
+        <div className="pointer-events-none flex min-h-0 flex-1 flex-col justify-end px-3 pb-3 sm:px-4 sm:pb-4">
+          <div className="pointer-events-auto mx-auto flex min-h-0 w-full max-w-3xl flex-col gap-3">
+            {state.feedback && (
+              <div className="shrink-0">
+                <FeedbackBanner feedback={state.feedback} />
+              </div>
+            )}
+            <div className="flex shrink-0 justify-center">
               <button
                 type="button"
                 onClick={() => setShowBuilder((s) => !s)}
@@ -385,7 +390,7 @@ function Arena({
               </button>
             </div>
             {showBuilder && (
-              <div className="max-h-[58vh] overflow-y-auto rounded-sm bg-paper/90 shadow-lg backdrop-blur">
+              <div className="min-h-0 overflow-y-auto rounded-sm bg-paper/90 shadow-lg backdrop-blur">
                 {solved ? (
                   <ProofSummary facts={state.facts} save={proofSave} />
                 ) : (
