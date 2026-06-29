@@ -1,4 +1,4 @@
-import type { Lesson } from "@/lib/content/types";
+import type { Lesson, Problem } from "@/lib/content/types";
 import type { JXGElement } from "@/lib/geometry/board-types";
 import { angleDeg, dist, inward } from "@/lib/geometry/measure";
 import {
@@ -206,6 +206,78 @@ function excenterIA() {
   };
 }
 
+// The two algebraic steps stay classic ProblemPlayer problems, referenced from
+// both `problems` and the matching `{kind:"problem"}` stages.
+const biaProblem: Problem = {
+  id: "il-bia",
+  prompt:
+    "In $\\triangle ABI$ the angle at $A$ is $A/2$ and the angle at $B$ is $B/2$ (bisectors). **Express $\\angle BIA$** in terms of $A$ and $B$.",
+  xp: 12,
+  boardConfig: {
+    boundingBox: BOX,
+    elements: [
+      ...withIncenter(),
+      segment("I", "A", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
+      segment("I", "B", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
+      angleMark("B", "A", "I", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.6 }),
+      angleMark("A", "B", "I", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.6 }),
+      angleMark("A", "I", "B", { fillColor: COLORS.WRONG, strokeColor: COLORS.WRONG, radius: 0.6 }),
+      readout(-5.8, 5.4, (r) => `A/2 = ${(angleDeg(r.B, r.A, r.C) / 2).toFixed(1)}°`),
+      readout(-5.8, 4.7, (r) => `B/2 = ${(angleDeg(r.A, r.B, r.C) / 2).toFixed(1)}°`),
+      readout(-5.8, 4.0, (r) => `∠BIA = ${angleDeg(r.B, r.I, r.A).toFixed(1)}°`),
+    ],
+  },
+  answerConfig: {
+    kind: "algebraic",
+    correctExpression: "180 - A/2 - B/2",
+    variables: ["A", "B"],
+    placeholder: "e.g. 180 - A/2 - B/2",
+  },
+  explanations: [
+    {
+      triggerCondition: "default_wrong",
+      text: "The angles of $\\triangle ABI$ sum to $180^\\circ$. With $A/2$ at $A$ and $B/2$ at $B$, the angle at $I$ is $\\angle BIA = 180^\\circ - \\tfrac{A}{2} - \\tfrac{B}{2}$. Check it against the readouts.",
+    },
+  ],
+  solutionText:
+    "$\\angle BIA = 180^\\circ - \\tfrac{A}{2} - \\tfrac{B}{2}$. We'll need its supplement next.",
+};
+
+const iblProblem: Problem = {
+  id: "il-ibl",
+  prompt:
+    "Now look at $\\angle IBL$. Ray $BC$ lies between $BI$ and $BL$, so $\\angle IBL = \\angle IBC + \\angle CBL$. Using $\\angle IBC = B/2$ and $\\angle CBL = A/2$, **express $\\angle IBL$**.",
+  xp: 12,
+  boardConfig: {
+    boundingBox: BOX,
+    elements: [
+      ...withCircumAndL(),
+      segment("B", "I", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
+      segment("B", "L", { strokeColor: COLORS.BRAND, strokeWidth: 1.5 }),
+      segment("B", "C", { strokeColor: "#1b1714", strokeWidth: 1.5 }),
+      angleMark("I", "B", "C", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.85 }),
+      angleMark("C", "B", "L", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.6 }),
+      readout(-5.8, 5.4, (r) => `∠IBC = B/2 = ${(angleDeg(r.A, r.B, r.C) / 2).toFixed(1)}°`),
+      readout(-5.8, 4.7, (r) => `∠CBL = A/2 = ${(angleDeg(r.B, r.A, r.C) / 2).toFixed(1)}°`),
+      readout(-5.8, 4.0, (r) => `∠IBL = ${angleDeg(r.I, r.B, r.L).toFixed(1)}°`),
+    ],
+  },
+  answerConfig: {
+    kind: "algebraic",
+    correctExpression: "A/2 + B/2",
+    variables: ["A", "B"],
+    placeholder: "e.g. A/2 + B/2",
+  },
+  explanations: [
+    {
+      triggerCondition: "default_wrong",
+      text: "$BI$ bisects $\\angle B$, so $\\angle IBC = \\tfrac{B}{2}$; and from the previous step $\\angle CBL = \\tfrac{A}{2}$. Adding the adjacent angles, $\\angle IBL = \\tfrac{A}{2} + \\tfrac{B}{2}$.",
+    },
+  ],
+  solutionText:
+    "$\\angle IBL = \\angle IBC + \\angle CBL = \\tfrac{B}{2} + \\tfrac{A}{2} = \\tfrac{A}{2} + \\tfrac{B}{2}$.",
+};
+
 export const incenterLemma: Lesson = {
   id: "incenter-lemma",
   title: "The Incenter–Excenter Lemma",
@@ -300,40 +372,7 @@ export const incenterLemma: Lesson = {
       solutionText:
         "$I$ is equidistant from all three sides, so all three internal bisectors pass through it: the **incenter** exists. From now on $\\angle BAI = \\angle CAI = A/2$, and likewise at $B$ and $C$.",
     },
-    {
-      id: "il-bia",
-      prompt:
-        "In $\\triangle ABI$ the angle at $A$ is $A/2$ and the angle at $B$ is $B/2$ (bisectors). **Express $\\angle BIA$** in terms of $A$ and $B$.",
-      xp: 12,
-      boardConfig: {
-        boundingBox: BOX,
-        elements: [
-          ...withIncenter(),
-          segment("I", "A", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
-          segment("I", "B", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
-          angleMark("B", "A", "I", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.6 }),
-          angleMark("A", "B", "I", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.6 }),
-          angleMark("A", "I", "B", { fillColor: COLORS.WRONG, strokeColor: COLORS.WRONG, radius: 0.6 }),
-          readout(-5.8, 5.4, (r) => `A/2 = ${(angleDeg(r.B, r.A, r.C) / 2).toFixed(1)}°`),
-          readout(-5.8, 4.7, (r) => `B/2 = ${(angleDeg(r.A, r.B, r.C) / 2).toFixed(1)}°`),
-          readout(-5.8, 4.0, (r) => `∠BIA = ${angleDeg(r.B, r.I, r.A).toFixed(1)}°`),
-        ],
-      },
-      answerConfig: {
-        kind: "algebraic",
-        correctExpression: "180 - A/2 - B/2",
-        variables: ["A", "B"],
-        placeholder: "e.g. 180 - A/2 - B/2",
-      },
-      explanations: [
-        {
-          triggerCondition: "default_wrong",
-          text: "The angles of $\\triangle ABI$ sum to $180^\\circ$. With $A/2$ at $A$ and $B/2$ at $B$, the angle at $I$ is $\\angle BIA = 180^\\circ - \\tfrac{A}{2} - \\tfrac{B}{2}$. Check it against the readouts.",
-        },
-      ],
-      solutionText:
-        "$\\angle BIA = 180^\\circ - \\tfrac{A}{2} - \\tfrac{B}{2}$. We'll need its supplement next.",
-    },
+    biaProblem,
     {
       id: "il-lbc",
       prompt:
@@ -380,40 +419,7 @@ export const incenterLemma: Lesson = {
       solutionText:
         "By the inscribed-angle theorem, $\\angle LBC = \\angle LAC = A/2$.",
     },
-    {
-      id: "il-ibl",
-      prompt:
-        "Now look at $\\angle IBL$. Ray $BC$ lies between $BI$ and $BL$, so $\\angle IBL = \\angle IBC + \\angle CBL$. Using $\\angle IBC = B/2$ and $\\angle CBL = A/2$, **express $\\angle IBL$**.",
-      xp: 12,
-      boardConfig: {
-        boundingBox: BOX,
-        elements: [
-          ...withCircumAndL(),
-          segment("B", "I", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
-          segment("B", "L", { strokeColor: COLORS.BRAND, strokeWidth: 1.5 }),
-          segment("B", "C", { strokeColor: "#1b1714", strokeWidth: 1.5 }),
-          angleMark("I", "B", "C", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.85 }),
-          angleMark("C", "B", "L", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.6 }),
-          readout(-5.8, 5.4, (r) => `∠IBC = B/2 = ${(angleDeg(r.A, r.B, r.C) / 2).toFixed(1)}°`),
-          readout(-5.8, 4.7, (r) => `∠CBL = A/2 = ${(angleDeg(r.B, r.A, r.C) / 2).toFixed(1)}°`),
-          readout(-5.8, 4.0, (r) => `∠IBL = ${angleDeg(r.I, r.B, r.L).toFixed(1)}°`),
-        ],
-      },
-      answerConfig: {
-        kind: "algebraic",
-        correctExpression: "A/2 + B/2",
-        variables: ["A", "B"],
-        placeholder: "e.g. A/2 + B/2",
-      },
-      explanations: [
-        {
-          triggerCondition: "default_wrong",
-          text: "$BI$ bisects $\\angle B$, so $\\angle IBC = \\tfrac{B}{2}$; and from the previous step $\\angle CBL = \\tfrac{A}{2}$. Adding the adjacent angles, $\\angle IBL = \\tfrac{A}{2} + \\tfrac{B}{2}$.",
-        },
-      ],
-      solutionText:
-        "$\\angle IBL = \\angle IBC + \\angle CBL = \\tfrac{B}{2} + \\tfrac{A}{2} = \\tfrac{A}{2} + \\tfrac{B}{2}$.",
-    },
+    iblProblem,
     {
       id: "il-isosceles",
       prompt:
@@ -629,6 +635,519 @@ export const incenterLemma: Lesson = {
       ],
       solutionText:
         "**Incenter–Excenter Lemma.** Let $I$ be the incenter of $\\triangle ABC$ and $L$ the second intersection of ray $AI$ with the circumcircle (the midpoint of arc $BC$). Then $LB = LI = LC = LI_A$, so $L$ is the circumcenter of $\\triangle BIC$ and the midpoint of $II_A$. The point $I_A$ — the reflection of $I$ over $L$ — is the **$A$-excenter**: the intersection of the internal bisector at $A$ with the **external** bisectors at $B$ and $C$, and the center of the excircle opposite $A$. That whole circle through $B$, $I$, $C$, $I_A$ centered at $L$ is the lemma's signature configuration.",
+    },
+  ],
+  stages: [
+    {
+      kind: "concept",
+      title: "The idea",
+      body: "An **angle bisector** is the set of points equidistant from the two sides of the angle — and that single idea builds everything here. The three internal bisectors of $\\triangle ABC$ concur at the **incenter** $I$. Extend ray $AI$ to meet the circumcircle again at $L$, reflect $I$ over $L$ to get $I_A$, and the **Incenter–Excenter Lemma** says $LB = LI = LC = LI_A$ — so $B$, $I$, $C$, $I_A$ lie on one circle centered at $L$, and $I_A$ is the $A$-**excenter**. We'll chase the angles one step at a time. Drag the triangle: every relation holds for any shape.",
+    },
+    {
+      kind: "instruction-mc",
+      problem: {
+        id: "il-bisector-locus",
+        prompt:
+          "Forget the triangle for a moment. Here is a single angle, its **bisector** (dashed), and a point $P$ that glides along it. The green segments are the perpendicular distances from $P$ to the two sides. Drag $P$ — what stays true?",
+        exploreHint: "Drag P along the dashed bisector.",
+        xp: 10,
+        boardConfig: {
+          boundingBox: BOX,
+          elements: [
+            ...angleWithBisector(),
+            readout(-5.8, 5.4, (r) => `dist(P, side 1) = ${distToLine(r.P, r.V, r.S1).toFixed(2)}`),
+            readout(-5.8, 4.7, (r) => `dist(P, side 2) = ${distToLine(r.P, r.V, r.S2).toFixed(2)}`),
+          ],
+        },
+        options: [
+          {
+            id: "eq",
+            label: "$P$ is always **equidistant** from the two sides",
+            correct: true,
+            teaching:
+              "Exactly — the two green distance readouts stay identical everywhere you drag $P$. That equality *is* the defining property of the bisector.",
+          },
+          {
+            id: "s1",
+            label: "$P$ is always closer to side 1",
+            correct: false,
+            misconception: "asymmetric-distances",
+            teaching:
+              "Watch the readouts: they're never unequal. On the bisector, $P$ stays the **same** distance from both sides, not closer to one.",
+          },
+          {
+            id: "dep",
+            label: "The two distances depend on where $P$ sits",
+            correct: false,
+            misconception: "position-dependent",
+            teaching:
+              "The individual distances do grow as $P$ slides outward — but they grow *together* and stay equal. Equidistance is what's invariant.",
+          },
+          {
+            id: "vert",
+            label: "$P$ is equidistant from the two endpoints of the sides",
+            correct: false,
+            misconception: "confuses-perp-bisector",
+            teaching:
+              "Equidistant from two *points* describes the perpendicular bisector of a segment. The angle bisector is about distance to the two *sides* (lines).",
+          },
+        ],
+        consolidation: {
+          principle:
+            "The **angle bisector** is the locus of points equidistant from the two sides of the angle — the property that will pin down the incenter.",
+        },
+      },
+    },
+    {
+      kind: "instruction-mc",
+      problem: {
+        id: "il-incenter-exists",
+        prompt:
+          "Now apply that locus fact to a triangle. The bisectors of $\\angle A$ and $\\angle B$ meet at $I$, and the readouts give the **perpendicular distance** from $I$ to each side. Drag the triangle — what do you notice, and what does it tell you about the bisector of $\\angle C$?",
+        exploreHint: "Drag A, B, or C and watch the three distances.",
+        xp: 10,
+        boardConfig: {
+          boundingBox: BOX,
+          elements: [
+            ...withIncenter(),
+            segment("I", "A", { strokeColor: COLORS.OK, strokeWidth: 1.5, dash: 2 }),
+            segment("I", "B", { strokeColor: COLORS.OK, strokeWidth: 1.5, dash: 2 }),
+            readout(-5.8, 5.4, (r) => `dist(I, AB) = ${distToLine(r.I, r.A, r.B).toFixed(2)}`),
+            readout(-5.8, 4.7, (r) => `dist(I, BC) = ${distToLine(r.I, r.B, r.C).toFixed(2)}`),
+            readout(-5.8, 4.0, (r) => `dist(I, CA) = ${distToLine(r.I, r.C, r.A).toFixed(2)}`),
+          ],
+        },
+        options: [
+          {
+            id: "all3",
+            label:
+              "$I$ is equidistant from all three sides, so it lies on the bisector of $\\angle C$ too",
+            correct: true,
+            teaching:
+              "Right — all three distance readouts from $I$ stay equal. Being equidistant from $CA$ and $CB$ puts $I$ on the bisector of $\\angle C$ as well: the three internal bisectors concur.",
+            boardOverlayConfig: {
+              elements: [
+                angleBisector("A", "C", "B", "bisC", {
+                  visible: true,
+                  straightFirst: false,
+                  straightLast: true,
+                  strokeColor: COLORS.BRAND,
+                  dash: 2,
+                  strokeWidth: 1.5,
+                }),
+              ],
+            },
+          },
+          {
+            id: "verts",
+            label: "$I$ is equidistant from the three vertices",
+            correct: false,
+            misconception: "confuses-circumcenter",
+            teaching:
+              "Equidistant from the three *vertices* describes the **circumcenter**. The readouts here are distances to the three *sides*, and those are what stay equal.",
+          },
+          {
+            id: "circ",
+            label: "$I$ is the circumcenter",
+            correct: false,
+            misconception: "confuses-circumcenter",
+            teaching:
+              "The circumcenter is equidistant from the vertices and is the meet of the *perpendicular* bisectors. $I$ — equidistant from the sides, meet of the *angle* bisectors — is the **incenter**.",
+          },
+          {
+            id: "dep",
+            label: "Nothing special — it depends on the triangle",
+            correct: false,
+            misconception: "thinks-coincidence",
+            teaching:
+              "Drag any vertex: the three distances stay locked together for **every** triangle. The concurrence is a theorem, not a coincidence.",
+          },
+        ],
+        consolidation: {
+          principle:
+            "The three internal angle bisectors concur at the **incenter** $I$, the point equidistant from all three sides. Hence $\\angle BAI = \\angle CAI = A/2$, and likewise at $B$ and $C$.",
+        },
+      },
+    },
+    { kind: "problem", problem: biaProblem },
+    {
+      kind: "instruction-mc",
+      problem: {
+        id: "il-lbc",
+        prompt:
+          "Extend ray $AI$ to hit the circumcircle again at $L$. The readouts show $\\angle LAC$ and $\\angle LBC$. They stay equal as you drag — **why**, and what is $\\angle LBC$ in terms of $A$?",
+        exploreHint: "Drag the triangle; watch ∠LAC and ∠LBC track each other.",
+        xp: 12,
+        boardConfig: {
+          boundingBox: BOX,
+          elements: [
+            ...withCircumAndL(),
+            segment("A", "L", { strokeColor: COLORS.OK, strokeWidth: 1.5, dash: 2 }),
+            segment("B", "L", { strokeColor: COLORS.BRAND, strokeWidth: 1.5 }),
+            segment("B", "C", { strokeColor: "#1b1714", strokeWidth: 1.5 }),
+            angleMark("L", "A", "C", { fillColor: COLORS.OK, strokeColor: COLORS.OK, radius: 0.7 }),
+            angleMark("L", "B", "C", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.7 }),
+            readout(-5.8, 5.4, (r) => `∠LAC = ${angleDeg(r.L, r.A, r.C).toFixed(1)}°`),
+            readout(-5.8, 4.7, (r) => `∠LBC = ${angleDeg(r.L, r.B, r.C).toFixed(1)}°`),
+            readout(-5.8, 4.0, (r) => `A/2 = ${(angleDeg(r.B, r.A, r.C) / 2).toFixed(1)}°`),
+          ],
+        },
+        options: [
+          {
+            id: "arc",
+            label: "$\\angle LBC = \\angle LAC$ (same arc $LC$), and $\\angle LAC = A/2$, so $\\angle LBC = A/2$",
+            correct: true,
+            teaching:
+              "Exactly — $\\angle LBC$ and $\\angle LAC$ are inscribed angles on the **same arc $LC$**, so they're equal; and since $L$ is on ray $AI$, $\\angle LAC = \\angle IAC = A/2$. Hence $\\angle LBC = A/2$.",
+          },
+          {
+            id: "mid",
+            label: "$\\angle LBC = A$, because $L$ is the midpoint of $BC$",
+            correct: false,
+            misconception: "arc-vs-segment",
+            teaching:
+              "$L$ is the midpoint of the **arc** $BC$, not of the segment $BC$. The equality comes from the inscribed-angle theorem: $\\angle LBC = \\angle LAC = A/2$.",
+          },
+          {
+            id: "eq",
+            label: "They're equal only because the triangle looks isosceles",
+            correct: false,
+            misconception: "thinks-isosceles",
+            teaching:
+              "Drag any vertex into a scalene shape — the two readouts stay equal. The equality is the inscribed-angle theorem (same arc $LC$), not isosceles symmetry.",
+          },
+          {
+            id: "none",
+            label: "There's no reason they should be equal",
+            correct: false,
+            misconception: "misses-inscribed-angle",
+            teaching:
+              "There is a reason: inscribed angles subtending the **same arc $LC$** are always equal. So $\\angle LBC = \\angle LAC = A/2$.",
+          },
+        ],
+        consolidation: {
+          principle:
+            "Inscribed angles on the same arc are equal; with $L$ on ray $AI$ this gives $\\angle LBC = \\angle LAC = A/2$.",
+        },
+      },
+    },
+    { kind: "problem", problem: iblProblem },
+    {
+      kind: "instruction-mc",
+      problem: {
+        id: "il-isosceles",
+        prompt:
+          "Since $A$, $I$, $L$ are collinear, $\\angle BIL = 180^\\circ - \\angle BIA = \\tfrac{A}{2} + \\tfrac{B}{2}$ — the **same** value as $\\angle IBL$. The readouts confirm it. What does $\\angle IBL = \\angle BIL$ force?",
+        exploreHint: "Drag the triangle; ∠IBL and ∠BIL stay locked together.",
+        xp: 12,
+        boardConfig: {
+          boundingBox: BOX,
+          elements: [
+            ...withCircumAndL(),
+            segment("I", "B", { strokeColor: "#1b1714", strokeWidth: 1.5 }),
+            segment("L", "B", { strokeColor: COLORS.BRAND, strokeWidth: 2 }),
+            segment("A", "L", { strokeColor: COLORS.OK, strokeWidth: 1.5, dash: 2 }),
+            angleMark("I", "B", "L", { fillColor: COLORS.BRAND, strokeColor: COLORS.BRAND, radius: 0.7 }),
+            angleMark("B", "I", "L", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.7 }),
+            readout(-5.8, 5.4, (r) => `∠IBL = ${angleDeg(r.I, r.B, r.L).toFixed(1)}°`),
+            readout(-5.8, 4.7, (r) => `∠BIL = ${angleDeg(r.B, r.I, r.L).toFixed(1)}°`),
+            readout(-5.8, 4.0, (r) => `|LI| = ${dist(r.L, r.I).toFixed(2)}`),
+            readout(-5.8, 3.3, (r) => `|LB| = ${dist(r.L, r.B).toFixed(2)}`),
+          ],
+        },
+        options: [
+          {
+            id: "li-lb",
+            label: "$\\triangle LBI$ is isosceles with $LI = LB$",
+            correct: true,
+            teaching:
+              "Right — the base angles at $B$ and $I$ are equal, so the sides opposite them are equal: $LI = LB$. The $|LI|$ and $|LB|$ readouts stay identical as you drag.",
+          },
+          {
+            id: "lb-bi",
+            label: "$LB = BI$",
+            correct: false,
+            misconception: "wrong-opposite-sides",
+            teaching:
+              "The equal base angles are at $B$ and $I$, so the equal sides are the ones **opposite** them: $LI$ (opposite $\\angle B$) and $LB$ (opposite $\\angle I$). Thus $LI = LB$, not $LB = BI$.",
+          },
+          {
+            id: "li-ib",
+            label: "$LI = IB$",
+            correct: false,
+            misconception: "wrong-opposite-sides",
+            teaching:
+              "$IB$ is the side *between* the two equal base angles, not opposite one of them. The equal sides are $LI$ and $LB$ — the ones opposite $\\angle B$ and $\\angle I$.",
+          },
+          {
+            id: "nothing",
+            label: "Nothing — equal angles don't constrain the sides",
+            correct: false,
+            misconception: "denies-isosceles",
+            teaching:
+              "Equal base angles **do** force a triangle to be isosceles: the sides opposite them must be equal. Watch $|LI|$ and $|LB|$ stay locked together.",
+          },
+        ],
+        consolidation: {
+          principle:
+            "Equal base angles force equal opposite sides (isosceles): here $LI = LB$, and the same argument at $C$ gives $LI = LC$, so $L$ is equidistant from $B$, $I$, $C$.",
+        },
+      },
+    },
+    {
+      kind: "instruction-mc",
+      problem: {
+        id: "il-circle",
+        prompt:
+          "We have $LI = LB = LC$. Now let $I_A$ be the **reflection of $I$ over $L$**, so $LI_A = LI$ by definition. The four points $B$, $I$, $C$, $I_A$ therefore lie on one circle — **where is its center?**",
+        exploreHint: "Drag the triangle; all four distances from L stay equal.",
+        xp: 13,
+        boardConfig: {
+          boundingBox: WIDE,
+          elements: [
+            ...withCircumAndL(),
+            excenterIA(),
+            circle("circL", "L", "B", { strokeColor: COLORS.WRONG, strokeWidth: 2, dash: 2 }),
+            segment("L", "B", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
+            segment("L", "C", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
+            segment("L", "I", { strokeColor: COLORS.OK, strokeWidth: 1.5, dash: 2 }),
+            segment("L", "IA", { strokeColor: COLORS.OK, strokeWidth: 1.5, dash: 2 }),
+            readout(-7.3, 4.3, (r) => `|LB| = ${dist(r.L, r.B).toFixed(2)}`),
+            readout(-7.3, 3.5, (r) => `|LI| = ${dist(r.L, r.I).toFixed(2)}`),
+            readout(-7.3, 2.7, (r) => `|LC| = ${dist(r.L, r.C).toFixed(2)}`),
+            readout(-7.3, 1.9, (r) => `|LI_A| = ${dist(r.L, r.IA).toFixed(2)}`),
+          ],
+        },
+        options: [
+          {
+            id: "L",
+            label: "$L$ — it is equidistant from all four points",
+            correct: true,
+            teaching:
+              "Right — $LI = LB = LC$ (proved) and $LI_A = LI$ because $I_A$ reflects $I$ over $L$. All four points sit at distance $LI$ from $L$, so $L$ is the center.",
+          },
+          {
+            id: "I",
+            label: "$I$, the incenter",
+            correct: false,
+            misconception: "center-is-on-circle",
+            teaching:
+              "$I$ is one of the four points **on** the circle, so it can't be the center. The point equidistant from all four is $L$.",
+          },
+          {
+            id: "mid",
+            label: "The midpoint of $BC$",
+            correct: false,
+            misconception: "midpoint-bc",
+            teaching:
+              "The midpoint of segment $BC$ isn't equidistant from $I$ and $I_A$. Only $L$ keeps all four distance readouts equal.",
+          },
+          {
+            id: "circum",
+            label: "The circumcenter of $\\triangle ABC$",
+            correct: false,
+            misconception: "confuses-circumcenter",
+            teaching:
+              "The circumcenter of $\\triangle ABC$ is equidistant from $A$, $B$, $C$ — not from $I$ and $I_A$. The center of *this* circle is $L$.",
+          },
+        ],
+        consolidation: {
+          principle:
+            "Four points all at one distance from a point are concyclic about it: $LB = LI = LC = LI_A$ makes $L$ the center of the circle through $B$, $I$, $C$, $I_A$.",
+        },
+      },
+    },
+    {
+      kind: "instruction-mc",
+      problem: {
+        id: "il-perp-bisectors",
+        prompt:
+          "One fact about bisectors before the finale. At vertex $B$, the **internal** bisector (green) splits $\\angle ABC$; the **external** bisector (red) splits the angle that $BA$ makes with the extension $C'$ of side $CB$. Drag the triangle and watch the angle between them. Why is it always $90^\\circ$?",
+        exploreHint: "Drag A, B, or C — the green and red bisectors stay perpendicular.",
+        xp: 12,
+        boardConfig: {
+          boundingBox: BOX,
+          elements: [
+            ...internalExternalAtB(),
+            readout(-5.8, 5.4, (r) => `∠(internal, external) = ${angleDeg(r.Pi, r.B, r.Pe).toFixed(1)}°`),
+            readout(-5.8, 4.7, (r) => `½∠ABC = ${(angleDeg(r.A, r.B, r.C) / 2).toFixed(1)}°`),
+            readout(-5.8, 4.0, (r) => `½∠ABC' = ${(angleDeg(r.A, r.B, r.Cp) / 2).toFixed(1)}°`),
+          ],
+        },
+        options: [
+          {
+            id: "supp",
+            label:
+              "$\\angle ABC$ and $\\angle ABC'$ are supplementary, so their halves add to $90^\\circ$",
+            correct: true,
+            teaching:
+              "Exactly — $\\angle ABC + \\angle ABC' = 180^\\circ$, and ray $BA$ lies between the two bisectors, so the angle between them is $\\tfrac12(180^\\circ) = 90^\\circ$. The external bisector is always perpendicular to the internal one.",
+          },
+          {
+            id: "right",
+            label: "Because $\\angle ABC$ happens to be a right angle",
+            correct: false,
+            misconception: "thinks-special-case",
+            teaching:
+              "Check the $\\tfrac12\\angle ABC$ readout — it's rarely $45^\\circ$. The $90^\\circ$ between the bisectors holds for *every* $\\angle ABC$, not just a right one.",
+          },
+          {
+            id: "coin",
+            label: "It's a coincidence of this particular figure",
+            correct: false,
+            misconception: "thinks-coincidence",
+            teaching:
+              "Drag any vertex: the angle between the bisectors stays pinned at $90^\\circ$. It follows from internal $+$ external $= 180^\\circ$ — never a coincidence.",
+          },
+          {
+            id: "dia",
+            label: "Because $II_A$ is a diameter",
+            correct: false,
+            misconception: "wrong-reason-diameter",
+            teaching:
+              "That's the reason $\\angle IBI_A = 90^\\circ$ in the main figure — but here we're proving a more basic fact about *any* vertex: internal $+$ external angle $= 180^\\circ$, so their half-bisectors are perpendicular.",
+          },
+        ],
+        consolidation: {
+          principle:
+            "The internal and external bisectors at a vertex are always perpendicular, because the internal and external angles are supplementary: the external bisector is the line through the vertex perpendicular to the internal one.",
+        },
+      },
+    },
+    {
+      kind: "instruction-mc",
+      problem: {
+        id: "il-excenter",
+        prompt:
+          "Because $I$, $L$, $I_A$ are collinear with $LI = LI_A = LB$, segment $II_A$ is a **diameter** of that circle, so $\\angle IBI_A = 90^\\circ$ (angle in a semicircle). Since $BI$ is the *internal* bisector at $B$, what is line $BI_A$?",
+        exploreHint: "Drag the triangle; ∠IBI_A stays at 90°.",
+        xp: 14,
+        boardConfig: {
+          boundingBox: WIDE,
+          elements: [
+            ...withCircumAndL(),
+            excenterIA(),
+            circle("circL", "L", "B", { strokeColor: COLORS.WRONG, strokeWidth: 1.5, dash: 2 }),
+            segment("I", "IA", { strokeColor: COLORS.BRAND, strokeWidth: 1.5, dash: 2 }),
+            segment("B", "I", { strokeColor: COLORS.OK, strokeWidth: 2 }),
+            segment("B", "IA", { strokeColor: COLORS.WRONG, strokeWidth: 2 }),
+            angleMark("I", "B", "IA", { fillColor: COLORS.ACCENT, strokeColor: COLORS.ACCENT, radius: 0.7 }),
+            angleLabel("I", "B", "IA", { color: COLORS.ACCENT, dist: 1.0 }),
+            readout(-7.3, 4.3, (r) => `∠IBI_A = ${angleDeg(r.I, r.B, r.IA).toFixed(1)}°`),
+          ],
+        },
+        options: [
+          {
+            id: "ext",
+            label: "The **external** bisector of $\\angle B$ (perpendicular to the internal one)",
+            correct: true,
+            teaching:
+              "Right — $\\angle IBI_A = 90^\\circ$ means $BI_A \\perp BI$, and the external bisector is exactly the line through $B$ perpendicular to internal bisector $BI$. The same holds at $C$, so $I_A$ is the $A$-excenter.",
+          },
+          {
+            id: "int",
+            label: "The internal bisector of $\\angle B$",
+            correct: false,
+            misconception: "confuses-internal-external",
+            teaching:
+              "The internal bisector at $B$ is $BI$ itself. Since $BI_A \\perp BI$, line $BI_A$ is the **external** bisector instead.",
+          },
+          {
+            id: "med",
+            label: "The median from $B$",
+            correct: false,
+            misconception: "confuses-median",
+            teaching:
+              "A median runs to the midpoint of the opposite side and has no perpendicularity to $BI$. $BI_A \\perp BI$ identifies it as the external bisector.",
+          },
+          {
+            id: "tan",
+            label: "The tangent to the circumcircle at $B$",
+            correct: false,
+            misconception: "confuses-tangent",
+            teaching:
+              "The tangent at $B$ isn't generally perpendicular to $BI$. What the $90^\\circ$ readout pins down is the **external** bisector $BI_A$.",
+          },
+        ],
+        consolidation: {
+          principle:
+            "With $II_A$ a diameter, $\\angle IBI_A = 90^\\circ$, so $BI_A$ is the external bisector at $B$ (likewise $CI_A$ at $C$): $I_A$ is the **$A$-excenter**.",
+        },
+      },
+    },
+    {
+      kind: "instruction-mc",
+      problem: {
+        id: "il-recap",
+        prompt:
+          "**Putting it all together.** From a single idea — a bisector is the set of points equidistant from the two sides — we built the incenter $I$, extended ray $AI$ to meet the circumcircle again at $L$, and proved $LI = LB = LC$. Reflecting $I$ over $L$ gives $I_A$ with $LI_A = LI$, so $B$, $I$, $C$, $I_A$ all lie on one circle centered at $L$ (red), with $II_A$ a diameter. Which statement is the **Incenter–Excenter Lemma**?",
+        exploreHint: "Drag the triangle — the whole configuration holds for every shape.",
+        xp: 12,
+        boardConfig: {
+          boundingBox: WIDE,
+          elements: [
+            ...withCircumAndL(),
+            excenterIA(),
+            circle("circL", "L", "B", { strokeColor: COLORS.WRONG, strokeWidth: 2, dash: 2 }),
+            segment("L", "B", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
+            segment("L", "C", { strokeColor: COLORS.OK, strokeWidth: 1.5 }),
+            segment("L", "I", { strokeColor: COLORS.OK, strokeWidth: 1.5, dash: 2 }),
+            segment("L", "IA", { strokeColor: COLORS.OK, strokeWidth: 1.5, dash: 2 }),
+            segment("I", "IA", { strokeColor: COLORS.BRAND, strokeWidth: 1.5, dash: 2 }),
+            readout(-7.3, 4.3, (r) => `|LB| = ${dist(r.L, r.B).toFixed(2)}`),
+            readout(-7.3, 3.5, (r) => `|LI| = ${dist(r.L, r.I).toFixed(2)}`),
+            readout(-7.3, 2.7, (r) => `|LC| = ${dist(r.L, r.C).toFixed(2)}`),
+            readout(-7.3, 1.9, (r) => `|LI_A| = ${dist(r.L, r.IA).toFixed(2)}`),
+          ],
+        },
+        options: [
+          {
+            id: "full",
+            label:
+              "$L$ (the midpoint of arc $BC$) is the circumcenter of $\\triangle BIC$ and the midpoint of $II_A$; it is equidistant from $B$, $I$, $C$ and the $A$-excenter $I_A$",
+            correct: true,
+            teaching:
+              "That's the lemma — every readout from $L$ stays equal ($LB = LI = LC = LI_A$), so $L$ is the arc-midpoint of $BC$, the circumcenter of $\\triangle BIC$, and the midpoint of $II_A$.",
+          },
+          {
+            id: "incenter",
+            label: "$L$ is the incenter of $\\triangle ABC$",
+            correct: false,
+            misconception: "confuses-incenter",
+            teaching:
+              "$I$ is the incenter; $L$ lies on the circumcircle, on the far side of $I$ along ray $AI$. $L$ is the center of the $B,I,C,I_A$ circle, not the incenter.",
+          },
+          {
+            id: "circum",
+            label: "$L$ is the circumcenter of $\\triangle ABC$",
+            correct: false,
+            misconception: "confuses-circumcenter",
+            teaching:
+              "$L$ sits *on* the circumcircle of $\\triangle ABC$, not at its center. It is the circumcenter of $\\triangle BIC$ instead.",
+          },
+          {
+            id: "mid",
+            label: "$L$ is the midpoint of segment $BC$",
+            correct: false,
+            misconception: "arc-vs-segment",
+            teaching:
+              "$L$ is the midpoint of the **arc** $BC$, not of the segment. The midpoint of the segment isn't equidistant from $I$ and $I_A$.",
+          },
+        ],
+        consolidation: {
+          principle:
+            "**Incenter–Excenter Lemma:** the bisector of $\\angle A$ meets the circumcircle at $L$, the arc-midpoint of $BC$, which is equidistant from $B$, $I$, $C$ and the $A$-excenter $I_A$ — the circumcenter of $\\triangle BIC$ and midpoint of $II_A$.",
+        },
+      },
+    },
+    {
+      kind: "handoff",
+      handoff: {
+        title: "Now prove it yourself",
+        body: "You've chased every angle and watched the four distances from $L$ lock together. In Freeplay, prove the **arc-midpoint / incenter lemma** yourself: show that the bisector of $\\angle BAC$ meets the circumcircle at the arc midpoint $M$ of $BC$, with $MB = MC$ — the keystone of the whole configuration.",
+        freeplayPuzzleIds: ["arc_midpoint_lemma"],
+        ctaLabel: "Open the Freeplay proof",
+      },
     },
   ],
 };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ProblemPlayer } from "@/components/solvables/ProblemPlayer";
 import { InstructionMC } from "@/components/solvables/InstructionMC";
@@ -50,7 +50,15 @@ export function LessonPlayer() {
   const [lessonDone, setLessonDone] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
+  // Seed the stage from the resume bookmark only when the LESSON changes.
+  // Recording an attempt mutates progress (and thus `initialStageIndex`), so
+  // re-seeding on every `initialStageIndex` change would force-advance the
+  // learner past the explanation the instant they answer. In-lesson navigation
+  // is driven exclusively by `advance()` / `goBack()`.
+  const seededLessonRef = useRef<string | undefined>(undefined);
   useEffect(() => {
+    if (seededLessonRef.current === lessonId) return;
+    seededLessonRef.current = lessonId;
     setStageIndex(initialStageIndex);
     setLessonDone(false);
     setToast(null);

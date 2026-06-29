@@ -6,6 +6,7 @@ import { imo2019p2 } from "./imo2019p2";
 // Wave 2 — contest + classical problems promoted from the research lab. Each is
 // re-verified end-to-end against the SHIPPED engine in its own test.
 import { arcMidpointLemma } from "./arc_midpoint_lemma";
+import { alternateAngles } from "./alternate_angles";
 import { kiteEqualAngles } from "./kite_equal_angles";
 import { jbmoShortlist2004G1 } from "./jbmo_shortlist_2004_g1";
 import { jbmo_shortlist_2015_g1 } from "./jbmo_shortlist_2015_g1";
@@ -30,6 +31,7 @@ import { imo_shortlist_2024_g5 } from "./imo_shortlist_2024_g5";
 export const FREEPLAY_PUZZLES: Puzzle[] = [
   // intro
   inscribedAngle,
+  alternateAngles,
   arcMidpointLemma,
   kiteEqualAngles,
   // core

@@ -13,8 +13,10 @@ import {
 
 const lesson0 = COURSE.lessons[0];
 const lesson1 = COURSE.lessons[1];
-const probIds0 = lesson0.problems.map((p) => p.id);
-const probIds1 = lesson1.problems.map((p) => p.id);
+// Completion is keyed on every solvable STAGE id (instruction-mc / problem /
+// comprehension), not just the legacy `problems` array.
+const probIds0 = lessonSolvableIds(lesson0);
+const probIds1 = lessonSolvableIds(lesson1);
 
 function lessonWith(partial: Partial<LessonProgress>): LessonProgress {
   return {

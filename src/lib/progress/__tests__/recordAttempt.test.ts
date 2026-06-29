@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { COURSE, getLesson } from "@/lib/content/course";
-import { lessonSolvableIds } from "@/lib/content/lessonStages";
+import {
+  lessonSolvableIds,
+  lessonStages,
+  stageSolvableId,
+  stageXp,
+} from "@/lib/content/lessonStages";
+import type { Lesson } from "@/lib/content/types";
 import { applyAttempt, type AttemptInput } from "@/lib/progress/recordAttempt";
 import { emptySnapshot, type ProgressSnapshot } from "@/lib/progress/types";
 
 const lesson = COURSE.lessons[0];
 const problems = lesson.problems;
+// Every stage that grants XP / records progress (a superset of `problems` once a
+// lesson is staged with instruction-mc / comprehension stages).
+const solvableStages = lessonStages(lesson).filter(
+  (s) => stageSolvableId(s) !== null,
+);
 const NOW = 1_700_000_000_000;
 
 function attempt(over: Partial<AttemptInput> = {}): AttemptInput {
@@ -28,10 +39,10 @@ function solveLesson(start: ProgressSnapshot): {
   let snap = start;
   let totalAdded = 0;
   let lessonCompleted = false;
-  for (const p of problems) {
+  for (const s of solvableStages) {
     const { next, result } = applyAttempt(
       snap,
-      attempt({ problemId: p.id, problemXp: p.xp }),
+      attempt({ problemId: stageSolvableId(s)!, problemXp: stageXp(s) }),
       NOW,
     );
     snap = next;
@@ -100,7 +111,7 @@ describe("applyAttempt — XP and completion", () => {
 
   it("awards the lesson completion bonus when the last problem is solved", () => {
     const { snap, totalAdded, lessonCompleted } = solveLesson(emptySnapshot());
-    const expectedProblemXp = problems.reduce((n, p) => n + p.xp, 0);
+    const expectedProblemXp = solvableStages.reduce((n, s) => n + stageXp(s), 0);
     expect(lessonCompleted).toBe(true);
     expect(snap.lessons[lesson.id].completedAt).toBe(NOW);
     expect(totalAdded).toBe(expectedProblemXp + lesson.completionXp);
@@ -141,8 +152,11 @@ describe("applyAttempt — XP and completion", () => {
 });
 
 describe("solvable-id generalization (legacy parity)", () => {
-  it("solvable ids equal problem ids for a legacy lesson", () => {
-    const legacy = getLesson("parallel-lines") ?? COURSE.lessons[1];
+  it("solvable ids equal problem ids for a legacy (un-staged) lesson", () => {
+    // Every shipped lesson now defines explicit `stages`; the backward-compat
+    // shim is exercised with a synthetic lesson that omits them.
+    const base = getLesson("parallel-lines") ?? COURSE.lessons[1];
+    const legacy: Lesson = { ...base, stages: undefined };
     expect(lessonSolvableIds(legacy)).toEqual(legacy.problems.map((p) => p.id));
   });
 });
