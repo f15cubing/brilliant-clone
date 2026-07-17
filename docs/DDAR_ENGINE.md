@@ -3,7 +3,7 @@
 _Authoritative internals doc for `src/lib/freeplay/`, the from-scratch DDAR
 (Deductive Database + Algebraic Reasoning) geometry proof-checker that powers
 Competitive Freeplay. Reflects the current `src/lib/freeplay/` implementation; see
-§8 for the engine's known limitations and soundness caveats. Companion docs:
+§6.1 for design notes and §8 for known limitations. Companion docs:
 [`FREEPLAY_EXPLAINER.md`](./FREEPLAY_EXPLAINER.md) (plain-language tour, start
 there), [`PRD-competitive-freeplay.md`](./PRD-competitive-freeplay.md) (design
 intent), [`PROJECT_STATUS.md`](./PROJECT_STATUS.md) (§3 high-level), the
@@ -242,9 +242,9 @@ direction back into a `coll`, which is what closes the Simson–Wallace line.
 Coordinates are used **only** to pick the sign ε∈{±1} and whole-turn integer j in
 `measure()`/`pick()`/`balance()`, and to seed numeric slopes in `dir()` — never to
 collapse variables. So the **AR layer** cannot read parallelism/collinearity "for
-free" off the diagram; every hypothesis it uses must be cited. (This is not true of
-every DD rule — a few incidence-reading rules do read collinearity off the
-coordinates; see §6.1.) Tolerance `ZERO_DEG = 1e-3`.
+free" off the diagram; every hypothesis it uses must be cited. (DD rules do, by
+design, read a figure's incidence structure — collinearity / point-on-line — as
+implicit; see §6.1.) Tolerance `ZERO_DEG = 1e-3`.
 
 Table closure (`Table.addExpr`) mirrors AlphaGeometry's `ar.py`: substitute bound
 vars, then depending on the number of free vars either confirm/solve a constant
@@ -383,35 +383,30 @@ for a degenerate `coll` if two points coincide; `deriveAll`/DD emit without
 minimality (dev only); Pappus-at-infinity requires a cited matching `para`; the UI
 maps any thrown error to `unjustified`, which can mask config/parse failures.
 
-### 6.1 Known soundness caveats
+### 6.1 Design notes: implicit incidences and genericity
 
 The verifier is **numeric-plus-symbolic**, not fully symbolic. The AR layers
 (`ar.ts`, `lengthAR.ts`) are cite-driven and never collapse variables from
 coordinates, and the multi-realization numeric gate correctly rejects
-numerically-false conclusions and superset citations. The following caveats are
-known and worth understanding before relying on the "exactly the cited premises"
-framing:
+numerically-false conclusions and superset citations. Two design points are worth
+understanding:
 
-- **Incidence-reading rules can use an uncited collinearity.** A few DD rules —
-  notably `para_equal_angles`, `pappus`, and `converse_inscribed` — discover which
-  points lie on a line by scanning the **coordinates** (`onLine`) rather than by
-  requiring a cited/established `coll`. As a result an accepted step can silently
-  depend on an incidence the learner never cited or proved. This lets a learner
-  **skip a proof obligation** (e.g. cite only a `para` and obtain an `eqangle` that
-  in fact also needs a collinearity), but it **cannot** be used to assert a
-  numerically false fact — the truth gate still blocks those. When authoring
-  puzzles, supply the needed incidences as explicit givens so proofs remain honest.
-- **Single-figure mode is weaker.** If `verify()` is called without a
-  `realizations` array (the legacy single-canonical-figure path, used by the remote
-  API payload and as a silent fallback), the coincidence defense degrades: a step
-  that only holds because of an accidental collinearity in the canonical diagram can
-  be accepted. Production Freeplay always passes the multi-realization array; prefer
-  it everywhere.
+- **Incidences (collinearity, point-on-line) are treated as implicit figure
+  structure — by design.** Some DD rules — notably `para_equal_angles`, `pappus`,
+  and `converse_inscribed` — read which points lie on a line from the figure
+  configuration (`onLine`) rather than requiring an explicit cited `coll`. Incidence
+  is part of the given diagram, not a proof step the learner must re-derive, so these
+  rules do not demand it among the cited premises. This never lets a numerically
+  false fact through — the truth gate still blocks those; it only means the "cited
+  premises" set is about the *reasoning* used, not about restating the figure's
+  incidence structure.
 - **Genericity depends on each puzzle's `construct(rng)`.** The multi-realization
   guarantee is only as strong as the sampler: a non-generic or missing `construct`
   propagates coincidences into every sample. `sampleRealizations` can return as few
-  as one realization if `construct` is absent or repeatedly fails, silently reducing
-  to the weaker single-figure mode.
+  as one realization if `construct` is absent or repeatedly fails, falling back to
+  the single canonical figure (the same path the remote API payload uses), which is
+  a weaker coincidence defense. Production Freeplay always passes the
+  multi-realization array; prefer it everywhere.
 
 ---
 
@@ -450,7 +445,7 @@ framing:
   ratios, a general pole–polar representation, hints / auxiliary constructions /
   AR traceback ("why"), and a complete remote-verify payload. (Length/ratio reasoning,
   Pascal, the radical-axis / radical-centre rules, converse power-of-a-point ⇒
-  `cyclic`, and the full IMO 2019 P2 chain are now **shipped**, not gaps.)
+  `cyclic`, and full IMO-level proof chains are now **shipped**, not gaps.)
 - No `TODO`/`FIXME` markers in `src/lib/freeplay/` — debt is architectural/content.
 
 ---

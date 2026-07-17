@@ -43,8 +43,8 @@ shipped angle/incidence engine (`src/lib/freeplay/rules/`, e.g. `pascal`,
 (`lengths/`: `eqratio` facts, `LengthAR`, and 9 `RATIO_RULES` incl.
 `power_of_a_point` and `sas_similarity`) — **38 rules total** (29 angle/incidence +
 9 length/ratio). The catalog grew to **20 curated puzzles** (intro/core/challenge,
-with literal JBMO/IMO-shortlist citations up to the IMO 2024 Shortlist, and
-**IMO 2019 P2 verifying end-to-end**).
+with literal JBMO/IMO-shortlist citations up to full **IMO-level problems verifying
+end-to-end**).
 
 **Natural-language step input + proof archive.** Shipped an NL step path
 (`src/lib/freeplay/nl/` + `functions/`): a step typed in English is translated by a

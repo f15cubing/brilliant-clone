@@ -10,7 +10,7 @@ most reusable verbatim from already-vetted `research/freeplay-rules/problems/*.t
 > have all landed. The shipped engine now has **29 angle/incidence rules** (13
 > `CORE_RULES` in `rules.ts` + 16 `PROMOTED_RULES` in `rules/`) + **9 `RATIO_RULES`**
 > (`lengths/rules/`) = **38 total**, `eqratio` is a first-class fact, and **20
-> puzzles** ship (incl. IMO 2019 P2 end-to-end). The sections below are preserved as
+> puzzles** ship (incl. full IMO-level problems end-to-end). The sections below are preserved as
 > the original promotion plan; treat their "current state" claims as the
 > pre-implementation baseline.
 

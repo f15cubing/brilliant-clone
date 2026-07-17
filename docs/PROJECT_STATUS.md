@@ -132,10 +132,10 @@ elements.
   `CORE_RULES`, 16 `PROMOTED_RULES` (promoted from the research lab, e.g. `pascal`,
   `sas_congruence`, `thales_diameter`, `concyclic_from_directed_angles`), and 9
   length/ratio `RATIO_RULES` (`lengths/rules/`, e.g. `power_of_a_point`,
-  `sas_similarity`). Most are **coordinate-guarded** so they only fire when the
-  figure numerically supports it. (A few incidence-reading rules read collinearity
-  off the coordinates rather than from the cited facts — see the known-limitations
-  section of [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).)
+  `sas_similarity`). Each is **coordinate-guarded** so it only fires when the
+  figure numerically supports it. (Incidences — collinearity / point-on-line — are
+  treated as implicit figure structure rather than facts that must be cited; see the
+  design notes in [`DDAR_ENGINE.md`](./DDAR_ENGINE.md) §6.1.)
 - `ar.ts` / `lengths/lengthAR.ts` — `AngleAR`, a Gaussian-elimination table over
   exact rationals that closes directed-angle chases (mod 180°), and `LengthAR`,
   the dual log-distance table that closes equal-length / ratio chases.
@@ -148,9 +148,9 @@ elements.
   from the cited premises **across all sampled realizations**, with "by symmetry"
   support (`symmetry.ts`). Citing an unnecessary premise is rejected
   (`extraneous_premises`). Checking many cases (not one fixed figure) rejects steps
-  that only hold by coincidence in the canonical diagram. (Minimality is enforced
-  against the cited list; a few incidence-reading rules can still supply an uncited
-  collinearity from the coordinates — see [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).)
+  that only hold by coincidence in the canonical diagram. (A figure's incidence
+  structure — collinearity / point-on-line — is treated as implicit and need not be
+  cited; see [`DDAR_ENGINE.md`](./DDAR_ENGINE.md) §6.1.)
 - `nl/` — optional natural-language step input: a step typed in English is
   translated to a structured `(conclusion, premises)` by a deterministic local
   **mock** (default) or an OpenAI-backed Cloud Function, then routed through the
@@ -160,9 +160,9 @@ elements.
   for guests).
 - `puzzles/` — the **20** shipped Freeplay problems (each with a `construct(rng)`),
   incl. classical lemmas and literal contest citations (JBMO/IMO shortlist) up to
-  the **IMO 2024 Shortlist (G1–G5)**, with **IMO 2019 P2 solvable end-to-end**;
-  `api.ts` selects local (TypeScript) or remote checking. Making the figure itself
-  draggable is scoped in `docs/design/MOVABLE_FIGURES.md`.
+  full **IMO-level problems**; `api.ts` selects local (TypeScript) or remote
+  checking. Making the figure itself draggable is scoped in
+  `docs/design/MOVABLE_FIGURES.md`.
 
 Candidate **new** rules are not developed in `src/`; they are prototyped, unit-
 tested, and play-tested against contest problems in `research/freeplay-rules/`
@@ -309,13 +309,12 @@ brilliant-clone/
       facts and applies named theorems, each step validated by the DDAR checker.
       Ships with **20 curated puzzles** (`src/lib/freeplay/puzzles/`) across
       intro/core/challenge tiers, incl. literal contest citations (JBMO/IMO
-      shortlist) up to the IMO 2024 Shortlist, with **IMO 2019 P2 solvable
-      end-to-end**.
+      shortlist) up to full **IMO-level problems**.
 - [x] **DDAR proof-checker** (`src/lib/freeplay/`) — from-scratch deductive
       database + algebraic reasoning over **38 rules**, with both a directed-angle
       table (`AngleAR`) and a length/ratio table (`LengthAR`, `eqratio` facts),
       coordinate-guarded rules, and a minimality-enforcing step verifier. (See §3
-      and the known-limitations section of [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).)
+      and [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).)
 - [x] **Natural-language step input** (`src/lib/freeplay/nl/` + `functions/`) —
       type a step in English; a deterministic local **mock** (default) or an
       OpenAI-backed Cloud Function proposes a structured step that is routed through

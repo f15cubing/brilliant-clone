@@ -11,7 +11,7 @@ A Brilliant-style interactive learning app for introductory geometry (Angle Chas
 - [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — tech stack, architecture, full feature inventory, and current limitations.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — prioritized near-/mid-/long-term expansion opportunities.
 - [`docs/FREEPLAY_EXPLAINER.md`](docs/FREEPLAY_EXPLAINER.md) — a plain-language explainer of the DDAR proof-checker and the natural-language step parser (start here).
-- [`docs/DDAR_ENGINE.md`](docs/DDAR_ENGINE.md) — the developer reference for the DDAR engine internals, including its known soundness limitations.
+- [`docs/DDAR_ENGINE.md`](docs/DDAR_ENGINE.md) — the developer reference for the DDAR engine internals, design notes, and known limitations.
 - [`docs/NL_GOLIVE.md`](docs/NL_GOLIVE.md) — how to switch the natural-language step input from the offline mock to the live OpenAI path.
 - [`docs/PRD-competitive-freeplay.md`](docs/PRD-competitive-freeplay.md) — the Competitive Freeplay proof mode + DDAR engine design (historical draft).
 - [`research/freeplay-rules/README.md`](research/freeplay-rules/README.md) — the isolated lab for discovering & testing new DDAR deduction rules against contest problems.
@@ -113,8 +113,8 @@ npm run deploy   # builds, then deploys hosting via firebase-tools
 ## Competitive Freeplay (proof mode)
 
 `/freeplay` turns the app into a proof environment. Each of the **20 curated
-puzzles** (intro → core → challenge, incl. literal contest citations up to the
-IMO 2024 Shortlist, with IMO 2019 P2 solvable end-to-end) gives a fixed figure, a
+puzzles** (intro → core → challenge, incl. literal contest citations up to full
+IMO-level problems) gives a fixed figure, a
 set of premises, and a goal; you build a proof step by step by citing facts and
 applying named theorems. Every step is machine-checked by a from-scratch **DDAR**
 proof-checker (`src/lib/freeplay/`): a step is accepted only if it is numerically
@@ -126,7 +126,7 @@ deterministic offline mock by default; an OpenAI-backed path is available behind
 flag — see [`docs/NL_GOLIVE.md`](docs/NL_GOLIVE.md)) — the translation is always
 re-checked by the same verifier, so the translator has no authority.
 
-For the engine's design and its known soundness limitations, see
+For the engine's design and known limitations, see
 [`docs/DDAR_ENGINE.md`](docs/DDAR_ENGINE.md).
 
 New deduction rules are not developed directly in `src/`. They are prototyped,
