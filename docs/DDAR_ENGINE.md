@@ -2,7 +2,8 @@
 
 _Authoritative internals doc for `src/lib/freeplay/`, the from-scratch DDAR
 (Deductive Database + Algebraic Reasoning) geometry proof-checker that powers
-Competitive Freeplay. Verified against the source. Companion docs:
+Competitive Freeplay. Reflects the current `src/lib/freeplay/` implementation; see
+§8 for the engine's known limitations and soundness caveats. Companion docs:
 [`FREEPLAY_EXPLAINER.md`](./FREEPLAY_EXPLAINER.md) (plain-language tour, start
 there), [`PRD-competitive-freeplay.md`](./PRD-competitive-freeplay.md) (design
 intent), [`PROJECT_STATUS.md`](./PROJECT_STATUS.md) (§3 high-level), the
@@ -111,8 +112,8 @@ flowchart TD
 | `geom.ts` | 2D vectors, angles, collinearity, betweenness, rays, line intersection, circumcenter |
 | `check.ts` | Numeric truth gate `factHolds`; `evalVars` / `angleVarValue` |
 | `rules.ts` | The angle/incidence DD rules: 13 hand-written `CORE_RULES` + the promoted `rules/*`, composed as `RULES`; `Rule.derive(cited, ctx) → Fact[]` |
-| `rules/*` | 13 DD rules promoted from the research lab (`PROMOTED_RULES`): `midpoint_congruence`, `cong_transitivity`, `perp_bisector`, `isosceles_converse`, `sas_congruence`, `sas_shared_vertex`, `sss_congruence`, `shared_side_congruence`, `concyclic_equal_radii`, `pascal`, `coincident_direction_collinear`, `concyclic_from_directed_angles`, `thales_diameter` |
-| `lengths/*` | Length/ratio subsystem: `dsl.ts` (`EqRatio`/`factHoldsL`/`LRule`), `lengthAR.ts` (`LengthAR`, unsigned log-distance table), and `rules/*` — 5 `RATIO_RULES` (`similar_triangles_aa`, `thales_basic_proportionality`, `sas_similarity`, `power_of_a_point`, `tangent_secant_power`) |
+| `rules/*` | 16 DD rules promoted from the research lab (`PROMOTED_RULES`): `midpoint_congruence`, `cong_transitivity`, `perp_bisector`, `isosceles_converse`, `sas_congruence`, `sas_shared_vertex`, `sss_congruence`, `shared_side_congruence`, `concyclic_equal_radii`, `pascal`, `coincident_direction_collinear`, `concyclic_from_directed_angles`, `thales_diameter`, `spiral_similarity_center`, `two_circle_radical_axis`, `three_circle_radical_center` |
+| `lengths/*` | Length/ratio subsystem: `dsl.ts` (`EqRatio`/`factHoldsL`/`LRule`), `lengthAR.ts` (`LengthAR`, unsigned log-distance table), and `rules/*` — 9 `RATIO_RULES` (`similar_triangles_aa`, `aa_similar`, `similar_proportional_sides`, `similar_equal_angles`, `thales_basic_proportionality`, `sas_similarity`, `power_of_a_point`, `tangent_secant_power`, `converse_power_of_a_point`) |
 | `ar.ts` | `AngleAR`: directed-angle Gaussian elimination mod 180° |
 | `realize.ts` | `sampleRealizations`: seeded RNG + per-puzzle `construct` → N validated generic realizations (`DEFAULT_REALIZATIONS = 5`) |
 | `verify.ts` | Step acceptance over N realizations: truth + one-step derivability (DD/AR/LengthAR over `ALL_RULES = [...RULES, ...RATIO_RULES]`) + minimality; `deriveAll` |
@@ -123,7 +124,7 @@ flowchart TD
 | `api.ts` | `verifyStep`: optional remote `/verify-step`, fallback to local `verify` |
 | `figure.ts` | `buildFigureDef`: JSXGraph board from the canonical realization + figure elements |
 | `types.ts` | `Puzzle` (incl. `construct`/`freePoints`), `Realization`, `SolutionStep` |
-| `puzzles/*` | 14 curated problems + parametric `construct(rng)` builders (`*Config.ts`) |
+| `puzzles/*` | 20 curated problems + parametric `construct(rng)` builders (`*Config.ts`) |
 
 ### 1.3 Control flow: one proof-step verification
 
@@ -240,8 +241,10 @@ direction back into a `coll`, which is what closes the Simson–Wallace line.
 
 Coordinates are used **only** to pick the sign ε∈{±1} and whole-turn integer j in
 `measure()`/`pick()`/`balance()`, and to seed numeric slopes in `dir()` — never to
-collapse variables. So the checker cannot read parallelism/collinearity "for free"
-off the diagram; every used hypothesis must be cited. Tolerance `ZERO_DEG = 1e-3`.
+collapse variables. So the **AR layer** cannot read parallelism/collinearity "for
+free" off the diagram; every hypothesis it uses must be cited. (This is not true of
+every DD rule — a few incidence-reading rules do read collinearity off the
+coordinates; see §6.1.) Tolerance `ZERO_DEG = 1e-3`.
 
 Table closure (`Table.addExpr`) mirrors AlphaGeometry's `ar.py`: substitute bound
 vars, then depending on the number of free vars either confirm/solve a constant
@@ -254,7 +257,7 @@ cited** facts and emits **all** instances its coordinate guards license. There i
 **no** multi-hop DD fixpoint inside a step — exactly one DD application layer, then
 optional AR over `cited ∪ ddDerived`.
 
-**Shipped rules (31 total = 26 angle/incidence + 5 length/ratio).**
+**Shipped rules (38 total = 29 angle/incidence + 9 length/ratio).**
 
 *Core angle/incidence (13, `CORE_RULES` in `rules.ts`):* `inscribed_angle`,
 `collinear_same_ray`, `angle_value_transfer`, `angle_value_equal`, `angle_addition`,
@@ -262,25 +265,30 @@ optional AR over `cited ∪ ddDerived`.
 (→`para`), `para_equal_angles`, `converse_inscribed` (→`cyclic`), `concyclic_merge`
 (→`cyclic`), `pappus` (→`coll`/`para`).
 
-*Promoted angle/incidence (13, `PROMOTED_RULES` in `rules/`):* `midpoint_congruence`
+*Promoted angle/incidence (16, `PROMOTED_RULES` in `rules/`):* `midpoint_congruence`
 (→`cong`), `cong_transitivity` (→`cong`), `perp_bisector` (→`cong`),
 `isosceles_converse` (→`eqangle`), `sas_congruence` (→`cong`), `sas_shared_vertex`
 (→`cong`), `sss_congruence` (→`eqangle`), `shared_side_congruence` (→`eqangle`),
 `concyclic_equal_radii` (→`cyclic`), `pascal` (→`coll`/`para`),
 `coincident_direction_collinear` (→`coll`), `concyclic_from_directed_angles`
-(→`cyclic`), `thales_diameter` (→`perp`).
+(→`cyclic`), `thales_diameter` (→`perp`), `spiral_similarity_center` (→`cong`),
+`two_circle_radical_axis` (→`cyclic`), `three_circle_radical_center` (→`coll`).
 
 `RULES = [...CORE_RULES, ...PROMOTED_RULES]`. Output kinds: most produce
-`eqangle`/`aval`; `coll` is produced only by `pappus`, `pascal`, and
-`coincident_direction_collinear`; `cyclic` by `converse_inscribed`,
-`concyclic_merge`, `concyclic_equal_radii`, and `concyclic_from_directed_angles`;
-`perp` by `thales_diameter`.
+`eqangle`/`aval`; `coll` is produced by `pappus`, `pascal`,
+`coincident_direction_collinear`, and `three_circle_radical_center`; `cyclic` by
+`converse_inscribed`, `concyclic_merge`, `concyclic_equal_radii`,
+`concyclic_from_directed_angles`, and `two_circle_radical_axis`; `perp` by
+`thales_diameter`; `cong` by (among others) `spiral_similarity_center`.
 
-*Length/ratio (5, `RATIO_RULES` in `lengths/rules/`):* `similar_triangles_aa`,
+*Length/ratio (9, `RATIO_RULES` in `lengths/rules/`):* `similar_triangles_aa`,
+`aa_similar`, `similar_proportional_sides`, `similar_equal_angles`,
 `thales_basic_proportionality`, `sas_similarity`, `power_of_a_point`,
-`tangent_secant_power` — each emits `eqratio` (and `sas_similarity` also `eqangle`).
-`verify()` runs these as `ALL_RULES = [...RULES, ...RATIO_RULES]`, routing the
-`eqratio` outputs through the `LengthAR` length-chase branch (§3.5).
+`tangent_secant_power`, `converse_power_of_a_point` — each emits `eqratio` (and
+`sas_similarity` also `eqangle`, while `converse_power_of_a_point` consumes an
+`eqratio` and emits `cyclic`). `verify()` runs these as
+`ALL_RULES = [...RULES, ...RATIO_RULES]`, routing the `eqratio` outputs through the
+`LengthAR` length-chase branch (§3.5).
 
 ### 3.3 Minimality (`verify.ts:149–157`)
 
@@ -375,6 +383,36 @@ for a degenerate `coll` if two points coincide; `deriveAll`/DD emit without
 minimality (dev only); Pappus-at-infinity requires a cited matching `para`; the UI
 maps any thrown error to `unjustified`, which can mask config/parse failures.
 
+### 6.1 Known soundness caveats
+
+The verifier is **numeric-plus-symbolic**, not fully symbolic. The AR layers
+(`ar.ts`, `lengthAR.ts`) are cite-driven and never collapse variables from
+coordinates, and the multi-realization numeric gate correctly rejects
+numerically-false conclusions and superset citations. The following caveats are
+known and worth understanding before relying on the "exactly the cited premises"
+framing:
+
+- **Incidence-reading rules can use an uncited collinearity.** A few DD rules —
+  notably `para_equal_angles`, `pappus`, and `converse_inscribed` — discover which
+  points lie on a line by scanning the **coordinates** (`onLine`) rather than by
+  requiring a cited/established `coll`. As a result an accepted step can silently
+  depend on an incidence the learner never cited or proved. This lets a learner
+  **skip a proof obligation** (e.g. cite only a `para` and obtain an `eqangle` that
+  in fact also needs a collinearity), but it **cannot** be used to assert a
+  numerically false fact — the truth gate still blocks those. When authoring
+  puzzles, supply the needed incidences as explicit givens so proofs remain honest.
+- **Single-figure mode is weaker.** If `verify()` is called without a
+  `realizations` array (the legacy single-canonical-figure path, used by the remote
+  API payload and as a silent fallback), the coincidence defense degrades: a step
+  that only holds because of an accidental collinearity in the canonical diagram can
+  be accepted. Production Freeplay always passes the multi-realization array; prefer
+  it everywhere.
+- **Genericity depends on each puzzle's `construct(rng)`.** The multi-realization
+  guarantee is only as strong as the sampler: a non-generic or missing `construct`
+  propagates coincidences into every sample. `sampleRealizations` can return as few
+  as one realization if `construct` is absent or repeatedly fails, silently reducing
+  to the weaker single-figure mode.
+
 ---
 
 ## 7. Doc-vs-implementation discrepancies (reconcile when touching docs)
@@ -398,19 +436,21 @@ maps any thrown error to `unjustified`, which can mask config/parse failures.
   by `thales_diameter` (previously only consumed).
 - **`LengthAR` is unsigned** — no signed ratios (Menelaus/Ceva) and no
   numeric-constant ratios (`AB = 2·MA`, needs a `log 2` generator). See §3.5.
-- **Converse power-of-a-point ⇒ `cyclic` is blocked** by the verifier derive
-  contract: `deriveOnce` strips `eqratio` premises before calling `rule.derive` (they
-  are consumed only by `LengthAR`), so a DD rule cannot *read* an `eqratio`. Unblocking
-  it needs a shared-harness change (pass `eqratio` premises into `rule.derive`).
+- **Converse power-of-a-point ⇒ `cyclic` is now shipped**: `converse_power_of_a_point`
+  (`lengths/rules/`) *consumes* a cited `eqratio` power condition and *emits* a
+  `cyclic` — the length layer is the one handed `ctx.citedRatios`, so this rule lives
+  under `lengths/rules/`. (This was previously blocked; the shared-harness change to
+  pass `eqratio` premises into the length rules landed.)
 - **Rule-order sensitivity**: the first matching rule wins and tests assert exact
   `rule.name` strings — the order of `CORE_RULES` (`rules.ts`), `PROMOTED_RULES`
   (`rules/index.ts`), and `RATIO_RULES` (`lengths/rules/index.ts`) is part of the contract.
 - **Symmetry path ignores cited premises** (doesn't validate them against
   established facts).
 - **Still missing:** signed-length subsystem (Menelaus/Ceva), numeric-constant
-  ratios, pole–polar / radical-axis representations, hints / auxiliary constructions /
+  ratios, a general pole–polar representation, hints / auxiliary constructions /
   AR traceback ("why"), and a complete remote-verify payload. (Length/ratio reasoning,
-  Pascal, and the full IMO 2019 P2 chain are now **shipped**, not gaps.)
+  Pascal, the radical-axis / radical-centre rules, converse power-of-a-point ⇒
+  `cyclic`, and the full IMO 2019 P2 chain are now **shipped**, not gaps.)
 - No `TODO`/`FIXME` markers in `src/lib/freeplay/` — debt is architectural/content.
 
 ---
@@ -432,7 +472,7 @@ into `lengths/rules/index.ts`, and append to `RATIO_RULES`; `verify()` runs it v
 `research/freeplay-rules/lengths/rules/` first.
 
 **Bigger extensions (not yet built):** a **signed** length table for Menelaus/Ceva
-and external division (LengthAR is unsigned); numeric-constant ratios (a `log 2`
-generator); and feeding `eqratio` premises into `rule.derive` to unlock converse
-power-of-a-point ⇒ `cyclic`. See §8 and the research lab's
-`findings/unsolved-rules-plan.md`.
+and external division (LengthAR is unsigned); and numeric-constant ratios (a
+`log 2` generator). Feeding `eqratio` premises into the length rules (`ctx.citedRatios`)
+is already wired — that is what unlocked converse power-of-a-point ⇒ `cyclic`. See §8
+and the research lab's `findings/unsolved-rules-plan.md`.

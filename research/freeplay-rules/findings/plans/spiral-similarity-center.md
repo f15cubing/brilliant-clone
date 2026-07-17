@@ -5,7 +5,10 @@
 > centre / Miquel point from corresponding endpoints, in the **rotation**
 > (equal‑segment) case.
 >
-> **Status:** plan only. Nothing here is implemented. Conforms to
+> **Status:** IMPLEMENTED. This rule (`spiral_similarity_center`) has been built,
+> promoted to `src/lib/freeplay/rules/`, registered, and tested; G1 is fully closed.
+> This document is the historical design plan. See [`README.md`](./README.md) for
+> the current implementation status. Conforms to
 > [`../../CONTEXT.md`](../../CONTEXT.md) "How to add a rule".
 
 ---

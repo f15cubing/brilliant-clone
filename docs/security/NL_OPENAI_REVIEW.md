@@ -1,9 +1,7 @@
 # Security Review — Natural-Language → DDAR (OpenAI) translateStep
 
-**Reviewer:** Admiral Ackbar (security)
 **Scope:** the NL→DDAR feature (`functions/**`, `src/lib/freeplay/nl/**`, `src/lib/firebase/config.ts`, `firestore.rules`), with emphasis on OpenAI API-key handling.
-**Branch reviewed:** `teamlead/integration` @ `047d6d4` (audited in worktree `ackbar/nl-openai-security-review`).
-**Method:** read-only inspection + `git log`/`grep`/`npm audit`. No application code, config, or other docs were modified.
+**Method:** read-only inspection + `git log`/`grep`/`npm audit`.
 
 ---
 

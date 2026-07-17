@@ -1,14 +1,14 @@
 # Project Status — Interactive Olympiad Geometry
 
-_Last reviewed: June 27, 2026 (the **Competitive Freeplay** proof mode now has a
-TypeScript DDAR proof-checker with a length/ratio (`eqratio`) layer, 31 deduction
-rules, 14 curated puzzles, natural-language step input (off by default), a per-user
-proof archive, a Vitest suite wired into CI, and an isolated
-`research/freeplay-rules/` rule-discovery lab)._
+_The **Competitive Freeplay** proof mode has a TypeScript DDAR proof-checker with
+a length/ratio (`eqratio`) layer, 38 deduction rules, 20 curated puzzles,
+natural-language step input (off by default), a per-user proof archive, a Vitest
+suite wired into CI, and an isolated `research/freeplay-rules/` rule-discovery lab.
+There is also an interactive **Sketch Sandbox** (`/sketch`)._
 
 This document describes **what the project actually is today**: its purpose, tech
-stack, architecture, an honest feature inventory (done / partial / missing), and
-current limitations. For where it could go next, see [ROADMAP.md](./ROADMAP.md).
+stack, architecture, a feature inventory (done / partial / missing), and current
+limitations. For where it could go next, see [ROADMAP.md](./ROADMAP.md).
 
 ---
 
@@ -71,7 +71,7 @@ The package name is `interactive-olympiad-geometry` (`package.json`), version
 | `preview` | `vite preview` | Serve the production build locally |
 | `test` | `vitest run` | Run the test suite once (CI-friendly) |
 | `test:watch` | `vitest` | Run tests in watch mode |
-| `lint` | `eslint .` | Lints the project via `eslint.config.js` (passes; 2 benign `react-refresh` warnings) |
+| `lint` | `eslint .` | Lints the project via `eslint.config.js` (passes; 3 benign `react-refresh` warnings) |
 | `demo:record` | `playwright test -c demo/playwright.config.ts` | Record walkthrough demo videos |
 | `deploy` | `npm run build && npx -y firebase-tools@latest deploy --only hosting` | Build + deploy hosting |
 
@@ -128,12 +128,14 @@ elements.
   `cyclic`, `midp`, `eqangle`), `Aval` angle values, and the length/ratio
   `EqRatio` (`AB/CD = EF/GH`) carried in the `LFact = Fact | EqRatio` union, with
   canonical keys so symmetric facts compare equal.
-- `rules.ts` + `rules/` — the **31** named deduction rules: 13 hand-written
-  `CORE_RULES`, 13 `PROMOTED_RULES` (promoted from the research lab, e.g. `pascal`,
-  `sas_congruence`, `thales_diameter`, `concyclic_from_directed_angles`), and 5
+- `rules.ts` + `rules/` — the **38** named deduction rules: 13 hand-written
+  `CORE_RULES`, 16 `PROMOTED_RULES` (promoted from the research lab, e.g. `pascal`,
+  `sas_congruence`, `thales_diameter`, `concyclic_from_directed_angles`), and 9
   length/ratio `RATIO_RULES` (`lengths/rules/`, e.g. `power_of_a_point`,
-  `sas_similarity`). Each is **coordinate-guarded** so it only fires when the
-  figure numerically supports it.
+  `sas_similarity`). Most are **coordinate-guarded** so they only fire when the
+  figure numerically supports it. (A few incidence-reading rules read collinearity
+  off the coordinates rather than from the cited facts — see the known-limitations
+  section of [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).)
 - `ar.ts` / `lengths/lengthAR.ts` — `AngleAR`, a Gaussian-elimination table over
   exact rationals that closes directed-angle chases (mod 180°), and `LengthAR`,
   the dual log-distance table that closes equal-length / ratio chases.
@@ -143,10 +145,12 @@ elements.
   satisfy the givens.
 - `verify.ts` — the step verifier: a proposed step is accepted only if it is
   numerically true and derivable by a **single** rule (DD, AngleAR, or LengthAR)
-  from **exactly** the cited premises (minimality) **across all sampled
-  realizations**, with "by symmetry" support (`symmetry.ts`). Checking many cases
-  (not one fixed figure) rejects steps that only hold by coincidence in the
-  canonical diagram.
+  from the cited premises **across all sampled realizations**, with "by symmetry"
+  support (`symmetry.ts`). Citing an unnecessary premise is rejected
+  (`extraneous_premises`). Checking many cases (not one fixed figure) rejects steps
+  that only hold by coincidence in the canonical diagram. (Minimality is enforced
+  against the cited list; a few incidence-reading rules can still supply an uncited
+  collinearity from the coordinates — see [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).)
 - `nl/` — optional natural-language step input: a step typed in English is
   translated to a structured `(conclusion, premises)` by a deterministic local
   **mock** (default) or an OpenAI-backed Cloud Function, then routed through the
@@ -154,11 +158,11 @@ elements.
 - `proofRecord.ts` / `useProofRecorder.ts` — on a win, the full machine-checked
   proof is compiled and persisted (Firestore for signed-in users, `localStorage`
   for guests).
-- `puzzles/` — the **14** shipped Freeplay problems (each with a `construct(rng)`),
+- `puzzles/` — the **20** shipped Freeplay problems (each with a `construct(rng)`),
   incl. classical lemmas and literal contest citations (JBMO/IMO shortlist) up to
-  **IMO 2019 P2, now solvable end-to-end**; `api.ts` selects local (TypeScript) or
-  remote checking. Making the figure itself draggable is scoped in
-  `docs/design/MOVABLE_FIGURES.md`.
+  the **IMO 2024 Shortlist (G1–G5)**, with **IMO 2019 P2 solvable end-to-end**;
+  `api.ts` selects local (TypeScript) or remote checking. Making the figure itself
+  draggable is scoped in `docs/design/MOVABLE_FIGURES.md`.
 
 Candidate **new** rules are not developed in `src/`; they are prototyped, unit-
 tested, and play-tested against contest problems in `research/freeplay-rules/`
@@ -177,7 +181,7 @@ brilliant-clone/
 ├─ tsconfig.json             # strict; "@/*" → "src/*"
 ├─ firebase.json             # Hosting (dist + SPA rewrite) + Firestore rules + functions
 ├─ firestore.rules           # per-user read/write isolation; ratelimits locked
-├─ .firebaserc               # default project: sandbox-7d4a1
+├─ .firebaserc               # default project id (placeholder: sandbox-7d4a1 — set before deploy)
 ├─ .env.example              # VITE_FIREBASE_* keys template
 ├─ README.md / PRD.md / BRAINLIFT.md / BRAINLIFT-freeplay.md
 ├─ docs/                     # PROJECT_STATUS, ROADMAP, DDAR_ENGINE, FREEPLAY_EXPLAINER,
@@ -197,14 +201,17 @@ brilliant-clone/
    │  ├─ CourseMap.tsx        # lesson list with completion state
    │  ├─ LessonPlayer.tsx     # problem sequencing, resume, lesson-complete screen
    │  ├─ FreeplayList.tsx     # Freeplay puzzle catalog
-   │  └─ FreeplayArena.tsx    # Freeplay proof environment
+   │  ├─ FreeplayArena.tsx    # Freeplay proof environment
+   │  ├─ ProofArchive.tsx     # saved machine-checked proofs (/proofs)
+   │  └─ SketchPage.tsx       # interactive geometry sketch sandbox (/sketch)
    ├─ components/
-   │  ├─ Layout.tsx, ProtectedRoute.tsx, Spinner.tsx
+   │  ├─ Layout.tsx, ProtectedRoute.tsx, Spinner.tsx, ErrorBoundary.tsx
    │  ├─ MathField.tsx        # MathLive wrapper (+ mathlive.d.ts)
    │  ├─ MathText.tsx         # KaTeX/markdown-ish renderer
    │  ├─ geometry/GeometryBoard.tsx       # imperative handle over useJSXGraph
    │  ├─ freeplay/            # FixedFigure, FactList, GoalPanel, StepBuilder,
    │  │                       #   ProofSummary, DevPanel
+   │  ├─ sketch/              # SketchCanvas, SketchToolbar, MySketches
    │  └─ solvables/
    │     ├─ ProblemPlayer.tsx  # answer UI + grading + overlay orchestration
    │     └─ FeedbackBanner.tsx # correct/wrong/revealed banner
@@ -219,7 +226,9 @@ brilliant-clone/
       ├─ firebase/
       │  ├─ config.ts            # init + isFirebaseConfigured guard (+ App Check)
       │  ├─ progressService.ts   # Firestore read/write helpers
-      │  └─ proofService.ts      # Freeplay proof-archive read/write helpers
+      │  ├─ proofService.ts      # Freeplay proof-archive read/write helpers
+      │  ├─ draftService.ts      # Freeplay proof-draft persistence
+      │  └─ sketchService.ts     # sketch sandbox persistence
       ├─ content/
       │  ├─ types.ts             # Problem / Lesson / Course / AnswerConfig
       │  ├─ course.ts            # course assembly + lookups
@@ -232,7 +241,8 @@ brilliant-clone/
       ├─ freeplay/              # the DDAR proof-checker: dsl, rules + rules/, ar,
       │                         #   lengths/ (LengthAR + ratio rules), realize, verify,
       │                         #   symmetry, nl/, puzzles/, proofRecord + __tests__
-      └─ grading/algebra.ts      # LaTeX→math.js + symbolic-equivalence check (tested)
+      ├─ grading/algebra.ts      # LaTeX→math.js + symbolic-equivalence check (tested)
+      └─ sketch/                 # sketch-sandbox model, tools, compile, store (tested)
 ```
 
 ---
@@ -248,11 +258,12 @@ brilliant-clone/
       progress to `localStorage`.
 - [x] **Route protection** — `ProtectedRoute` gates `/`, `/course`, `/lesson/:id`.
 - [x] **One full course**: _Olympiad Geometry — Angle Chasing_, **7 lessons,
-      39 problems**:
-      1. `triangle-angle-sum` — Angles in a Triangle (5)
-      2. `parallel-lines` — Parallel Lines & Transversals (5)
-      3. `inscribed-angle` — The Inscribed Angle Theorem (4)
-      4. `cyclic-quadrilaterals` — Cyclic Quadrilaterals (5)
+      44 solvable steps** (interactive problems plus direct-instruction and
+      comprehension stages):
+      1. `triangle-angle-sum` — Angles in a Triangle (6)
+      2. `parallel-lines` — Parallel Lines & Transversals (6)
+      3. `inscribed-angle` — The Inscribed Angle Theorem (6)
+      4. `cyclic-quadrilaterals` — Cyclic Quadrilaterals (6)
       5. `incenter-lemma` — The Incenter–Excenter Lemma (10)
       6. `orthocenter` — The Orthocenter Exists (6)
       7. `orthic-incenter` — Orthocenter = Incenter of the Orthic Triangle (4)
@@ -285,29 +296,39 @@ brilliant-clone/
 - [x] **Working lint** — ESLint flat config (`eslint.config.js`); `npm run lint`
       passes (classic Rules-of-Hooks; React Compiler rules deferred).
 - [x] **CI** — GitHub Actions (`.github/workflows/ci.yml`) runs lint,
-      type-check, and build on every push/PR; first run green.
-- [x] **Source control** — committed and pushed to a private GitHub repo, with
+      type-check, **test**, and build on every push/PR.
+- [x] **Source control** — committed and pushed to a public GitHub repo, with
       build artifacts and secrets git-ignored.
-- [x] **Dependency security** — `mathjs` upgraded to `^15.2.0`; `npm audit`
-      reports 0 vulnerabilities.
+- [x] **Dependency security** — production dependencies have **0 `npm audit`
+      vulnerabilities** (`npm audit --omit=dev`). The default `npm audit` reports a
+      handful of advisories in the dev toolchain only (`vite`/`vitest`/`esbuild`),
+      which are not shipped or production-reachable; bump when convenient.
 - [x] **Competitive Freeplay proof mode** (`/freeplay`, `/freeplay/:puzzleId`) —
       a second mode where learners build machine-checked multi-step proofs:
       a read-only figure, a premise/goal panel, and a `StepBuilder` that cites
       facts and applies named theorems, each step validated by the DDAR checker.
-      Ships with **14 curated puzzles** (`src/lib/freeplay/puzzles/`) across
+      Ships with **20 curated puzzles** (`src/lib/freeplay/puzzles/`) across
       intro/core/challenge tiers, incl. literal contest citations (JBMO/IMO
-      shortlist) and **IMO 2019 P2, solvable end-to-end**.
+      shortlist) up to the IMO 2024 Shortlist, with **IMO 2019 P2 solvable
+      end-to-end**.
 - [x] **DDAR proof-checker** (`src/lib/freeplay/`) — from-scratch deductive
-      database + algebraic reasoning over **31 rules**, with both a directed-angle
+      database + algebraic reasoning over **38 rules**, with both a directed-angle
       table (`AngleAR`) and a length/ratio table (`LengthAR`, `eqratio` facts),
-      coordinate-guarded rules, and a minimality-enforcing step verifier. (See §3.)
+      coordinate-guarded rules, and a minimality-enforcing step verifier. (See §3
+      and the known-limitations section of [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).)
 - [x] **Natural-language step input** (`src/lib/freeplay/nl/` + `functions/`) —
       type a step in English; a deterministic local **mock** (default) or an
       OpenAI-backed Cloud Function proposes a structured step that is routed through
       the **same** `verify()`. The translator has no authority. Live OpenAI path is
       off by default (signed-in only, Auth + App Check, key server-side).
 - [x] **Proof archive** — on a Freeplay win, the full compiled proof is persisted
-      (Firestore for signed-in users, `localStorage` for guests).
+      (Firestore for signed-in users, `localStorage` for guests) and browsable at
+      `/proofs` (`ProofArchive.tsx`).
+- [x] **Sketch Sandbox** (`/sketch`, `/sketch/:id`) — an interactive
+      GeoGebra-like geometry canvas (`src/lib/sketch/`, `components/sketch/`) with
+      a construction toolset, serialization, and account persistence
+      (`sketchService.ts`); the sketch model, tools, and compile step are
+      unit-tested.
 - [x] **Automated test suite** — Vitest (`npm test`, **wired into CI**). Covers the
       Freeplay DDAR engine (`src/lib/freeplay/__tests__/`), the **course-app pure
       logic** (`grading/algebra`, `geometry/measure`/`circleAngles`/`parallelAngles`,
@@ -345,8 +366,8 @@ brilliant-clone/
 ## 5. Maturity assessment
 
 **Functional MVP, feature-complete against its own PRD.** The full happy path
-works end to end: sign up / log in (or play as guest), work through 39
-interactive problems across 7 lessons with three distinct answer types, get
+works end to end: sign up / log in (or play as guest), work through 44
+interactive steps across 7 lessons with three distinct answer types, get
 diagram-based feedback on mistakes, earn XP and achievements, and have progress
 persist and resume. The React↔JSXGraph architecture described in the PRD is
 genuinely implemented through the single `useJSXGraph` hook.
@@ -358,7 +379,8 @@ piece of engineering than the quiz flow, and the most actively developed area
 
 Engineering hygiene has a solid **baseline**: the project is under source control
 on GitHub, `npm run lint` works, CI (lint + type-check + **test** + build) runs on
-every push/PR, dependencies are clean (`npm audit` → 0 vulnerabilities), and the
+every push/PR, production dependencies are clean (`npm audit --omit=dev` → 0
+vulnerabilities; the dev toolchain has advisories that are not production-reachable), and the
 **Vitest suite** now covers the Freeplay engine, the research rule lab, **and** the
 course-app pure logic (grading, geometry math, progress reducer). The remaining
 test gap is **component/UI coverage**: React components, hooks, and end-to-end
@@ -375,7 +397,7 @@ flows are not yet automated (only the Playwright demo specs).
   but React components, hooks, and end-to-end flows have no automated tests yet
   (only the Playwright demo-recording specs). Adding component/integration tests is
   the top remaining gap.
-- **Lint runs but is not strict-zero.** `npm run lint` passes with 2 benign
+- **Lint runs but is not strict-zero.** `npm run lint` passes with 3 benign
   `react-refresh` warnings, and the experimental React Compiler rules
   (`purity`/`refs`/`set-state-in-effect`) are deliberately disabled for now.
 - **Single hard-coded course.** Adding a _course_ (vs. a lesson) would require

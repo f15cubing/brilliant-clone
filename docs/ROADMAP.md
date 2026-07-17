@@ -36,14 +36,15 @@ Angle Bisector Theorem, power-of-a-point, and the **now-closed Simson–Wallace
 line**). The lab is kept outside the shipped bundle (excluded from `tsconfig`
 include).
 
-**Length/ratio subsystem + rule promotion.** Promoted **13 research rules** into the
+**Length/ratio subsystem + rule promotion.** Promoted **16 research rules** into the
 shipped angle/incidence engine (`src/lib/freeplay/rules/`, e.g. `pascal`,
 `sas_congruence`, `thales_diameter`, `concyclic_from_directed_angles`,
 `coincident_direction_collinear`) and shipped a **length/ratio layer**
-(`lengths/`: `eqratio` facts, `LengthAR`, and 5 `RATIO_RULES` incl.
-`power_of_a_point` and `sas_similarity`) — **31 rules total**. The catalog grew to
-**14 curated puzzles** (intro/core/challenge, with literal JBMO/IMO-shortlist
-citations), and **IMO 2019 P2 now verifies end-to-end**.
+(`lengths/`: `eqratio` facts, `LengthAR`, and 9 `RATIO_RULES` incl.
+`power_of_a_point` and `sas_similarity`) — **38 rules total** (29 angle/incidence +
+9 length/ratio). The catalog grew to **20 curated puzzles** (intro/core/challenge,
+with literal JBMO/IMO-shortlist citations up to the IMO 2024 Shortlist, and
+**IMO 2019 P2 verifying end-to-end**).
 
 **Natural-language step input + proof archive.** Shipped an NL step path
 (`src/lib/freeplay/nl/` + `functions/`): a step typed in English is translated by a
@@ -54,7 +55,7 @@ default; signed-in only, Auth + App Check, key server-side) and re-checked by th
 
 Engineering-hygiene baseline established (see commit history):
 
-- [x] **Git repo + GitHub.** Initial commit made; pushed to a private GitHub
+- [x] **Git repo + GitHub.** Initial commit made; pushed to a public GitHub
   repo (`f15cubing/brilliant-clone`). `dist/`, `.env`, `*.tsbuildinfo`,
   generated `vite.config.{js,d.ts}`, and local agent/IDE tooling are
   git-ignored; `.env.example` is the committed template.
@@ -108,7 +109,7 @@ Multi-file features that materially improve learning or extensibility, building
 on existing abstractions.
 
 - [ ] **Close the remaining DDAR engine gaps.** *What:* the first wave of
-  promotions has landed (13 angle/incidence rules incl. the
+  promotions has landed (16 angle/incidence rules incl. the
   "coincident-direction ⇒ collinear" Simson bridge, plus the `eqratio`/`LengthAR`
   ratio layer with power-of-a-point, similarity, and tangent-secant power — see
   Recently completed). The remaining, research-characterized gaps are: a

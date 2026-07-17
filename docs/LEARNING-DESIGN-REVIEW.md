@@ -1,9 +1,9 @@
 # Learning-Design Review: Justification and Evidence-Based Improvements
 
 **Date:** June 28, 2026
-**Scope:** The Interactive Olympiad Geometry app — both the **guided Course** (7 lessons, 39 problems; multiple-choice / algebraic / geometric answers on draggable JSXGraph figures) and **Competitive Freeplay** (a machine-checked, step-by-step proof arena backed by a from-scratch DDAR verifier).
+**Scope:** The Interactive Olympiad Geometry app — both the **guided Course** (7 lessons, 44 solvable steps; multiple-choice / algebraic / geometric answers on draggable JSXGraph figures) and **Competitive Freeplay** (a machine-checked, step-by-step proof arena backed by a from-scratch DDAR verifier).
 **Audience & register:** Written to be defensible to a learning scientist. Claims are tied to specific shipped mechanics (with `file:line` references) on one side and to the empirical literature (with effect sizes, moderators, and caveats) on the other.
-**Companion documents:** [`BRAINLIFT.md`](../BRAINLIFT.md) (analysis of Brilliant.org), [`BRAINLIFT-freeplay.md`](../BRAINLIFT-freeplay.md) (the reason-grading pedagogy thesis), and [`docs/research/learning-science-design-patterns.md`](research/learning-science-design-patterns.md) (the underlying problem-solving/proof research synthesis). This document supersedes neither; it audits the *as-built* product against the evidence and prioritizes change.
+**Companion documents:** [`BRAINLIFT.md`](../BRAINLIFT.md) (analysis of Brilliant.org) and [`BRAINLIFT-freeplay.md`](../BRAINLIFT-freeplay.md) (the reason-grading pedagogy thesis). This document supersedes neither; it audits the *as-built* product against the evidence and prioritizes change.
 
 ---
 
@@ -35,7 +35,7 @@ The product's existing design documents already cite a strong bibliography; this
 2. **No interleaving** — problems are blocked by topic, yet *discrimination* ("which technique fits this configuration?") is the core olympiad skill and the exact thing interleaving trains (Rohrer et al., 2020, d ≈ 0.83).
 3. **The post-correct explanation is skippable** (`ProblemPlayer.tsx:106-112, 249-255`) — the highest-value learning moment is one click from being bypassed (the SPOV-5 problem named in the project's own `BRAINLIFT.md`).
 4. **No concreteness fading** — learners can stay on the draggable figure indefinitely; "drag to check" can actively *reinforce* the empirical-proof misconception (Fyfe et al., 2014; the dynamic-geometry transfer-risk literature).
-5. **Multiple-choice is recognition, not generation** for ~27 of 39 problems — and recognition does not compose into production (ICAP Active≠Constructive).
+5. **Multiple-choice is recognition, not generation** for most of the 44 solvable steps — and recognition does not compose into production (ICAP Active≠Constructive).
 6. **No worked-example → completion → faded scaffold and no comprehension-vs-construction split** at the Course→Freeplay boundary — the "blank page" cliff into proof is unscaffolded (CLT; the 2025 two-skill proof finding).
 7. **No metacognitive calibration** — nothing counters the illusion of competence (Koriat & Bjork, 2005).
 
@@ -48,7 +48,7 @@ The rest of this document defends each claim in §3 (justification), itemizes th
 Four parallel evidence streams were assembled for this review:
 
 - **Memory & practice science** — retrieval practice, spacing, interleaving, feedback timing/type, and metacognitive calibration (Roediger & Karpicke; Adesope et al., 2017; Cepeda et al., 2006, 2008; Rohrer et al., 2014, 2020; Hattie & Timperley, 2007; Shute, 2008; Koriat & Bjork, 2005).
-- **Instructional design for problem solving & proof** — cognitive load / worked examples / fading, productive failure, self-explanation, ICAP, scaffolding & hints, concreteness fading / dynamic geometry / variation, and proof-specific pedagogy. Full synthesis with citations in [`docs/research/learning-science-design-patterns.md`](research/learning-science-design-patterns.md).
+- **Instructional design for problem solving & proof** — cognitive load / worked examples / fading, productive failure, self-explanation, ICAP, scaffolding & hints, concreteness fading / dynamic geometry / variation, and proof-specific pedagogy (full citations in §7).
 - **Motivation & gamification** — self-determination theory, flow, gamification meta-analyses, streaks, leaderboards, mastery learning, and the (contested) growth-mindset literature.
 - **A code-referenced inventory** of every shipped learning mechanic across both modes (the `file:line` anchors used throughout §3–§5).
 
@@ -175,7 +175,7 @@ On a correct answer, `solutionText` appears inline alongside an immediately-avai
 The transfer benefit of dynamic geometry is realized when the concrete representation is *faded* to iconic and then symbolic (Fyfe et al., 2014); stranding learners at the concrete stage is the documented failure mode, and "drag to check" can entrench empirical reasoning. The Course has draggable figures (good opening) but no mechanism that *removes* the manipulable scaffold and requires reasoning on a static/abstract representation as a concept matures.
 
 ### Gap 5 — Multiple-choice recognition is the dominant Course modality
-~27 of 39 problems are multiple-choice (recognition); ~11 algebraic and ~3 geometric (generation). Recognition and production are distinct knowledge components, and fluency at *selecting* a correct answer does not compose into the ability to *generate* an argument (ICAP Active vs. Constructive; transfer-specificity). The Course thus trains a different competence than Freeplay assesses, with no bridge between them.
+Most of the 44 solvable steps are multiple-choice (recognition), with a minority algebraic or geometric (generation). Recognition and production are distinct knowledge components, and fluency at *selecting* a correct answer does not compose into the ability to *generate* an argument (ICAP Active vs. Constructive; transfer-specificity). The Course thus trains a different competence than Freeplay assesses, with no bridge between them.
 
 ### Gap 6 — Unscaffolded cliff from Course into Freeplay; no comprehension track; no faded worked proofs
 Proof *comprehension/validation* and proof *construction* are empirically separable skills (the 2025 two-factor study; r ≈ .85 but distinct), and CLT says novices acquire complex schemas better from *worked and completion problems* than from solving cold. Freeplay drops the learner onto a blank proof with neither (a) prior proof-*reading* tasks ("order these scrambled steps," "find the unjustified line") nor (b) partially-completed proofs to finish. The "no hints" stance (3.4) compounds this: struggle is offered without the worked models or consolidation that make struggle productive.

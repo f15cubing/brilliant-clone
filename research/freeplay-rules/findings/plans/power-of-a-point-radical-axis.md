@@ -9,7 +9,11 @@
 > | `two_circle_radical_axis` | `rules/` | 2 `cyclic` + 2 `cong` + `para` + 2 `coll` | `cyclic` | **G4** |
 > | `three_circle_radical_center` | `rules/` | 3 `cyclic` + 2 `coll` | `coll` | **G3** |
 >
-> **Status:** plan only. Nothing here is implemented. Conforms to
+> **Status:** IMPLEMENTED (in part). `converse_power_of_a_point`,
+> `two_circle_radical_axis`, and `three_circle_radical_center` have been built,
+> promoted, registered, and tested (G4 fully closed; G3/G5 partially — see
+> [`README.md`](./README.md) for the exact status and the remaining
+> auxiliary-construction gap). This document is the historical design plan. Conforms to
 > [`../../CONTEXT.md`](../../CONTEXT.md) "How to add a rule" (sound,
 > coordinate‑guarded, one‑step; isolation + minimality + soundness‑negative +
 > "shipped engine can't already do it" tests). All numeric claims below were

@@ -100,10 +100,10 @@ flowchart LR
 
 1. **DD rules** ([`src/lib/freeplay/rules.ts`](../src/lib/freeplay/rules.ts) and
    [`src/lib/freeplay/rules/`](../src/lib/freeplay/rules/)). This is a library of
-   **31** named theorems today: a 13-rule hand-written core (inscribed angle,
-   triangle angle sum, isosceles, midsegment, Pappus, ...), 13 more promoted from
+   **38** named theorems today: a 13-rule hand-written core (inscribed angle,
+   triangle angle sum, isosceles, midsegment, Pappus, ...), 16 more promoted from
    the research lab (congruence rules like SAS/SSS, Pascal, concyclic-from-equal-
-   radii, ...), and 5 length/ratio rules (similar triangles, Thales, power of a
+   radii, ...), and 9 length/ratio rules (similar triangles, Thales, power of a
    point, ...). Each rule looks **only at the facts you cited** and is
    **coordinate-guarded** — it fires only when the actual figure supports it.
 

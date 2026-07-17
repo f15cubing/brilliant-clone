@@ -14,6 +14,31 @@ export default defineConfig({
       ),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the heavy vendor libraries into their own chunks so they cache
+        // independently and the initial bundle isn't one multi-megabyte file.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("firebase") || id.includes("@firebase"))
+            return "firebase";
+          if (id.includes("jsxgraph")) return "jsxgraph";
+          if (id.includes("mathlive")) return "mathlive";
+          if (id.includes("mathjs")) return "mathjs";
+          if (id.includes("katex")) return "katex";
+          if (
+            id.includes("react-router") ||
+            id.includes("/react-dom/") ||
+            id.includes("/react/") ||
+            id.includes("/scheduler/")
+          )
+            return "react";
+          return "vendor";
+        },
+      },
+    },
+  },
   test: {
     // Playwright e2e specs (demo/**.spec.ts) run via `playwright test`, not Vitest.
     exclude: [...configDefaults.exclude, "demo/**"],
