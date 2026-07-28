@@ -1,9 +1,9 @@
-# DDAR Proof-Checker — Developer Technical Reference
+# DDAR Proof-Checker: Developer Technical Reference
 
-_Authoritative internals doc for `src/lib/freeplay/`, the from-scratch DDAR
-(Deductive Database + Algebraic Reasoning) geometry proof-checker that powers
-Competitive Freeplay. Reflects the current `src/lib/freeplay/` implementation; see
-§6.1 for design notes and §8 for known limitations. Companion docs:
+_Internals doc for `src/lib/freeplay/`, the from-scratch DDAR (Deductive Database
++ Algebraic Reasoning) geometry proof-checker behind Competitive Freeplay. It
+reflects the current implementation; §6.1 covers design notes and §8 the known
+limitations. Companion docs:
 [`FREEPLAY_EXPLAINER.md`](./FREEPLAY_EXPLAINER.md) (plain-language tour, start
 there), [`PRD-competitive-freeplay.md`](./PRD-competitive-freeplay.md) (design
 intent), [`PROJECT_STATUS.md`](./PROJECT_STATUS.md) (§3 high-level), the
@@ -13,13 +13,13 @@ research lab [`research/freeplay-rules/`](../research/freeplay-rules/)._
 
 > Scope note: the shipped engine is a **cite-driven, single-step DD + AR +
 > length/ratio verifier** with **multi-realization** numeric-truth gating,
-> minimality enforcement, and "by symmetry" support — deliberately **not** a full
-> DDAR closure solver. It checks one learner step at a time, but against **several
-> independent generic realizations** of the figure (not one), so a coincidence in
-> the canonical diagram cannot be exploited. Reasoning spans three layers — DD
-> rules, the directed-angle table (`AngleAR`), and the log-distance ratio table
-> (`LengthAR`). Multi-hop search / hints / auxiliary constructions are out of
-> scope today.
+> minimality enforcement, and "by symmetry" support. It is not a full DDAR closure
+> solver, by choice. It checks one learner step at a time, and checks it against
+> **several independent generic realizations** of the figure rather than one, so a
+> coincidence in the canonical diagram cannot be exploited. Reasoning spans three
+> layers: DD rules, the directed-angle table (`AngleAR`), and the log-distance
+> ratio table (`LengthAR`). Multi-hop search, hints, and auxiliary constructions
+> are out of scope today.
 
 > Multi-case verification (this is the key soundness upgrade): each puzzle ships a
 > parametric `construct(rng)` that re-samples generic figures satisfying its

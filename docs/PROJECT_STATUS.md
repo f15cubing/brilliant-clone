@@ -1,42 +1,41 @@
-# Project Status — Interactive Olympiad Geometry
+# Project Status: Interactive Olympiad Geometry
 
-_The **Competitive Freeplay** proof mode has a TypeScript DDAR proof-checker with
-a length/ratio (`eqratio`) layer, 38 deduction rules, 20 curated puzzles,
-natural-language step input (off by default), a per-user proof archive, a Vitest
-suite wired into CI, and an isolated `research/freeplay-rules/` rule-discovery lab.
-There is also an interactive **Sketch Sandbox** (`/sketch`)._
-
-This document describes **what the project actually is today**: its purpose, tech
-stack, architecture, a feature inventory (done / partial / missing), and current
+This document records what the project is today: purpose, tech stack,
+architecture, a feature inventory (done / partial / missing), and the current
 limitations. For where it could go next, see [ROADMAP.md](./ROADMAP.md).
 
 ---
 
 ## 1. What it is
 
-A **Brilliant-style interactive learning web app** built around a single course:
-**Introductory Geometry — Angle Chasing**, modeled on an introductory geometry
-textbook.
+Two things share this repo, and the engine is the substantial one.
 
-The core idea: learn by _doing_. Every problem renders a **draggable geometric
-construction**. Learners drag points and watch a theorem hold for any
-configuration, then answer a question. Wrong answers trigger a visual,
-diagram-based explanation drawn directly on top of the learner's current figure
-(not a separate static image).
+**The engine** (`src/lib/freeplay/`) is a DDAR proof-checker written from scratch
+in TypeScript: a deductive database plus algebraic reasoning, the symbolic method
+behind AlphaGeometry. It carries 38 deduction rules (29 over angles and
+incidence, 9 over lengths and ratios), an exact-rational directed-angle table
+(`AngleAR`), a log-distance table for lengths and ratios (`LengthAR`), and a
+verifier that accepts a step only when the claim holds in five independently
+sampled figures, follows by one rule or one algebra step, and uses every premise
+it cites. [`PRD-competitive-freeplay.md`](./PRD-competitive-freeplay.md) has the
+formal model and [`DDAR_ENGINE.md`](./DDAR_ENGINE.md) the internals. New rules
+get prototyped in an isolated lab at
+[`research/freeplay-rules/`](../research/freeplay-rules/), outside the shipped
+bundle, before promotion.
 
-A second mode, **Competitive Freeplay** (`/freeplay`), turns the app from a
-quiz into a **proof environment**: the learner assembles a multi-step proof by
-citing premises and applying named theorems, and each step is machine-checked by
-a from-scratch TypeScript **DDAR proof-checker** (deductive database + algebraic
-reasoning, inspired by AlphaGeometry). See
-[`docs/PRD-competitive-freeplay.md`](./PRD-competitive-freeplay.md) for the
-formal model. Candidate new deduction rules are prototyped and tested in an
-isolated lab at [`research/freeplay-rules/`](../research/freeplay-rules/) (kept
-outside the shipped bundle).
+**The app** wraps the engine in two surfaces. Competitive Freeplay (`/freeplay`)
+is a proof environment over 20 curated puzzles, with optional natural-language
+step input (off by default) and a per-user proof archive. The course (`/course`)
+is a Brilliant-style sequence on angle chasing, modeled on an introductory
+geometry textbook, where every problem renders a draggable construction:
+learners drag points, watch the theorem hold for any configuration, then answer.
+A wrong answer draws its explanation on top of the learner's own figure instead
+of showing a separate static image. `/sketch` adds an ungraded construction
+sandbox.
 
 The package name is `interactive-olympiad-geometry` (`package.json`), version
-`0.1.0`. The product requirements live in [`PRD.md`](../PRD.md); a research
-"BrainLift" on Brilliant.org and learning science lives in
+`0.1.0`. Product requirements live in [`PRD.md`](../PRD.md); the research
+BrainLift on Brilliant.org and learning science lives in
 [`BRAINLIFT.md`](../BRAINLIFT.md).
 
 ---
@@ -249,7 +248,7 @@ brilliant-clone/
 
 ## 4. Feature inventory
 
-### Done ✅
+### Done
 
 - [x] **Email/password authentication** via Firebase Auth (`AuthContext`,
       `Login`, `Signup`).
@@ -334,7 +333,7 @@ brilliant-clone/
       the `recordAttempt`/`reconcile`/`achievements` progress logic), and the
       `research/freeplay-rules/` rule/problem lab.
 
-### Partial / present-but-thin ⚠️
+### Partial, or present but thin
 
 - [~] **Per-problem analytics captured but unused** — `problemStats` records
       `attempts`, `timeSpentMs`, and `lastMistakeId` per problem (and the PRD
@@ -348,7 +347,7 @@ brilliant-clone/
       scoped to this course's answer shapes (linear expressions, simple
       fractions, powers, degrees), not a general LaTeX parser.
 
-### Missing / not started ❌
+### Missing
 
 - [ ] **Component / integration tests** — the pure logic (engine, grading,
       geometry math, progress reducer) and the research lab are well-covered and

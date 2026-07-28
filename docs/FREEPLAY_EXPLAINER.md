@@ -5,7 +5,7 @@ non-specialists. It covers two things: the **DDAR engine** (the proof-checker
 that decides whether a step is valid) and the **geometry parser** (the part that
 turns what you type into something the engine can check)._
 
-_Want the deep, code-level detail instead? See the technical reference
+_For code-level detail, read the technical reference
 [`docs/DDAR_ENGINE.md`](./DDAR_ENGINE.md) and the parser design specs
 [`docs/design/NL_TO_DDAR.md`](./design/NL_TO_DDAR.md) /
 [`docs/design/NL_TO_DDAR_V2_OPENAI.md`](./design/NL_TO_DDAR_V2_OPENAI.md)._
@@ -14,13 +14,13 @@ _Want the deep, code-level detail instead? See the technical reference
 
 ## The big picture
 
-Competitive Freeplay is a mode where you **prove a geometry theorem one step at a
-time**, and the app checks each step. Think of it like a spell-checker, but for
-math reasoning: you write "this follows because of that," and the engine says
-either "yes, accepted" or "no, and here's why."
+In Competitive Freeplay you **prove a geometry theorem one step at a time** and
+the app checks each step. Think of a spell-checker for mathematical reasoning:
+you write "this follows because of that," and the engine answers either "yes,
+accepted" or "no, and here is why."
 
-The most important idea: **the engine is a checker, not a solver.** It does not
-find the proof for you. It verifies the single step you just claimed.
+Keep one thing in mind throughout. **The engine only checks.** It verifies the
+single step you just claimed and leaves finding the proof to you.
 
 Two pieces work together every time you submit a step:
 
@@ -29,7 +29,7 @@ Two pieces work together every time you submit a step:
 2. The **DDAR engine** decides whether your claimed step is a valid one-step
    deduction from the facts you cited.
 
-Here is the whole journey of one typed step:
+One typed step travels this path:
 
 ```mermaid
 flowchart LR

@@ -1,16 +1,13 @@
-# Roadmap — Interactive Olympiad Geometry
+# Roadmap: Interactive Olympiad Geometry
 
-Concrete, prioritized expansion opportunities, tied to the **actual current
-state** of the code (see [PROJECT_STATUS.md](./PROJECT_STATUS.md)). Items are
-grouped into **near-term** (quick wins), **mid-term** (meaningful features), and
-**long-term** (ambitious). Each notes *what it involves* and *why it's valuable*.
-
-Nothing here invents features that already exist — these are gaps and natural
-extensions of what is shipped today.
+Expansion opportunities in priority order, each tied to the current state of the
+code (see [PROJECT_STATUS.md](./PROJECT_STATUS.md)). Items sit in three groups:
+near-term (quick wins), mid-term (meaningful features), long-term (ambitious).
+Each says what it involves and why it is worth doing.
 
 ---
 
-## ✅ Recently completed (June 2026)
+## Recently completed (June 2026)
 
 **Competitive Freeplay + DDAR proof-checker.** Shipped a second mode
 (`/freeplay`) where learners build machine-checked multi-step proofs, backed by a
@@ -210,7 +207,7 @@ Bigger bets that change the product's scope or moat.
 A pragmatic order that front-loads safety, then value:
 
 1. **Stabilize:** ~~fix lint → add CI → initial commit → add Vitest for the pure
-  logic + wire `test` into CI~~ ✅ *(done — see Recently completed)*. Remaining:
+  logic + wire `test` into CI~~ *(done, see Recently completed)*. Remaining:
   **component / integration tests** for the UI glue.
 2. **Extend cheaply:** surface `problemStats` in the UI → author the two stretch
   lessons (no engine changes).
