@@ -22,7 +22,7 @@
 | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Freeplay PRD + as-built engine (§13 Implementation Status)                  | [`docs/PRD-competitive-freeplay.md`](./docs/PRD-competitive-freeplay.md)                                                                  |
 | Shipped verifier (DD + AR + length/ratio + minimality + by-symmetry)        | [`src/lib/freeplay/verify.ts`](./src/lib/freeplay/verify.ts)                                                                              |
-| Rule library (31 shipped rules: 13 core + 13 promoted + 5 ratio)            | [`rules.ts`](./src/lib/freeplay/rules.ts) + [`rules/`](./src/lib/freeplay/rules/) + [`lengths/rules/`](./src/lib/freeplay/lengths/rules/) |
+| Rule library (38 shipped rules: 13 core + 16 promoted + 9 ratio)            | [`rules.ts`](./src/lib/freeplay/rules.ts) + [`rules/`](./src/lib/freeplay/rules/) + [`lengths/rules/`](./src/lib/freeplay/lengths/rules/) |
 | Algebraic-reasoning tables (angles + lengths)                               | [`src/lib/freeplay/ar.ts`](./src/lib/freeplay/ar.ts) + [`lengths/lengthAR.ts`](./src/lib/freeplay/lengths/lengthAR.ts)                    |
 | Rule-discovery research harness (18 promotable rules + 20 contest problems) | [`research/freeplay-rules/README.md`](./research/freeplay-rules/README.md)                                                                |
 | Sibling BrainLift on Brilliant.org                                          | [`BRAINLIFT.md`](./BRAINLIFT.md)                                                                                                          |
@@ -228,7 +228,7 @@ The center of mass sits at **DOK 3–4** — precisely the band `BRAINLIFT.md` s
 ### SPOV 8 — The honest competitor isn't Brilliant; it's a blank sheet of paper — and Freeplay should beat paper on exactly one axis: instant, certain, reason-level feedback.
 
 **Because:** For real proof training, `BRAINLIFT.md` (SPOV-6/8) concedes the field to textbooks, AoPS, and coaches — i.e., paper. Paper's weakness is the feedback loop: a student writes a proof and waits days, or never finds out, whether a step is *unsupported* vs *false*. Freeplay's one unbeatable advantage is collapsing that loop to milliseconds at single-step granularity (Bloom's mastery mechanism), with the three-way reason verdict paper can never give.  
-**Counterpoint:** Paper imposes no rule palette and no engine-coverage ceiling — a student can invent any argument, including ones our 31 rules + AR/LengthAR can't yet check (e.g., the open signed-ratio Menelaus/Ceva and pole–polar gaps documented in the research harness).  
+**Counterpoint:** Paper imposes no rule palette and no engine-coverage ceiling — a student can invent any argument, including ones our 38 rules + AR/LengthAR can't yet check (e.g., the open signed-ratio Menelaus/Ceva and pole–polar gaps documented in the research harness).  
 **So what:** Don't position against Brilliant's intuition product; position as *the proof-feedback loop that paper cannot provide.* Engine coverage (the research harness's job) is the roadmap that widens what that loop can adjudicate.
 
 ---

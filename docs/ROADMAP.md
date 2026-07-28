@@ -1,16 +1,13 @@
-# Roadmap — Interactive Olympiad Geometry
+# Roadmap: Interactive Olympiad Geometry
 
-Concrete, prioritized expansion opportunities, tied to the **actual current
-state** of the code (see [PROJECT_STATUS.md](./PROJECT_STATUS.md)). Items are
-grouped into **near-term** (quick wins), **mid-term** (meaningful features), and
-**long-term** (ambitious). Each notes *what it involves* and *why it's valuable*.
-
-Nothing here invents features that already exist — these are gaps and natural
-extensions of what is shipped today.
+Expansion opportunities in priority order, each tied to the current state of the
+code (see [PROJECT_STATUS.md](./PROJECT_STATUS.md)). Items sit in three groups:
+near-term (quick wins), mid-term (meaningful features), long-term (ambitious).
+Each says what it involves and why it is worth doing.
 
 ---
 
-## ✅ Recently completed (June 2026)
+## Recently completed (June 2026)
 
 **Competitive Freeplay + DDAR proof-checker.** Shipped a second mode
 (`/freeplay`) where learners build machine-checked multi-step proofs, backed by a
@@ -22,7 +19,7 @@ table, and a minimality-enforcing step verifier). See
 **Multi-case verification.** The checker no longer trusts a single figure: each
 puzzle ships a parametric `construct(rng)`, `realize.ts` samples several
 independent generic realizations (all satisfying the givens), and `verify()`
-accepts a step only if it holds in **all** of them — closing the "true in one
+accepts a step only if it holds in **all** of them, closing the "true in one
 diagram by accident" gap. This construction model is the foundation for the
 planned **movable freeplay figures** ([`design/MOVABLE_FIGURES.md`](./design/MOVABLE_FIGURES.md)).
 
@@ -36,14 +33,15 @@ Angle Bisector Theorem, power-of-a-point, and the **now-closed Simson–Wallace
 line**). The lab is kept outside the shipped bundle (excluded from `tsconfig`
 include).
 
-**Length/ratio subsystem + rule promotion.** Promoted **13 research rules** into the
+**Length/ratio subsystem + rule promotion.** Promoted **16 research rules** into the
 shipped angle/incidence engine (`src/lib/freeplay/rules/`, e.g. `pascal`,
 `sas_congruence`, `thales_diameter`, `concyclic_from_directed_angles`,
 `coincident_direction_collinear`) and shipped a **length/ratio layer**
-(`lengths/`: `eqratio` facts, `LengthAR`, and 5 `RATIO_RULES` incl.
-`power_of_a_point` and `sas_similarity`) — **31 rules total**. The catalog grew to
-**14 curated puzzles** (intro/core/challenge, with literal JBMO/IMO-shortlist
-citations), and **IMO 2019 P2 now verifies end-to-end**.
+(`lengths/`: `eqratio` facts, `LengthAR`, and 9 `RATIO_RULES` incl.
+`power_of_a_point` and `sas_similarity`), for **38 rules total** (29 angle/incidence +
+9 length/ratio). The catalog grew to **20 curated puzzles** (intro/core/challenge,
+with literal JBMO/IMO-shortlist citations up to full **IMO-level problems verifying
+end-to-end**).
 
 **Natural-language step input + proof archive.** Shipped an NL step path
 (`src/lib/freeplay/nl/` + `functions/`): a step typed in English is translated by a
@@ -54,7 +52,7 @@ default; signed-in only, Auth + App Check, key server-side) and re-checked by th
 
 Engineering-hygiene baseline established (see commit history):
 
-- [x] **Git repo + GitHub.** Initial commit made; pushed to a private GitHub
+- [x] **Git repo + GitHub.** Initial commit made; pushed to a public GitHub
   repo (`f15cubing/brilliant-clone`). `dist/`, `.env`, `*.tsbuildinfo`,
   generated `vite.config.{js,d.ts}`, and local agent/IDE tooling are
   git-ignored; `.env.example` is the committed template.
@@ -62,25 +60,26 @@ Engineering-hygiene baseline established (see commit history):
   `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`, and
   `@eslint/js`, with a flat `eslint.config.js`. `npm run lint` now passes
   (uses the classic Rules-of-Hooks; the experimental React Compiler rules are
-  deliberately deferred — see config comment).
+  deliberately deferred, see config comment).
 - [x] **Minimal CI.** `.github/workflows/ci.yml` runs `npm ci` → lint →
   `tsc --noEmit` → build on Node 22 for pushes/PRs to `master`/`main`.
   First run is green.
 - [x] **Security: patched `mathjs`.** Upgraded `^14.9.1 → ^15.2.0`, resolving
   two expression-parser advisories (GHSA-jvff-x2qm-6286, GHSA-29qv-4j9f-fjw5).
-  `npm audit` now reports **0 vulnerabilities**. The v15 breaking changes do
-  not affect our scalar `evaluate(expr, scope)` usage.
+  That cleared the audit at the time; newer advisories have landed since, see the
+  near-term dependency item below. The v15 breaking changes do not affect our
+  scalar `evaluate(expr, scope)` usage.
 
 ---
 
-## Near-term — quick wins
+## Near-term: quick wins
 
 Low effort, high leverage; mostly engineering hygiene and small UX fills.
 
 - [ ] **Add component / integration tests.** *What:* the pure logic is now
   well-covered and `npm test` runs in CI (see Recently completed), but React
   components, hooks, and end-to-end flows (`ProblemPlayer`, `FreeplayArena`, the
-  `StepBuilder`, auth/progress wiring) have no automated tests yet — only the
+  `StepBuilder`, auth/progress wiring) have no automated tests yet, only the
   Playwright demo-recording specs. Add React Testing Library / Playwright
   assertions for the critical flows. _Why:_ the highest-risk *math* is tested;
   the remaining regression risk is in the UI glue.
@@ -88,12 +87,22 @@ Low effort, high leverage; mostly engineering hygiene and small UX fills.
 - [ ] **Surface the data already collected.** *What:* on the lesson-complete or
   Dashboard view, show per-problem `attempts` / time from `problemStats`
   (e.g. "you found these the trickiest"). _Why:_ the data is already
-  persisted but unused — pure UI work, no new schema.
+  persisted but unused. Pure UI work, no new schema.
 
 - [ ] **Persisted "reveal" / hint affordance polish.** *What:* a progressive
   hint step before full reveal, reusing the existing `explanations[]` +
   overlay mechanism. _Why:_ the overlay engine and `triggerCondition` system
   already support it; adds pedagogical value with little new code.
+
+- [ ] **Clear the production dependency advisories.** *What:* `npm audit
+  --omit=dev` reports 3 moderate advisories (checked 2026-07-28). Two
+  `react-router` open-redirect issues (GHSA-wrjc-x8rr-h8h6,
+  GHSA-jjmj-jmhj-qwj2) and a `deserializeErrors()` constructor injection
+  (GHSA-337j-9hxr-rhxg) all need a semver-major bump to `react-router-dom` 7.x;
+  the fourth is a `protobufjs` DoS (GHSA-j3f2-48v5-ccww) reached through
+  `firebase`, fixable without a major. _Why:_ the open-redirect issues touch
+  navigation targets in a shipped SPA. The v7 bump needs its own PR and a pass
+  over every `<Link>`/loader call site, so it is not a drive-by fix.
 
 - [ ] **Auth UX hardening.** *What:* friendly error messages, password reset
   (`sendPasswordResetEmail`), and loading/disabled states in `Login`/`Signup`.
@@ -102,15 +111,15 @@ Low effort, high leverage; mostly engineering hygiene and small UX fills.
 
 ---
 
-## Mid-term — meaningful features
+## Mid-term: meaningful features
 
 Multi-file features that materially improve learning or extensibility, building
 on existing abstractions.
 
 - [ ] **Close the remaining DDAR engine gaps.** *What:* the first wave of
-  promotions has landed (13 angle/incidence rules incl. the
+  promotions has landed (16 angle/incidence rules incl. the
   "coincident-direction ⇒ collinear" Simson bridge, plus the `eqratio`/`LengthAR`
-  ratio layer with power-of-a-point, similarity, and tangent-secant power — see
+  ratio layer with power-of-a-point, similarity, and tangent-secant power. See
   Recently completed). The remaining, research-characterized gaps are: a
   **shared-harness change** to feed `eqratio` premises into `rule.derive` (unlocks
   **converse power-of-a-point ⇒ `cyclic`**), **numeric-constant ratios** (a `log 2`
@@ -119,7 +128,7 @@ on existing abstractions.
   `research/freeplay-rules/findings/unsolved-rules-plan.md`.
 
 - [ ] **Movable freeplay figures.** *What:* make the freeplay board draggable on
-  the construction model the verifier already uses — render each puzzle's
+  the construction model the verifier already uses: render each puzzle's
   `freePoints` as draggable points/gliders, recompute dependents via
   `construct` on drag, and re-validate the in-progress proof against the live
   position (surfacing "valid across N sampled positions"), while keeping the
@@ -139,11 +148,11 @@ on existing abstractions.
   that resurfaces problems a learner struggled with. _Why:_ the PRD calls
   this out as the intended use of `problemStats`; it addresses the biggest
   learning-science gap (Brilliant-style apps over-index on intuition, under
-  on retention — see [BRAINLIFT.md](../BRAINLIFT.md)).
+  on retention, see [BRAINLIFT.md](../BRAINLIFT.md)).
 
 - [ ] **Generality-testing interactions.** *What:* "drag-and-predict" problems
   where the learner must move the figure to a configuration, predict a value,
-  then verify against the live readout — extending the existing `geometric`
+  then verify against the live readout, extending the existing `geometric`
   answer type and drag constraints. _Why:_ `BRAINLIFT.md` SPOV #4 argues most
   "interactive" learning is performative; this is a differentiator the board
   engine already makes feasible.
@@ -166,7 +175,7 @@ on existing abstractions.
 
 ---
 
-## Long-term — ambitious
+## Long-term: ambitious
 
 Bigger bets that change the product's scope or moat.
 
@@ -179,7 +188,7 @@ Bigger bets that change the product's scope or moat.
   to one course today.
 
 - [ ] **Content authoring tooling / CMS.** *What:* a way to author or edit
-  `Problem`/`Lesson` objects (and preview boards) without a redeploy — e.g. a
+  `Problem`/`Lesson` objects (and preview boards) without a redeploy, e.g. a
   schema-validated JSON variant of `JSXGraphDef` plus an in-app preview.
   _Why:_ content is build-time only now; lowering authoring cost is what lets
   the catalog scale.
@@ -187,9 +196,9 @@ Bigger bets that change the product's scope or moat.
 - [ ] **AI tutor (Koji-style, screen-aware).** *What:* a Socratic helper that can
   read the live board state (`getRefs()` already exposes element values) and
   ask guiding questions without giving the answer. _Why:_ `BRAINLIFT.md`
-  SPOV #3 argues the tutor — not the puzzles — is the real moat; the board
+  SPOV #3 argues the tutor, rather than the puzzles, is the real moat; the board
   already exposes the state such a tutor would need. (Explicitly a non-goal
-  for the current release — this is a later bet.)
+  for the current release, so this is a later bet.)
 
 - [ ] **Mastery analytics & dashboards.** *What:* aggregate `problemStats` into
   mistake-pattern insights and a "concepts to revisit" view; optionally a
@@ -199,7 +208,7 @@ Bigger bets that change the product's scope or moat.
 - [ ] **Shareable proofs / open-ended (DOK 3–4) problems.** *What:* multi-step
   angle-chase problems where learners assemble a sequence of justified steps,
   not just a final value. _Why:_ addresses the ceiling identified in
-  `BRAINLIFT.md` SPOV #6 (intuition vs. contest-level proof) — the hardest but
+  `BRAINLIFT.md` SPOV #6 (intuition vs. contest-level proof), the hardest but
   most distinctive direction for an _olympiad_ product.
 
 ---
@@ -209,7 +218,7 @@ Bigger bets that change the product's scope or moat.
 A pragmatic order that front-loads safety, then value:
 
 1. **Stabilize:** ~~fix lint → add CI → initial commit → add Vitest for the pure
-  logic + wire `test` into CI~~ ✅ *(done — see Recently completed)*. Remaining:
+  logic + wire `test` into CI~~ *(done, see Recently completed)*. Remaining:
   **component / integration tests** for the UI glue.
 2. **Extend cheaply:** surface `problemStats` in the UI → author the two stretch
   lessons (no engine changes).

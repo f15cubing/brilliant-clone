@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useProgress } from "@/lib/progress/ProgressContext";
 import { ByrneLogo, IconXP } from "@/components/ByrneMark";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export function Layout() {
   const { user, signOut, configured, isAdmin, testMode, setTestMode } =
@@ -90,7 +91,11 @@ export function Layout() {
             : "mx-auto w-full max-w-5xl px-4 py-10"
         }
       >
-        <Outlet />
+        {/* Keyed by pathname so navigating to another route clears a caught
+            error; without the key a broken view would stay broken after nav. */}
+        <ErrorBoundary key={pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   );

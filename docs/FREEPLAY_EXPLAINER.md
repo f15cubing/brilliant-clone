@@ -5,7 +5,7 @@ non-specialists. It covers two things: the **DDAR engine** (the proof-checker
 that decides whether a step is valid) and the **geometry parser** (the part that
 turns what you type into something the engine can check)._
 
-_Want the deep, code-level detail instead? See the technical reference
+_For code-level detail, read the technical reference
 [`docs/DDAR_ENGINE.md`](./DDAR_ENGINE.md) and the parser design specs
 [`docs/design/NL_TO_DDAR.md`](./design/NL_TO_DDAR.md) /
 [`docs/design/NL_TO_DDAR_V2_OPENAI.md`](./design/NL_TO_DDAR_V2_OPENAI.md)._
@@ -14,13 +14,13 @@ _Want the deep, code-level detail instead? See the technical reference
 
 ## The big picture
 
-Competitive Freeplay is a mode where you **prove a geometry theorem one step at a
-time**, and the app checks each step. Think of it like a spell-checker, but for
-math reasoning: you write "this follows because of that," and the engine says
-either "yes, accepted" or "no, and here's why."
+In Competitive Freeplay you **prove a geometry theorem one step at a time** and
+the app checks each step. Think of a spell-checker for mathematical reasoning:
+you write "this follows because of that," and the engine answers either "yes,
+accepted" or "no, and here is why."
 
-The most important idea: **the engine is a checker, not a solver.** It does not
-find the proof for you. It verifies the single step you just claimed.
+Keep one thing in mind throughout. **The engine only checks.** It verifies the
+single step you just claimed and leaves finding the proof to you.
 
 Two pieces work together every time you submit a step:
 
@@ -29,7 +29,7 @@ Two pieces work together every time you submit a step:
 2. The **DDAR engine** decides whether your claimed step is a valid one-step
    deduction from the facts you cited.
 
-Here is the whole journey of one typed step:
+One typed step travels this path:
 
 ```mermaid
 flowchart LR
@@ -52,7 +52,7 @@ parser (everything before it).
 
 ### What "DDAR" means
 
-DDAR stands for **Deductive Database + Algebraic Reasoning** — the two ways the
+DDAR stands for **Deductive Database + Algebraic Reasoning**, the two ways the
 engine reasons:
 
 - **DD (Deductive Database):** a library of named geometry theorems (inscribed
@@ -100,20 +100,20 @@ flowchart LR
 
 1. **DD rules** ([`src/lib/freeplay/rules.ts`](../src/lib/freeplay/rules.ts) and
    [`src/lib/freeplay/rules/`](../src/lib/freeplay/rules/)). This is a library of
-   **31** named theorems today: a 13-rule hand-written core (inscribed angle,
-   triangle angle sum, isosceles, midsegment, Pappus, ...), 13 more promoted from
+   **38** named theorems today: a 13-rule hand-written core (inscribed angle,
+   triangle angle sum, isosceles, midsegment, Pappus, ...), 16 more promoted from
    the research lab (congruence rules like SAS/SSS, Pascal, concyclic-from-equal-
-   radii, ...), and 5 length/ratio rules (similar triangles, Thales, power of a
+   radii, ...), and 9 length/ratio rules (similar triangles, Thales, power of a
    point, ...). Each rule looks **only at the facts you cited** and is
-   **coordinate-guarded** — it fires only when the actual figure supports it.
+   **coordinate-guarded**, so it fires only when the actual figure supports it.
 
-2. **AR — angle algebra** ([`src/lib/freeplay/ar.ts`](../src/lib/freeplay/ar.ts)).
+2. **AR, angle algebra** ([`src/lib/freeplay/ar.ts`](../src/lib/freeplay/ar.ts)).
    This treats each line's direction as an unknown and solves linear equations
-   "mod 180 degrees." It can chase any chain of angle equalities automatically,
-   so most ordinary **angle chasing needs no specific named rule** — the algebra
-   just works it out.
+   "mod 180 degrees." It chases any chain of angle equalities automatically, so
+   most ordinary **angle chasing needs no specific named rule**; the algebra
+   works it out.
 
-3. **LengthAR — length algebra**
+3. **LengthAR, length algebra**
    ([`src/lib/freeplay/lengths/`](../src/lib/freeplay/lengths/)). The same trick,
    but for lengths and ratios (it works with the logarithms of distances). This
    is how equal-length chains and proportions get verified.
@@ -150,8 +150,8 @@ flowchart TD
    several steps away), you get *unjustified*. If you cite a fact you haven't
    established yet, you get *unknown premise*.
 3. **Minimal?** Every fact you cited must be needed. If the step still works after
-   dropping one of your premises, you get *extraneous premises* — this stops
-   "cite everything and hope" cheating.
+   dropping one of your premises, you get *extraneous premises*, which stops the
+   "cite everything and hope" strategy.
 
 There's also a **"by symmetry"** shortcut: if your problem's setup is symmetric,
 you can justify a step by pointing at an earlier, mirror-image step instead of
@@ -160,20 +160,18 @@ symmetry*.)
 
 ### No cheating off the diagram
 
-Here is the clever part. A single drawing can lie: two angles might *look* equal
-just because of how that one picture happened to be drawn. So the engine does
-**not** trust one drawing.
+A single drawing can lie. Two angles might *look* equal because of how that one
+picture happened to be drawn, so the engine refuses to trust one drawing.
 
-Instead it **redraws the figure several different random ways** (5 by default),
-each one still satisfying the problem's givens, and requires your step to pass in
-**every** redraw (see
-[`src/lib/freeplay/realize.ts`](../src/lib/freeplay/realize.ts)). A real theorem
-survives all of them; a lucky coincidence gets caught in one of them and the step
-is rejected.
+It **redraws the figure several different random ways** (5 by default), each one
+still satisfying the problem's givens, and requires your step to pass in **every**
+redraw (see [`src/lib/freeplay/realize.ts`](../src/lib/freeplay/realize.ts)). A
+real theorem survives all of them. A lucky coincidence gets caught in one and the
+step is rejected.
 
-Coordinates are used only to (a) check whether a fact is true and (b) pick the
-right branch of the angle algebra — they are **never** used to hand you a fact you
-didn't cite. You always have to state your reasons.
+Coordinates do only two jobs: check whether a fact is true, and pick the right
+branch of the angle algebra. They **never** hand you a fact you didn't cite. You
+always have to state your reasons.
 
 ### A tiny worked example
 
@@ -216,7 +214,7 @@ flowchart LR
   s --> t --> p --> v --> e
 ```
 
-**Stage 1 — the Translator.** It reads your sentence and produces simple
+**Stage 1, the Translator.** It reads your sentence and produces simple
 **descriptors** (just a relation name plus point labels, or an angle plus an
 expression string). There are two interchangeable backends, both emitting the
 exact same descriptor format (see
@@ -230,14 +228,14 @@ exact same descriptor format (see
   on the server ([`src/lib/freeplay/nl/firebase.ts`](../src/lib/freeplay/nl/firebase.ts)).
   It understands richer, free-form English.
 
-**Stage 2 — the expression parser
+**Stage 2, the expression parser
 ([`src/lib/freeplay/form.ts`](../src/lib/freeplay/form.ts), `parseForm`).** When
-a step sets an angle equal to a formula — like `180 - A/2 - B/2` or
-`angle(B,I,A)` — that little bit of math is parsed into a tidy linear expression.
+a step sets an angle equal to a formula, say `180 - A/2 - B/2` or
+`angle(B,I,A)`, that little bit of math is parsed into a tidy linear expression.
 It's a small tokenizer plus a recursive-descent parser; anything non-linear
 (multiplying two angles) or malformed is rejected with a clear error.
 
-**Stage 3 — the Validator
+**Stage 3, the Validator
 ([`src/lib/freeplay/nl/map.ts`](../src/lib/freeplay/nl/map.ts)).** This turns
 descriptors into real engine facts, but first it enforces safety, because the
 translator (especially the AI) is **untrusted**:
@@ -246,8 +244,8 @@ translator (especially the AI) is **untrusted**:
 - each relation must have the **right number of points**,
 - any expression must **parse**.
 
-If any check fails, you get a specific, friendly message — and the checker is
-never even called.
+If any check fails, you get a specific, friendly message and the checker is never
+even called.
 
 ### How the mock translator reads a sentence
 
@@ -274,7 +272,7 @@ The offline grammar is intentionally simple but demo-complete:
 This is the safety property that makes natural-language input trustworthy:
 
 > The translator only **proposes** a `(conclusion, premises)` pair. The exact
-> same `verify()` then judges it — identical to the menu-based builder.
+> same `verify()` then judges it, identically to the menu-based builder.
 
 So the parser (or the AI behind it) has **no authority**:
 
@@ -304,10 +302,10 @@ your input is, never what counts as a valid proof.
 
 ## Go deeper
 
-- [`docs/DDAR_ENGINE.md`](./DDAR_ENGINE.md) — the full technical reference for the
+- [`docs/DDAR_ENGINE.md`](./DDAR_ENGINE.md): the full technical reference for the
   engine internals.
 - [`docs/design/NL_TO_DDAR.md`](./design/NL_TO_DDAR.md) and
-  [`docs/design/NL_TO_DDAR_V2_OPENAI.md`](./design/NL_TO_DDAR_V2_OPENAI.md) — the
+  [`docs/design/NL_TO_DDAR_V2_OPENAI.md`](./design/NL_TO_DDAR_V2_OPENAI.md): the
   parser design specs (including the AI backend and its safety model).
-- [`research/freeplay-rules/`](../research/freeplay-rules/) — the isolated lab
+- [`research/freeplay-rules/`](../research/freeplay-rules/): the isolated lab
   where new deduction rules are prototyped and tested before promotion.
