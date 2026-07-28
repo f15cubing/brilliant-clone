@@ -152,12 +152,12 @@ verify(input)
 (`eqratio`, also exposed to rules via `ctx.citedRatios` so a length rule can
 *require* a proportion be cited rather than read off coordinates); (1)
 `expandColls(ordinary)` injects all 3-point sub-collinearities from variadic
-`coll`; (2) **DD pass** — each rule in `ALL_RULES` (`RULES` + `RATIO_RULES`),
+`coll`; (2) **DD pass**, running each rule in `ALL_RULES` (`RULES` + `RATIO_RULES`),
 returning its `name` on the first `factEqual` match, else accumulating ordinary
 outputs into `ddDerived` and `eqratio` outputs into `lDerived`; (3) **AngleAR pass**
-(skipped for an `eqratio` candidate) — build `AngleAR`, `add` every fact in
+(skipped for an `eqratio` candidate), which builds `AngleAR`, `add`s every fact in
 `[...expanded, ...ddDerived]`, and if `ar.implies(candidate)` return
-`"algebraic angle-chase"`; (4) **LengthAR pass** — build `LengthAR`, `add`
+`"algebraic angle-chase"`; (4) **LengthAR pass**, which builds `LengthAR`, `add`s
 `[...cited, ...ddDerived, ...lDerived]`, and if `lar.implies(candidate)` return
 `"algebraic length-chase"`. Rule exceptions are swallowed (`try/catch continue`).
 
@@ -186,11 +186,11 @@ additionally sees the one-step `eqratio` consequences.
 carried in the additive `LFact = Fact | EqRatio` union. `canonicalKey`,
 `factEqual`, `isAmong`, and `factLabel` all handle it explicitly (it is consumed
 by `LengthAR`, not the angle rules). **Still not in the DSL:** `simtri`, `contri`
-(named in the PRD but absent — see §7).
+(named in the PRD but absent, see §7).
 
 ### 2.2 `Aval` angle values
 
-`aval([arm, vertex, arm], form)` — measure of ∠(a,b,c) equals a linear `Form`
+`aval([arm, vertex, arm], form)`: measure of ∠(a,b,c) equals a linear `Form`
 (`{ c: Rat, v: Record<string, Rat> }`) over named variables (per-puzzle, e.g. `"A"`)
 and/or angle tokens (`parseForm("angle(A,O,C)")`).
 
@@ -207,7 +207,7 @@ and/or angle tokens (`parseForm("angle(A,O,C)")`).
 
 - Variadic `coll` vs. 3-point rules: rules expecting exactly two on-line points are
   fed triples by `expandColls`; `pappus` only inspects exactly-3-point colls.
-- `midp(M,A,B) ≠ midp(M,B,A)` canonically (correct — M fixed).
+- `midp(M,A,B) ≠ midp(M,B,A)` canonically (correct: M fixed).
 - `eqangle` is the 6-point (two-triple) form, **not** AG's 8-point directed-line form.
 - `canonicalKey` now has an explicit `eqratio` branch (`eqratioKey`, canonicalizing
   the four ratio symmetries), so an `eqratio`-shaped fact is keyed correctly rather
@@ -218,7 +218,7 @@ and/or angle tokens (`parseForm("angle(A,O,C)")`).
 
 ## 3. Algorithms
 
-### 3.1 AR — directed-angle table mod 180° (`ar.ts`)
+### 3.1 AR: directed-angle table mod 180° (`ar.ts`)
 
 Each line (keyed by unordered point-pair) gets an abstract direction variable
 `L:x,y`; unknowns are linear expressions over exact rationals; the constant
@@ -236,15 +236,15 @@ generator `pi` = 180°. Equations contributed:
 `para`/`perp`/`eqangle`; `default` returns `null` for `coll`/`cong`/`cyclic`/`midp`
 (`ar.ts:315–316`). Collinearity is _consumed_ in `add()` (merging direction vars,
 `ar.ts:325–338`) but never produced. The DD rule `coincident_direction_collinear`
-(`para(X,A,X,B) ⇒ coll(X,A,B)`) bridges this gap — it packages a proven shared
+(`para(X,A,X,B) ⇒ coll(X,A,B)`) bridges this gap by packaging a proven shared
 direction back into a `coll`, which is what closes the Simson–Wallace line.
 
 Coordinates are used **only** to pick the sign ε∈{±1} and whole-turn integer j in
-`measure()`/`pick()`/`balance()`, and to seed numeric slopes in `dir()` — never to
+`measure()`/`pick()`/`balance()`, and to seed numeric slopes in `dir()`, never to
 collapse variables. So the **AR layer** cannot read parallelism/collinearity "for
 free" off the diagram; every hypothesis it uses must be cited. (DD rules do, by
-design, read a figure's incidence structure — collinearity / point-on-line — as
-implicit; see §6.1.) Tolerance `ZERO_DEG = 1e-3`.
+design, read a figure's incidence structure, meaning collinearity and
+point-on-line, as implicit; see §6.1.) Tolerance `ZERO_DEG = 1e-3`.
 
 Table closure (`Table.addExpr`) mirrors AlphaGeometry's `ar.py`: substitute bound
 vars, then depending on the number of free vars either confirm/solve a constant
@@ -254,7 +254,7 @@ relation or bind a (dependent) variable.
 
 Within one step: facts are coll-expanded; each rule independently scans **only the
 cited** facts and emits **all** instances its coordinate guards license. There is
-**no** multi-hop DD fixpoint inside a step — exactly one DD application layer, then
+**no** multi-hop DD fixpoint inside a step: exactly one DD application layer, then
 optional AR over `cited ∪ ddDerived`.
 
 **Shipped rules (38 total = 29 angle/incidence + 9 length/ratio).**
@@ -284,7 +284,7 @@ optional AR over `cited ∪ ddDerived`.
 *Length/ratio (9, `RATIO_RULES` in `lengths/rules/`):* `similar_triangles_aa`,
 `aa_similar`, `similar_proportional_sides`, `similar_equal_angles`,
 `thales_basic_proportionality`, `sas_similarity`, `power_of_a_point`,
-`tangent_secant_power`, `converse_power_of_a_point` — each emits `eqratio` (and
+`tangent_secant_power`, `converse_power_of_a_point`. Each emits `eqratio` (and
 `sas_similarity` also `eqangle`, while `converse_power_of_a_point` consumes an
 `eqratio` and emits `cyclic`). `verify()` runs these as
 `ALL_RULES = [...RULES, ...RATIO_RULES]`, routing the `eqratio` outputs through the
@@ -303,7 +303,7 @@ A `Subst` of disjoint transpositions must (a) be an automorphism of the **givens
 (`analogSource`); the consequence must also hold numerically. Soundness rests on
 rules being relabeling-invariant, with `factHolds` as a backstop.
 
-### 3.5 LengthAR — log-distance ratio table (`lengths/lengthAR.ts`)
+### 3.5 LengthAR: log-distance ratio table (`lengths/lengthAR.ts`)
 
 The length/ratio dual of `AngleAR`: a Gaussian-elimination table whose generators
 are the **unsigned** `log|PQ|` of each segment. `cong`/`eqratio`/`midp` premises
@@ -312,7 +312,7 @@ it is a linear consequence ("algebraic length-chase"). `deriveOnce` runs the DD
 length rules (`RATIO_RULES`) and then `LengthAR` after the angle DD/AR passes;
 `verify()`'s numeric truth gate uses `factHoldsL` for `eqratio` facts. Because the
 table is **unsigned**, it cannot represent signed ratios (Menelaus/Ceva) or
-numeric-constant ratios (`AB = 2·MA`) — see §8.
+numeric-constant ratios (`AB = 2·MA`), see §8.
 
 ---
 
@@ -354,7 +354,7 @@ Omitting it falls back to the single canonical figure, so `verify()` is fully
 backwards-compatible (every pre-existing test calls it without realizations).
 
 The **remote** payload (`api.ts:21–40`) omits `bindings`, `givens`, and `analogy`
-— so symmetry and bindings are effectively local-only unless a backend is extended.
+so symmetry and bindings are effectively local-only unless a backend is extended.
 
 ---
 
@@ -392,12 +392,12 @@ numerically-false conclusions and superset citations. Two design points are wort
 understanding:
 
 - **Incidences (collinearity, point-on-line) are treated as implicit figure
-  structure — by design.** Some DD rules — notably `para_equal_angles`, `pappus`,
-  and `converse_inscribed` — read which points lie on a line from the figure
+  structure, by design.** Some DD rules, notably `para_equal_angles`, `pappus`,
+  and `converse_inscribed`, read which points lie on a line from the figure
   configuration (`onLine`) rather than requiring an explicit cited `coll`. Incidence
   is part of the given diagram, not a proof step the learner must re-derive, so these
   rules do not demand it among the cited premises. This never lets a numerically
-  false fact through — the truth gate still blocks those; it only means the "cited
+  false fact through, because the truth gate still blocks those; it only means the "cited
   premises" set is about the *reasoning* used, not about restating the figure's
   incidence structure.
 - **Genericity depends on each puzzle's `construct(rng)`.** The multi-realization
@@ -424,20 +424,20 @@ understanding:
 
 ## 8. Undocumented behavior, tech debt, limitations
 
-- **AR cannot emit `coll`** (§3.1) — only DD produces collinearity (`pappus`,
+- **AR cannot emit `coll`** (§3.1): only DD produces collinearity (`pappus`,
   `pascal`, `coincident_direction_collinear`).
 - **`cong` producers:** `isosceles`, `midpoint_congruence`, `cong_transitivity`,
   `perp_bisector`, `sas_congruence`, `sas_shared_vertex`. **`perp`** is now produced
   by `thales_diameter` (previously only consumed).
-- **`LengthAR` is unsigned** — no signed ratios (Menelaus/Ceva) and no
+- **`LengthAR` is unsigned**: no signed ratios (Menelaus/Ceva) and no
   numeric-constant ratios (`AB = 2·MA`, needs a `log 2` generator). See §3.5.
 - **Converse power-of-a-point ⇒ `cyclic` is now shipped**: `converse_power_of_a_point`
   (`lengths/rules/`) *consumes* a cited `eqratio` power condition and *emits* a
-  `cyclic` — the length layer is the one handed `ctx.citedRatios`, so this rule lives
+  `cyclic`: the length layer is the one handed `ctx.citedRatios`, so this rule lives
   under `lengths/rules/`. (This was previously blocked; the shared-harness change to
   pass `eqratio` premises into the length rules landed.)
 - **Rule-order sensitivity**: the first matching rule wins and tests assert exact
-  `rule.name` strings — the order of `CORE_RULES` (`rules.ts`), `PROMOTED_RULES`
+  `rule.name` strings: the order of `CORE_RULES` (`rules.ts`), `PROMOTED_RULES`
   (`rules/index.ts`), and `RATIO_RULES` (`lengths/rules/index.ts`) is part of the contract.
 - **Symmetry path ignores cited premises** (doesn't validate them against
   established facts).
@@ -446,7 +446,7 @@ understanding:
   AR traceback ("why"), and a complete remote-verify payload. (Length/ratio reasoning,
   Pascal, the radical-axis / radical-centre rules, converse power-of-a-point ⇒
   `cyclic`, and full IMO-level proof chains are now **shipped**, not gaps.)
-- No `TODO`/`FIXME` markers in `src/lib/freeplay/` — debt is architectural/content.
+- No `TODO`/`FIXME` markers in `src/lib/freeplay/`: debt is architectural/content.
 
 ---
 
@@ -455,7 +455,7 @@ understanding:
 **Add an angle/incidence DD rule:** implement `Rule { id, name, derive(cited, ctx) }`,
 filter cited facts, guard with `geom.ts` + coords, push canonical facts via
 `rel()`/`aval()`, then **import it into `rules/index.ts` and append to
-`PROMOTED_RULES`** (no other shipped file needs editing — `rules.ts` composes
+`PROMOTED_RULES`** (no other shipped file needs editing, since `rules.ts` composes
 `RULES = [...CORE_RULES, ...PROMOTED_RULES]`). Add Vitest (isolation + minimality +
 soundness negative + puzzle replay). Keep it relabeling-invariant for `symmetry.ts`.
 Prototype in `research/freeplay-rules/rules/` first, then promote.
@@ -469,5 +469,5 @@ into `lengths/rules/index.ts`, and append to `RATIO_RULES`; `verify()` runs it v
 **Bigger extensions (not yet built):** a **signed** length table for Menelaus/Ceva
 and external division (LengthAR is unsigned); and numeric-constant ratios (a
 `log 2` generator). Feeding `eqratio` premises into the length rules (`ctx.citedRatios`)
-is already wired — that is what unlocked converse power-of-a-point ⇒ `cyclic`. See §8
+is already wired, and that is what unlocked converse power-of-a-point ⇒ `cyclic`. See §8
 and the research lab's `findings/unsolved-rules-plan.md`.

@@ -80,7 +80,7 @@ BrainLift on Brilliant.org and learning science lives in
 
 A pure client-side SPA. Firebase is the only backend (Auth + Firestore);
 there is no custom server. All course content is shipped in the JS bundle as
-typed TypeScript — only _user progress_ lives in Firestore.
+typed TypeScript; only _user progress_ lives in Firestore.
 
 ### Data / control flow
 
@@ -110,7 +110,7 @@ App (BrowserRouter)
 The key architectural decision (per `PRD.md` §8a): JSXGraph is imperative,
 React is declarative. A **single hook**, `src/lib/geometry/useJSXGraph.ts`, owns
 board creation, element construction, overlay add/remove, and teardown on
-unmount. Content files never touch JSXGraph directly — they emit a serializable
+unmount. Content files never touch JSXGraph directly. They emit a serializable
 `JSXGraphDef` (see `src/lib/geometry/board-types.ts`) that the hook interprets.
 `board-types.ts` allows `{ fn }` arguments so labels/coordinates can recompute
 live as points are dragged, and `{ ref }` arguments to reference earlier
@@ -123,41 +123,42 @@ elements.
 [`docs/DDAR_ENGINE.md`](./DDAR_ENGINE.md) for the full internals and
 [`docs/FREEPLAY_EXPLAINER.md`](./FREEPLAY_EXPLAINER.md) for a plain-language tour.
 
-- `dsl.ts` — the fact language: `Rel` relations (`coll`, `para`, `perp`, `cong`,
+- `dsl.ts`: the fact language: `Rel` relations (`coll`, `para`, `perp`, `cong`,
   `cyclic`, `midp`, `eqangle`), `Aval` angle values, and the length/ratio
   `EqRatio` (`AB/CD = EF/GH`) carried in the `LFact = Fact | EqRatio` union, with
   canonical keys so symmetric facts compare equal.
-- `rules.ts` + `rules/` — the **38** named deduction rules: 13 hand-written
+- `rules.ts` + `rules/`: the **38** named deduction rules: 13 hand-written
   `CORE_RULES`, 16 `PROMOTED_RULES` (promoted from the research lab, e.g. `pascal`,
   `sas_congruence`, `thales_diameter`, `concyclic_from_directed_angles`), and 9
   length/ratio `RATIO_RULES` (`lengths/rules/`, e.g. `power_of_a_point`,
   `sas_similarity`). Each is **coordinate-guarded** so it only fires when the
-  figure numerically supports it. (Incidences — collinearity / point-on-line — are
-  treated as implicit figure structure rather than facts that must be cited; see the
-  design notes in [`DDAR_ENGINE.md`](./DDAR_ENGINE.md) §6.1.)
-- `ar.ts` / `lengths/lengthAR.ts` — `AngleAR`, a Gaussian-elimination table over
+  figure numerically supports it. (Incidences, meaning collinearity and
+  point-on-line, are treated as implicit figure structure rather than facts that
+  must be cited; see the design notes in
+  [`DDAR_ENGINE.md`](./DDAR_ENGINE.md) §6.1.)
+- `ar.ts` / `lengths/lengthAR.ts`: `AngleAR`, a Gaussian-elimination table over
   exact rationals that closes directed-angle chases (mod 180°), and `LengthAR`,
   the dual log-distance table that closes equal-length / ratio chases.
-- `check.ts` / `geom.ts` — numeric truth checks and geometry helpers.
-- `realize.ts` — samples several independent generic realizations of a puzzle
+- `check.ts` / `geom.ts`: numeric truth checks and geometry helpers.
+- `realize.ts`: samples several independent generic realizations of a puzzle
   (from its `construct(rng)`, `DEFAULT_REALIZATIONS = 5`), each validated to
   satisfy the givens.
-- `verify.ts` — the step verifier: a proposed step is accepted only if it is
+- `verify.ts`: the step verifier: a proposed step is accepted only if it is
   numerically true and derivable by a **single** rule (DD, AngleAR, or LengthAR)
   from the cited premises **across all sampled realizations**, with "by symmetry"
   support (`symmetry.ts`). Citing an unnecessary premise is rejected
   (`extraneous_premises`). Checking many cases (not one fixed figure) rejects steps
   that only hold by coincidence in the canonical diagram. (A figure's incidence
-  structure — collinearity / point-on-line — is treated as implicit and need not be
+  structure, collinearity and point-on-line, is treated as implicit and need not be
   cited; see [`DDAR_ENGINE.md`](./DDAR_ENGINE.md) §6.1.)
-- `nl/` — optional natural-language step input: a step typed in English is
+- `nl/`: optional natural-language step input: a step typed in English is
   translated to a structured `(conclusion, premises)` by a deterministic local
   **mock** (default) or an OpenAI-backed Cloud Function, then routed through the
-  **same** `verify()` — the translator has no authority. Off by default.
-- `proofRecord.ts` / `useProofRecorder.ts` — on a win, the full machine-checked
+  **same** `verify()`, so the translator has no authority. Off by default.
+- `proofRecord.ts` / `useProofRecorder.ts`: on a win, the full machine-checked
   proof is compiled and persisted (Firestore for signed-in users, `localStorage`
   for guests).
-- `puzzles/` — the **20** shipped Freeplay problems (each with a `construct(rng)`),
+- `puzzles/`: the **20** shipped Freeplay problems (each with a `construct(rng)`),
   incl. classical lemmas and literal contest citations (JBMO/IMO shortlist) up to
   full **IMO-level problems**; `api.ts` selects local (TypeScript) or remote
   checking. Making the figure itself draggable is scoped in
@@ -180,7 +181,7 @@ brilliant-clone/
 ├─ tsconfig.json             # strict; "@/*" → "src/*"
 ├─ firebase.json             # Hosting (dist + SPA rewrite) + Firestore rules + functions
 ├─ firestore.rules           # per-user read/write isolation; ratelimits locked
-├─ .firebaserc               # default project id (placeholder: sandbox-7d4a1 — set before deploy)
+├─ .firebaserc               # default project id (placeholder: sandbox-7d4a1, set before deploy)
 ├─ .env.example              # VITE_FIREBASE_* keys template
 ├─ README.md / PRD.md / BRAINLIFT.md / BRAINLIFT-freeplay.md
 ├─ docs/                     # PROJECT_STATUS, ROADMAP, DDAR_ENGINE, FREEPLAY_EXPLAINER,
@@ -252,29 +253,29 @@ brilliant-clone/
 
 - [x] **Email/password authentication** via Firebase Auth (`AuthContext`,
       `Login`, `Signup`).
-- [x] **Guest mode** — when no Firebase keys are present
+- [x] **Guest mode**: when no Firebase keys are present
       (`isFirebaseConfigured === false`), the app runs without auth and persists
       progress to `localStorage`.
-- [x] **Route protection** — `ProtectedRoute` gates `/`, `/course`, `/lesson/:id`.
-- [x] **One full course**: _Olympiad Geometry — Angle Chasing_, **7 lessons,
+- [x] **Route protection**: `ProtectedRoute` gates `/`, `/course`, `/lesson/:id`.
+- [x] **One full course**: _Olympiad Geometry: Angle Chasing_, **7 lessons,
       44 solvable steps** (interactive problems plus direct-instruction and
       comprehension stages):
-      1. `triangle-angle-sum` — Angles in a Triangle (6)
-      2. `parallel-lines` — Parallel Lines & Transversals (6)
-      3. `inscribed-angle` — The Inscribed Angle Theorem (6)
-      4. `cyclic-quadrilaterals` — Cyclic Quadrilaterals (6)
-      5. `incenter-lemma` — The Incenter–Excenter Lemma (10)
-      6. `orthocenter` — The Orthocenter Exists (6)
-      7. `orthic-incenter` — Orthocenter = Incenter of the Orthic Triangle (4)
+      1. `triangle-angle-sum`: Angles in a Triangle (6)
+      2. `parallel-lines`: Parallel Lines & Transversals (6)
+      3. `inscribed-angle`: The Inscribed Angle Theorem (6)
+      4. `cyclic-quadrilaterals`: Cyclic Quadrilaterals (6)
+      5. `incenter-lemma`: The Incenter–Excenter Lemma (10)
+      6. `orthocenter`: The Orthocenter Exists (6)
+      7. `orthic-incenter`: Orthocenter = Incenter of the Orthic Triangle (4)
 - [x] **Three answer types** (`src/lib/content/types.ts`):
       `multiple-choice` (multi-try, no penalty), `algebraic` (MathLive input
       graded by math.js symbolic equivalence over random variable assignments),
       and `geometric` (a predicate run against live board state).
-- [x] **Interactive boards** — draggable points, gliders, polygons, circles,
+- [x] **Interactive boards**: draggable points, gliders, polygons, circles,
       angle markers, and **live readout labels** that update on drag, plus
       reusable drag **constraints** (keep a glider on an arc, keep concyclic
       points convex, etc.) in `boards.ts`.
-- [x] **Diagram-based wrong-answer explanations** — explanations are drawn as
+- [x] **Diagram-based wrong-answer explanations**: explanations are drawn as
       **overlays on the learner's current board** (`applyOverlay` /
       `clearOverlays`), keyed to a `triggerCondition` (`default_wrong`,
       `selected_<optionId>`, or `reveal`), shown alongside a text banner.
@@ -283,51 +284,57 @@ brilliant-clone/
       lesson-completion bonus XP, course completion %, **7 achievements**
       (predicate-based, e.g. _First Steps_, _Century_, _Angle Chasing Champion_),
       and XP/achievement toasts.
-- [x] **Resume / "continue learning"** — `LessonPlayer` resumes the bookmarked
+- [x] **Resume / "continue learning"**: `LessonPlayer` resumes the bookmarked
       problem or first unsolved one; Dashboard mirrors this logic.
-- [x] **Persistence** — optimistic in-memory update + Firestore writes
+- [x] **Persistence**: optimistic in-memory update + Firestore writes
       (`progressService.ts`) with a `localStorage` mirror as recovery cache;
       `flushProgress` lets logout await in-flight writes.
-- [x] **Firestore security rules** — per-user isolation
+- [x] **Firestore security rules**: per-user isolation
       (`request.auth.uid == userId`).
-- [x] **Deploy path** — `firebase.json` configures Hosting (SPA rewrite to
+- [x] **Deploy path**: `firebase.json` configures Hosting (SPA rewrite to
       `index.html`) and a `deploy` script.
-- [x] **Working lint** — ESLint flat config (`eslint.config.js`); `npm run lint`
+- [x] **Working lint**: ESLint flat config (`eslint.config.js`); `npm run lint`
       passes (classic Rules-of-Hooks; React Compiler rules deferred).
-- [x] **CI** — GitHub Actions (`.github/workflows/ci.yml`) runs lint,
+- [x] **CI**: GitHub Actions (`.github/workflows/ci.yml`) runs lint,
       type-check, **test**, and build on every push/PR.
-- [x] **Source control** — committed and pushed to a public GitHub repo, with
+- [x] **Source control**: committed and pushed to a public GitHub repo, with
       build artifacts and secrets git-ignored.
-- [x] **Dependency security** — production dependencies have **0 `npm audit`
-      vulnerabilities** (`npm audit --omit=dev`). The default `npm audit` reports a
-      handful of advisories in the dev toolchain only (`vite`/`vitest`/`esbuild`),
-      which are not shipped or production-reachable; bump when convenient.
-- [x] **Competitive Freeplay proof mode** (`/freeplay`, `/freeplay/:puzzleId`) —
+- [ ] **Dependency security** (re-audited 2026-07-28): `npm audit --omit=dev`
+      reports **3 moderate advisories in production dependencies**: three
+      `react-router` / `react-router-dom` issues (open redirect via backslash in
+      `<Link>`/`useNavigate`, open redirect leading to XSS, and constructor
+      injection in `deserializeErrors()`, which needs SSR hydration and so does
+      not apply to this client-only SPA) plus a `protobufjs` parsing DoS pulled in
+      through `firebase`. Clearing the router advisories needs a semver-major bump
+      to `react-router-dom` 7.x. The default `npm audit` adds dev-toolchain
+      findings (`vite`/`vitest`/`esbuild`) that are not shipped or
+      production-reachable. See the near-term item in [ROADMAP.md](./ROADMAP.md).
+- [x] **Competitive Freeplay proof mode** (`/freeplay`, `/freeplay/:puzzleId`):
       a second mode where learners build machine-checked multi-step proofs:
       a read-only figure, a premise/goal panel, and a `StepBuilder` that cites
       facts and applies named theorems, each step validated by the DDAR checker.
       Ships with **20 curated puzzles** (`src/lib/freeplay/puzzles/`) across
       intro/core/challenge tiers, incl. literal contest citations (JBMO/IMO
       shortlist) up to full **IMO-level problems**.
-- [x] **DDAR proof-checker** (`src/lib/freeplay/`) — from-scratch deductive
+- [x] **DDAR proof-checker** (`src/lib/freeplay/`): from-scratch deductive
       database + algebraic reasoning over **38 rules**, with both a directed-angle
       table (`AngleAR`) and a length/ratio table (`LengthAR`, `eqratio` facts),
       coordinate-guarded rules, and a minimality-enforcing step verifier. (See §3
       and [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).)
-- [x] **Natural-language step input** (`src/lib/freeplay/nl/` + `functions/`) —
+- [x] **Natural-language step input** (`src/lib/freeplay/nl/` + `functions/`):
       type a step in English; a deterministic local **mock** (default) or an
       OpenAI-backed Cloud Function proposes a structured step that is routed through
       the **same** `verify()`. The translator has no authority. Live OpenAI path is
       off by default (signed-in only, Auth + App Check, key server-side).
-- [x] **Proof archive** — on a Freeplay win, the full compiled proof is persisted
+- [x] **Proof archive**: on a Freeplay win, the full compiled proof is persisted
       (Firestore for signed-in users, `localStorage` for guests) and browsable at
       `/proofs` (`ProofArchive.tsx`).
-- [x] **Sketch Sandbox** (`/sketch`, `/sketch/:id`) — an interactive
+- [x] **Sketch Sandbox** (`/sketch`, `/sketch/:id`): an interactive
       GeoGebra-like geometry canvas (`src/lib/sketch/`, `components/sketch/`) with
       a construction toolset, serialization, and account persistence
       (`sketchService.ts`); the sketch model, tools, and compile step are
       unit-tested.
-- [x] **Automated test suite** — Vitest (`npm test`, **wired into CI**). Covers the
+- [x] **Automated test suite**: Vitest (`npm test`, **wired into CI**). Covers the
       Freeplay DDAR engine (`src/lib/freeplay/__tests__/`), the **course-app pure
       logic** (`grading/algebra`, `geometry/measure`/`circleAngles`/`parallelAngles`,
       the `recordAttempt`/`reconcile`/`achievements` progress logic), and the
@@ -335,11 +342,11 @@ brilliant-clone/
 
 ### Partial, or present but thin
 
-- [~] **Per-problem analytics captured but unused** — `problemStats` records
+- [~] **Per-problem analytics captured but unused**: `problemStats` records
       `attempts`, `timeSpentMs`, and `lastMistakeId` per problem (and the PRD
       anticipates spaced repetition / stuck-point analysis), but nothing in the
       UI consumes this data yet.
-- [~] **Mobile touch handling** — the board sets `pan`/`zoom` to require
+- [~] **Mobile touch handling**: the board sets `pan`/`zoom` to require
       shift/two-finger gestures so single-finger drags move points, but the
       PRD's larger-hit-target and explicit touch-acceptance work is not evidently
       complete.
@@ -349,15 +356,15 @@ brilliant-clone/
 
 ### Missing
 
-- [ ] **Component / integration tests** — the pure logic (engine, grading,
+- [ ] **Component / integration tests**: the pure logic (engine, grading,
       geometry math, progress reducer) and the research lab are well-covered and
       `npm test` runs in CI, but React components, hooks, and end-to-end UI flows
       have no automated tests yet (only the Playwright demo-recording specs).
 - [ ] **More than one course** (explicit non-goal for this release).
-- [ ] **AI tutor / Socratic hints** (Koji-style) — explanations are static
+- [ ] **AI tutor / Socratic hints** (Koji-style): explanations are static
       authored content.
 - [ ] **Streaks, leagues, leaderboards, notifications** (explicit non-goals).
-- [ ] **Runtime/CMS content authoring** — content is compiled into the bundle.
+- [ ] **Runtime/CMS content authoring**: content is compiled into the bundle.
 
 ---
 
@@ -371,14 +378,15 @@ persist and resume. The React↔JSXGraph architecture described in the PRD is
 genuinely implemented through the single `useJSXGraph` hook.
 
 Beyond the course, the app now also has a **Competitive Freeplay** proof mode
-backed by a from-scratch DDAR proof-checker — a substantially more ambitious
+backed by a from-scratch DDAR proof-checker, a substantially more ambitious
 piece of engineering than the quiz flow, and the most actively developed area
 (see the `research/freeplay-rules/` rule lab).
 
 Engineering hygiene has a solid **baseline**: the project is under source control
 on GitHub, `npm run lint` works, CI (lint + type-check + **test** + build) runs on
-every push/PR, production dependencies are clean (`npm audit --omit=dev` → 0
-vulnerabilities; the dev toolchain has advisories that are not production-reachable), and the
+every push/PR, production dependencies carry 3 moderate advisories (`npm audit
+--omit=dev`, mostly `react-router`, needing a major bump to clear; the dev
+toolchain has further advisories that are not production-reachable), and the
 **Vitest suite** now covers the Freeplay engine, the research rule lab, **and** the
 course-app pure logic (grading, geometry math, progress reducer). The remaining
 test gap is **component/UI coverage**: React components, hooks, and end-to-end
