@@ -158,6 +158,19 @@ you can justify a step by pointing at an earlier, mirror-image step instead of
 re-deriving it. (If the relabeling isn't actually a symmetry, you get *not
 symmetry*.)
 
+### It shows its work
+
+Accepting a step is one thing; being able to check it yourself is another. When a
+step is accepted the engine can also hand back *why*: for an angle or length
+chase, the exact recipe ("this claim equals this fact minus that one"), and for a
+named theorem, the precise facts the theorem was applied to. It also lists any
+fact it used that you did not cite, because the engine gives you the lines of the
+figure for free and those still count as part of the reason.
+
+That receipt is stored with a finished proof and shown under each step, so a proof
+in your archive can be checked with pencil and paper by someone who does not trust
+the engine at all. See §3.6 of [`DDAR_ENGINE.md`](./DDAR_ENGINE.md).
+
 ### No cheating off the diagram
 
 A single drawing can lie. Two angles might *look* equal because of how that one

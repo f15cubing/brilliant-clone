@@ -118,6 +118,8 @@ flowchart TD
 | `realize.ts` | `sampleRealizations`: seeded RNG + per-puzzle `construct` → N validated generic realizations (`DEFAULT_REALIZATIONS = 5`) |
 | `verify.ts` | Step acceptance over N realizations: truth + one-step derivability (DD/AR/LengthAR over `ALL_RULES = [...RULES, ...RATIO_RULES]`) + minimality; `deriveAll` |
 | `symmetry.ts` | "By symmetry": point relabeling, givens automorphism check |
+| `certificate.ts` | Exact-rational solver recovering `candidate = Σ λᵢ·factᵢ` from the equations a table absorbed; `solveSparse` shortens the result |
+| `justification.ts` | The auditable-witness types (`Justification`, `AlgebraicCertificate`, `DeductionWitness`) plus `RULES_READING_FIGURE_INCIDENCE` |
 | `proof.ts` | Client proof state reducer (`initProofState`, `proofReducer`, `isGoal`) |
 | `proofRecord.ts` / `useProofRecorder.ts` | Compile the finished proof to a JSON-safe `CompiledProof` on win and persist it (Firestore for signed-in users, `localStorage` for guests) |
 | `nl/*` | Natural-language step input (off by default): `mock.ts` (offline keyword translator), `firebase.ts` (OpenAI-backed callable), `index.ts` (`getTranslator`), `map.ts` (descriptor → `LFact` lowerer/validator), `types.ts` |
@@ -313,6 +315,34 @@ length rules (`RATIO_RULES`) and then `LengthAR` after the angle DD/AR passes;
 `verify()`'s numeric truth gate uses `factHoldsL` for `eqratio` facts. Because the
 table is **unsigned**, it cannot represent signed ratios (Menelaus/Ceva) or
 numeric-constant ratios (`AB = 2·MA`), see §8.
+
+### 3.6 Witnesses: why a step was accepted
+
+`implies()` answers yes or no, which is enough to accept a step and useless for
+checking one. Pass `witness: true` on `VerifyInput` and an accepted step also
+carries a `Justification`:
+
+| Step kind | What the witness holds |
+|-----------|------------------------|
+| DD rule | `deduction.matched`, the minimal subset of facts the rule still fires on, recovered by dropping facts until it stops. Plus `readsFigureIncidence` when the rule consults the coordinates for collinearity. |
+| `AngleAR` / `LengthAR` | `certificate.terms`, the rational combination that produces the claim, each term tagged `cited` / `derived` (with `viaRule`) / `figure`. Angle certificates also report `turns`, the whole multiples of 180° absorbed. |
+| "By symmetry" | Nothing further: the relabeling is already stored on the step's `analogy`. |
+
+Two properties worth keeping:
+
+1. **Recovery never affects acceptance.** The witness is computed once, on
+   realization 0, after the step has already passed in all of them. `witness` is
+   off by default so the hot minimality loop does no extra work.
+2. **A certificate is validated before it is returned.** `solveCombination`
+   substitutes the combination back and discards it on mismatch, so a solver bug
+   reports no reason rather than a wrong one.
+
+`justification.implicitPremises` names the established facts the engine supplied
+without the learner citing them (§6.1: collinearity is free for the angle chase).
+Recording these is what makes a stored proof self-contained. The shipped IMO SL
+2024 G2 solution has a concrete case: its `∠APX = ∠A2BC` step cites only
+`cyclic(B,P,A2,X)` while the chase also swings arms along `coll(A,I,P,A2)` and
+`coll(B,X,C)`, so on paper the printed citation does not reach the claim.
 
 ---
 
