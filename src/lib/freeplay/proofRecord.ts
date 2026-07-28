@@ -10,6 +10,7 @@
  * (`serverTimestamp()` for Firestore, `Date.now()` for guests).
  */
 import { factLabel, type LFact } from "./dsl";
+import type { Justification } from "./justification";
 import type { FactEntry } from "./proof";
 import type { Difficulty, Puzzle } from "./types";
 
@@ -21,6 +22,19 @@ export interface CompiledStep {
   rule: string;
   /** The established facts this step cited as premises. */
   premises: LFact[];
+  /**
+   * Established facts the ENGINE supplied without the learner citing them
+   * (collinearity handed to the angle chase). Printed alongside `premises` so
+   * the step is checkable on paper: without these a reader can be left unable to
+   * reach the conclusion from the citation list alone.
+   */
+  implicitPremises?: LFact[];
+  /**
+   * The auditable reason: for an algebraic step the rational combination that
+   * produces the claim, for a rule step the exact facts the rule matched. Absent
+   * on proofs recorded before this was captured.
+   */
+  justification?: Justification;
   /** A KaTeX/markdown label for the derived fact (display convenience). */
   humanReadable: string;
   /** Present only when the step was accepted "by symmetry". */
@@ -64,8 +78,17 @@ export function compileProof(facts: FactEntry[], puzzle: Puzzle): CompiledProof 
         premises: f.premises ?? [],
         humanReadable: factLabel(f.fact),
       };
-      // Only attach analogy when it exists so we never serialize `undefined`.
+      // Only attach optional fields when they exist so we never serialize
+      // `undefined` (Firestore rejects it).
       if (f.analogy) step.analogy = f.analogy;
+      if (f.justification) {
+        step.justification = f.justification;
+        // Lift the uncited facts to the top level of the step: they belong next
+        // to `premises`, since together they are what the step actually used.
+        if (f.justification.implicitPremises?.length) {
+          step.implicitPremises = f.justification.implicitPremises;
+        }
+      }
       return step;
     });
 
