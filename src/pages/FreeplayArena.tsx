@@ -258,6 +258,8 @@ function Arena({
           givens: puzzle.given,
           analogy: opts?.subst ? { subst: opts.subst } : undefined,
           realizations: extendRealizations(realizations, auxSteps),
+          // Ask for the auditable witness: the arena persists finished proofs.
+          witness: true,
         },
         puzzle.id,
       );
@@ -275,6 +277,7 @@ function Arena({
           rule: result.rule,
           premises,
           analogy: opts?.subst ? { subst: opts.subst } : undefined,
+          justification: result.justification,
         });
       } else {
         dispatch({ type: "reject", reason: result.reason });

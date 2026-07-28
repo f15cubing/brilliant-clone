@@ -15,12 +15,14 @@
  * v1 covers ANGLES (para / perp / eqangle / aval). Lengths & ratios (cong /
  * eqratio via a log-distance table) are a natural follow-up.
  */
+import { solveSparse } from "./certificate";
 import type { Coords, VarBindings } from "./check";
 import { evalVars } from "./check";
 import type { Fact, PointId } from "./dsl";
 import type { Form } from "./form";
 import { decodeAngle, isAngleToken } from "./form";
 import { angleDeg } from "./geom";
+import type { AlgebraicCertificate, CertificateTerm, PremiseOrigin } from "./justification";
 import {
   rat,
   radd,
@@ -175,6 +177,20 @@ export class AngleAR {
   private table = new Table(PI);
   private vals: Record<string, number> = { [PI]: 180 };
   private named: Record<string, number> | null = null;
+  /**
+   * Every equation this table absorbed, tagged with the fact it came from. The
+   * table itself keeps only the eliminated form, which cannot be read back as a
+   * reason, so the raw equations are retained here for `certificate()`. One fact
+   * may contribute several equations (a `coll` links every pair on its line), so
+   * this is a list of equations rather than a list of facts.
+   */
+  private sources: {
+    fact: Fact;
+    eq: Expr;
+    origin: PremiseOrigin;
+    viaRule?: string;
+    note?: string;
+  }[] = [];
 
   constructor(
     private readonly coords: Coords,
@@ -317,8 +333,13 @@ export class AngleAR {
     }
   }
 
-  /** Register a fact (no-op for non-angle facts; never throws). */
-  add(f: Fact): void {
+  /**
+   * Register a fact (no-op for non-angle facts; never throws).
+   *
+   * `origin` and `viaRule` are recorded only so `certificate()` can say where a
+   * used fact came from. They have no effect on what the table entails.
+   */
+  add(f: Fact, origin: PremiseOrigin = "cited", viaRule?: string): void {
     try {
       // Collinearity merges the directions of every line it spans, so one
       // coll(P,Q,R,S,…) fact links all pairwise directions of the line.
@@ -331,7 +352,15 @@ export class AngleAR {
               if (i === 0 && j === 1) continue;
               const d = this.dir(pts[i], pts[j]);
               if (d && d !== rep) {
-                this.table.addExpr(this.balance(plus({ [d]: rat(1) }, { [rep]: rat(-1) })));
+                const eq = this.balance(plus({ [d]: rat(1) }, { [rep]: rat(-1) }));
+                this.table.addExpr(eq);
+                this.sources.push({
+                  fact: f,
+                  eq,
+                  origin,
+                  viaRule,
+                  note: `direction of ${pts[i]}${pts[j]} = direction of ${pts[0]}${pts[1]}`,
+                });
               }
             }
           }
@@ -339,7 +368,10 @@ export class AngleAR {
         return;
       }
       const eq = this.equation(f);
-      if (eq) this.table.addExpr(eq);
+      if (eq) {
+        this.table.addExpr(eq);
+        this.sources.push({ fact: f, eq, origin, viaRule });
+      }
     } catch {
       // An unencodable fact (e.g. an unknown named variable) just isn't added.
     }
@@ -353,6 +385,45 @@ export class AngleAR {
       return this.table.isImplied(eq);
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * The rational combination of added facts that yields `f`, or null when none
+   * can be recovered and validated.
+   *
+   * This is deliberately independent of `implies`: it re-derives the reason from
+   * the retained equations rather than reading the eliminated table, and the
+   * combination is substituted back and checked before being returned. So a
+   * certificate is sound on its own terms, and a failure here never changes
+   * whether a step verifies.
+   */
+  certificate(f: Fact): AlgebraicCertificate | null {
+    try {
+      const eq = this.equation(f);
+      if (!eq) return null;
+      const sol = solveSparse(
+        this.sources.map((s) => s.eq),
+        eq,
+        PI,
+      );
+      if (!sol) return null;
+      const terms: CertificateTerm[] = [];
+      for (let i = 0; i < this.sources.length; i++) {
+        if (risZero(sol.coeffs[i])) continue;
+        const s = this.sources[i];
+        terms.push({
+          fact: s.fact,
+          coeff: sol.coeffs[i],
+          origin: s.origin,
+          ...(s.viaRule ? { viaRule: s.viaRule } : {}),
+          ...(s.note ? { note: s.note } : {}),
+        });
+      }
+      if (terms.length === 0) return null; // nothing to show is not a reason
+      return { layer: "angle", terms, turns: sol.turns };
+    } catch {
+      return null;
     }
   }
 }

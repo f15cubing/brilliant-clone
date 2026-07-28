@@ -12,6 +12,10 @@
 import { AngleAR } from "./ar";
 import { factHolds, type Coords, type VarBindings } from "./check";
 import { canonicalKey, factEqual, isAmong, rel, type EqRatio, type Fact } from "./dsl";
+import {
+  RULES_READING_FIGURE_INCIDENCE,
+  type Justification,
+} from "./justification";
 import { factHoldsL, type LFact, type LRule } from "./lengths/dsl";
 import { LengthAR } from "./lengths/lengthAR";
 import { RATIO_RULES } from "./lengths/rules";
@@ -78,10 +82,28 @@ export interface VerifyInput {
    * verifier.
    */
   realizations?: Realization[];
+  /**
+   * Recover an auditable `justification` for an accepted step (the algebraic
+   * certificate, the facts a rule matched, and any uncited facts the engine
+   * supplied). Off by default: recovering it costs extra derivations, and the
+   * accept/reject decision never depends on it, so only callers that persist or
+   * display a proof need to ask.
+   */
+  witness?: boolean;
 }
 
 export type VerifyResult =
-  | { valid: true; rule: string }
+  | {
+      valid: true;
+      rule: string;
+      /**
+       * The auditable reason: an algebraic certificate, or the facts a named
+       * rule matched, plus any established facts the engine supplied uncited.
+       * Present whenever it could be recovered; `rule` is unchanged either way,
+       * so nothing downstream is forced to consume it.
+       */
+      justification?: Justification;
+    }
   | {
       valid: false;
       reason:
@@ -105,12 +127,44 @@ export type VerifyResult =
  *      DD/length consequences (so e.g. a cited proportion fuses with a rule's
  *      bridge proportion to close an SAS-similarity ratio chase).
  */
+/**
+ * The minimal subset of `facts` on which `rule` still produces `candidate`.
+ *
+ * Rules report only their conclusions, not which hypotheses they matched, so the
+ * witness is recovered from outside by dropping facts one at a time and seeing
+ * whether the rule keeps firing. That gives an auditable "this theorem was
+ * applied to exactly these facts" without touching any of the 38 rule bodies.
+ */
+function ruleMatchedSubset(
+  rule: LRule,
+  facts: Fact[],
+  ruleCtx: Parameters<LRule["derive"]>[1],
+  candidate: LFact,
+): Fact[] {
+  const fires = (subset: Fact[]): boolean => {
+    try {
+      return rule.derive(subset, ruleCtx).some((d) => factEqual(d, candidate));
+    } catch {
+      return false;
+    }
+  };
+  if (!fires(facts)) return facts;
+  let keep = facts;
+  for (const f of facts) {
+    if (!keep.includes(f)) continue;
+    const trial = keep.filter((g) => g !== f);
+    if (fires(trial)) keep = trial;
+  }
+  return keep;
+}
+
 function deriveOnce(
   cited: LFact[],
   candidate: LFact,
   ctx: { coords: Coords; bindings: VarBindings; points: string[] },
   freeColls: Fact[] = [],
-): string | null {
+  wantWitness = false,
+): Justification | null {
   // The DD rules and the angle table only reason about ordinary facts; `eqratio`
   // premises are routed straight to the length layer. They are also exposed to
   // the rules via `ctx.citedRatios` so a length rule that needs a proportion as
@@ -122,8 +176,10 @@ function deriveOnce(
   const facts = expandColls(ordinary);
   const ruleCtx = { ...ctx, citedRatios };
 
-  const ddDerived: Fact[] = []; // ordinary one-step consequences
-  const lDerived: LFact[] = []; // one-step ratio consequences (eqratio)
+  // One-step consequences, each remembering the rule that produced it so an
+  // algebraic certificate can attribute the intermediate facts it leans on.
+  const ddDerived: { fact: Fact; rule: string }[] = [];
+  const lDerived: { fact: LFact; rule: string }[] = [];
   for (const rule of ALL_RULES) {
     let produced: LFact[];
     try {
@@ -132,9 +188,21 @@ function deriveOnce(
       continue;
     }
     for (const d of produced) {
-      if (factEqual(d, candidate)) return rule.name;
-      if (d.kind === "eqratio") lDerived.push(d);
-      else ddDerived.push(d);
+      if (factEqual(d, candidate)) {
+        if (!wantWitness) return { rule: rule.name, kind: "deduction" };
+        return {
+          rule: rule.name,
+          kind: "deduction",
+          deduction: {
+            ruleId: rule.id,
+            rule: rule.name,
+            matched: ruleMatchedSubset(rule, facts, ruleCtx, candidate),
+            readsFigureIncidence: RULES_READING_FIGURE_INCIDENCE.has(rule.id),
+          },
+        };
+      }
+      if (d.kind === "eqratio") lDerived.push({ fact: d, rule: rule.name });
+      else ddDerived.push({ fact: d, rule: rule.name });
     }
   }
 
@@ -147,14 +215,40 @@ function deriveOnce(
   // don't fire "for free" and silently make a learner's other premises redundant.
   if (candidate.kind !== "eqratio") {
     const ar = new AngleAR(ctx.coords, ctx.bindings);
-    for (const f of [...facts, ...ddDerived, ...freeColls]) ar.add(f);
-    if (ar.implies(candidate)) return "algebraic angle-chase";
+    for (const f of facts) ar.add(f, "cited");
+    for (const d of ddDerived) ar.add(d.fact, "derived", d.rule);
+    for (const f of freeColls) ar.add(f, "figure");
+    if (ar.implies(candidate)) {
+      const out: Justification = {
+        rule: "algebraic angle-chase",
+        kind: "angle-algebra",
+      };
+      if (wantWitness) {
+        const cert = ar.certificate(candidate);
+        if (cert) out.certificate = cert;
+        else out.certificateGap = "the angle table entailed the step but no combination could be recovered";
+      }
+      return out;
+    }
   }
 
   // Length layer: cited facts + one-step DD / length consequences.
   const lar = new LengthAR(ctx.coords);
-  for (const f of [...cited, ...ddDerived, ...lDerived]) lar.add(f);
-  if (lar.implies(candidate)) return "algebraic length-chase";
+  for (const f of cited) lar.add(f, "cited");
+  for (const d of ddDerived) lar.add(d.fact, "derived", d.rule);
+  for (const d of lDerived) lar.add(d.fact, "derived", d.rule);
+  if (lar.implies(candidate)) {
+    const out: Justification = {
+      rule: "algebraic length-chase",
+      kind: "length-algebra",
+    };
+    if (wantWitness) {
+      const cert = lar.certificate(candidate);
+      if (cert) out.certificate = cert;
+      else out.certificateGap = "the length table entailed the step but no combination could be recovered";
+    }
+    return out;
+  }
 
   return null;
 }
@@ -205,7 +299,12 @@ export function verify(input: VerifyInput): VerifyResult {
         return { valid: false, reason: "not_true" };
       }
     }
-    return { valid: true, rule: "by symmetry (analogous argument)" };
+    const label = "by symmetry (analogous argument)";
+    // The relabeling is the whole content of the step, and it is already stored
+    // on the step's `analogy` field, so there is nothing further to recover.
+    return input.witness
+      ? { valid: true, rule: label, justification: { rule: label, kind: "symmetry" } }
+      : { valid: true, rule: label };
   }
 
   // Cited premises must all be established (figure-independent).
@@ -250,11 +349,15 @@ export function verify(input: VerifyInput): VerifyResult {
   // canonical figure (a figure-specific coincidence, e.g. an accidental branch in
   // the angle table) is not a general one-step deduction, so it is rejected as
   // `unjustified`.
-  let rule: string | null = null;
-  for (const r of realizations) {
-    const got = deriveOnce(cited, candidateFact, ctxOf(r), freeColls);
+  // The witness is recovered once, on the canonical realization, and only after
+  // the step has already been accepted in all of them. Recovering it is pure
+  // reporting: it never decides whether the step passes.
+  let justification: Justification | null = null;
+  for (let i = 0; i < realizations.length; i++) {
+    const want = input.witness === true && i === 0;
+    const got = deriveOnce(cited, candidateFact, ctxOf(realizations[i]), freeColls, want);
     if (got === null) return { valid: false, reason: "unjustified" };
-    if (rule === null) rule = got;
+    if (justification === null) justification = got;
   }
 
   // A cited premise is FREE STRUCTURE — never required, never flagged — if it is
@@ -280,7 +383,52 @@ export function verify(input: VerifyInput): VerifyResult {
     }
   }
 
-  return { valid: true, rule: rule! };
+  const final: Justification = justification!;
+  if (!input.witness) return { valid: true, rule: final.rule };
+
+  // Record the established facts the engine supplied without the learner citing
+  // them. An angle certificate already names them (its `figure`-origin terms);
+  // without one, fall back to shrinking `freeColls` to those the derivation
+  // actually needs. Either way the compiled proof ends up self-contained: a
+  // reader is never left staring at a step whose printed premises don't reach it.
+  // De-duplicated: one `coll` contributes a separate equation per pair of points
+  // on its line, so the same fact can back several certificate terms.
+  const implicitSeen = new Set<string>();
+  const implicit = (
+    final.certificate
+      ? final.certificate.terms.filter((t) => t.origin === "figure").map((t) => t.fact)
+      : neededFreeColls(cited, candidateFact, ctxOf(realizations[0]), freeColls)
+  ).filter((f) => {
+    const k = canonicalKey(f);
+    if (implicitSeen.has(k)) return false;
+    implicitSeen.add(k);
+    return true;
+  });
+  if (implicit.length > 0) final.implicitPremises = implicit;
+
+  return { valid: true, rule: final.rule, justification: final };
+}
+
+/**
+ * The smallest subset of `freeColls` the derivation still needs. Used only for
+ * reporting, when no algebraic certificate could name them directly.
+ */
+function neededFreeColls(
+  cited: LFact[],
+  candidate: LFact,
+  ctx: { coords: Coords; bindings: VarBindings; points: string[] },
+  freeColls: Fact[],
+): Fact[] {
+  if (freeColls.length === 0) return [];
+  // Nothing implicit was needed at all.
+  if (deriveOnce(cited, candidate, ctx, []) !== null) return [];
+  let keep = freeColls;
+  for (const f of freeColls) {
+    if (!keep.includes(f)) continue;
+    const trial = keep.filter((g) => g !== f);
+    if (deriveOnce(cited, candidate, ctx, trial) !== null) keep = trial;
+  }
+  return keep;
 }
 
 /**

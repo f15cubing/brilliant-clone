@@ -3,6 +3,7 @@
  * established facts until one matches the goal.
  */
 import { factEqual, isAmong, type LFact, type RuleId } from "./dsl";
+import type { Justification } from "./justification";
 import type { Puzzle } from "./types";
 
 export interface FactEntry {
@@ -20,6 +21,13 @@ export interface FactEntry {
   // R2-D2 (proof archive): the analogy substitution, if this step was accepted
   // "by symmetry". Optional. Keyed as plain strings to avoid a symmetry import.
   analogy?: { subst: Record<string, string> };
+  /**
+   * The auditable reason the engine accepted this step: an algebraic
+   * certificate, or the facts a named rule matched, plus any established facts
+   * the engine supplied uncited. Optional, so a step recorded before this
+   * existed (a saved draft) still loads.
+   */
+  justification?: Justification;
 }
 
 export type Feedback =
@@ -63,6 +71,7 @@ export type ProofAction =
       rule: RuleId;
       premises?: LFact[];
       analogy?: { subst: Record<string, string> };
+      justification?: Justification;
     }
   | {
       type: "reject";
@@ -171,6 +180,7 @@ export function proofReducer(state: ProofState, action: ProofAction): ProofState
         // R2-D2 (proof archive): thread the cited premises/analogy through.
         premises: action.premises,
         analogy: action.analogy,
+        justification: action.justification,
       };
       return {
         ...state,

@@ -25,9 +25,15 @@
  * generator (log 2), and ratios involving numeric constants are out of scope — so
  * this layer reasons purely about equalities and ratio-equalities of lengths.
  */
+import { solveSparse } from "@/lib/freeplay/certificate";
 import type { Coords } from "@/lib/freeplay/check";
 import type { PointId } from "@/lib/freeplay/dsl";
 import { dist } from "@/lib/freeplay/geom";
+import type {
+  AlgebraicCertificate,
+  CertificateTerm,
+  PremiseOrigin,
+} from "@/lib/freeplay/justification";
 import {
   rat,
   radd,
@@ -162,6 +168,17 @@ class Table {
  */
 export class LengthAR {
   private table = new Table();
+  /**
+   * Every equation absorbed, tagged with its originating fact, so
+   * `certificate()` can report the combination that closes a ratio chase. The
+   * table keeps only the eliminated form and cannot be read back as a reason.
+   */
+  private sources: {
+    fact: LFact;
+    eq: Expr;
+    origin: PremiseOrigin;
+    viaRule?: string;
+  }[] = [];
 
   constructor(private readonly coords: Coords) {}
 
@@ -217,11 +234,19 @@ export class LengthAR {
     return null; // every other relation carries no length equation
   }
 
-  /** Register a fact (no-op for facts with no length equation; never throws). */
-  add(f: LFact): void {
+  /**
+   * Register a fact (no-op for facts with no length equation; never throws).
+   *
+   * `origin` and `viaRule` are recorded only for `certificate()`; they do not
+   * affect what the table entails.
+   */
+  add(f: LFact, origin: PremiseOrigin = "cited", viaRule?: string): void {
     try {
       const eq = this.equation(f);
-      if (eq && Object.keys(eq).length > 0) this.table.addExpr(eq);
+      if (eq && Object.keys(eq).length > 0) {
+        this.table.addExpr(eq);
+        this.sources.push({ fact: f, eq, origin, viaRule });
+      }
     } catch {
       // An unencodable / degenerate fact simply isn't added.
     }
@@ -238,6 +263,40 @@ export class LengthAR {
       return this.table.isImplied(eq);
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * The rational combination of added facts that yields `f`, or null.
+   *
+   * Log-lengths carry no modular constant, so the combination has to cancel
+   * exactly. As on the angle layer this is independent of `implies` and is
+   * validated by substitution before being returned.
+   */
+  certificate(f: LFact): AlgebraicCertificate | null {
+    try {
+      const eq = this.equation(f);
+      if (!eq || Object.keys(eq).length === 0) return null;
+      const sol = solveSparse(
+        this.sources.map((s) => s.eq),
+        eq,
+      );
+      if (!sol) return null;
+      const terms: CertificateTerm[] = [];
+      for (let i = 0; i < this.sources.length; i++) {
+        if (risZero(sol.coeffs[i])) continue;
+        const s = this.sources[i];
+        terms.push({
+          fact: s.fact,
+          coeff: sol.coeffs[i],
+          origin: s.origin,
+          ...(s.viaRule ? { viaRule: s.viaRule } : {}),
+        });
+      }
+      if (terms.length === 0) return null;
+      return { layer: "length", terms };
+    } catch {
+      return null;
     }
   }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { StepWitness } from "@/components/freeplay/StepWitness";
 import { MathText } from "@/components/MathText";
 import { Spinner } from "@/components/Spinner";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -210,6 +211,7 @@ function ProofDetailModal({
                 <span className="font-mono text-xs text-ink-faint">
                   — {s.rule}
                 </span>
+                <StepWitness justification={s.justification} />
               </li>
             ))}
           </ol>
